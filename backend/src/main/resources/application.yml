@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: heritage-platform
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  jackson:
+    default-property-inclusion: non_null
+  flyway:
+    enabled: true
+
+app:
+  internal-api-key: ${INTERNAL_API_KEY:change-me-in-production}
