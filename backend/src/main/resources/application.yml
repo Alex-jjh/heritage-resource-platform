@@ -3,7 +3,7 @@ spring:
     name: heritage-platform
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     open-in-view: false
   jackson:
     default-property-inclusion: non_null

@@ -18,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.*;
 
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -59,8 +58,11 @@ class AuthServiceTest {
                         .attributes(AttributeType.builder().name("sub").value("cognito-sub-123").build())
                         .build())
                 .build();
-        when(cognitoClient.adminCreateUser(any(AdminCreateUserRequest.class))).thenReturn(cognitoResponse);
-        when(cognitoClient.adminSetUserPassword(any(AdminSetUserPasswordRequest.class)))
+        
+        // 修改点 1：强转 AdminCreateUserRequest
+        when(cognitoClient.adminCreateUser((AdminCreateUserRequest) any())).thenReturn(cognitoResponse);
+        // 修改点 2：强转 AdminSetUserPasswordRequest
+        when(cognitoClient.adminSetUserPassword((AdminSetUserPasswordRequest) any()))
                 .thenReturn(AdminSetUserPasswordResponse.builder().build());
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
@@ -86,7 +88,9 @@ class AuthServiceTest {
                 .thenReturn(Optional.of(new User()));
 
         assertThrows(DuplicateEmailException.class, () -> authService.register(request));
-        verify(cognitoClient, never()).adminCreateUser(any());
+        
+        // 修改点 3：强转 AdminCreateUserRequest
+        verify(cognitoClient, never()).adminCreateUser((AdminCreateUserRequest) any());
     }
 
     @Test
@@ -97,8 +101,10 @@ class AuthServiceTest {
         request.setDisplayName("Dup User");
 
         when(userRepository.findByEmail("dup@example.com")).thenReturn(Optional.empty());
-        when(cognitoClient.adminCreateUser(any(AdminCreateUserRequest.class)))
-                .thenThrow(UsernameExistsException.builder().message("User exists").build());
+        
+        // 修改点 4：强转 AdminCreateUserRequest
+        when(cognitoClient.adminCreateUser((AdminCreateUserRequest) any()))
+                .thenThrow(UsernameExistsException.builder().message("Username already exists").build());
 
         assertThrows(DuplicateEmailException.class, () -> authService.register(request));
     }
@@ -118,7 +124,9 @@ class AuthServiceTest {
         InitiateAuthResponse authResponse = InitiateAuthResponse.builder()
                 .authenticationResult(authResult)
                 .build();
-        when(cognitoClient.initiateAuth(any(InitiateAuthRequest.class))).thenReturn(authResponse);
+        
+        // 修改点 5：强转 InitiateAuthRequest
+        when(cognitoClient.initiateAuth((InitiateAuthRequest) any())).thenReturn(authResponse);
 
         AuthResponse result = authService.login(request);
 
@@ -134,13 +142,13 @@ class AuthServiceTest {
         request.setEmail("user@example.com");
         request.setPassword("wrong-password");
 
-        when(cognitoClient.initiateAuth(any(InitiateAuthRequest.class)))
+        // 修改点 6：强转 InitiateAuthRequest
+        when(cognitoClient.initiateAuth((InitiateAuthRequest) any()))
                 .thenThrow(NotAuthorizedException.builder().message("Incorrect username or password").build());
 
         AuthenticationException ex = assertThrows(AuthenticationException.class,
                 () -> authService.login(request));
 
-        // Verify the message is generic — doesn't reveal which field was wrong
         assertEquals("Invalid email or password", ex.getMessage());
     }
 
@@ -150,7 +158,8 @@ class AuthServiceTest {
         request.setEmail("noone@example.com");
         request.setPassword("password123");
 
-        when(cognitoClient.initiateAuth(any(InitiateAuthRequest.class)))
+        // 修改点 7：强转 InitiateAuthRequest
+        when(cognitoClient.initiateAuth((InitiateAuthRequest) any()))
                 .thenThrow(UserNotFoundException.builder().message("User does not exist").build());
 
         AuthenticationException ex = assertThrows(AuthenticationException.class,
@@ -162,6 +171,7 @@ class AuthServiceTest {
     @Test
     void logout_callsGlobalSignOut() {
         authService.logout("some-access-token");
-        verify(cognitoClient).globalSignOut(any(GlobalSignOutRequest.class));
+        // 修改点 8：强转 GlobalSignOutRequest
+        verify(cognitoClient).globalSignOut((GlobalSignOutRequest) any());
     }
 }
