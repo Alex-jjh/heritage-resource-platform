@@ -5,16 +5,14 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.*;
-
-import static org.mockito.Mockito.mock;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -25,35 +23,32 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Uses stub controllers to exercise the security filter chain rules
  * without requiring real service implementations.
  */
-@WebMvcTest
+// 终极修复点：明确告诉 Spring 只要加载这几个 Stub 存根！
+// 绝对不要去扫描真实的 AdminController、ResourceController 等，从而避免 Service 依赖缺失
+@WebMvcTest(
+        controllers = {
+                SecurityConfigTest.StubAuthController.class,
+                SecurityConfigTest.StubResourceController.class,
+                SecurityConfigTest.StubAdminController.class,
+                SecurityConfigTest.StubReviewController.class,
+                SecurityConfigTest.StubFileController.class,
+                SecurityConfigTest.StubInternalController.class,
+                SecurityConfigTest.StubSearchController.class
+        },
+        properties = "app.internal-api-key=dummy-test-key"
+)
 @ActiveProfiles("test")
-@Import({SecurityConfig.class, SecurityConfigTest.StubControllers.class})
+@Import(SecurityConfig.class)
 class SecurityConfigTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    // ── Stub controllers that map to the secured paths ──
+    // 终极修复点：强行 Mock 掉 JwtDecoder，切断 Spring Security 去 AWS 拉取公钥的网络请求
+    @MockBean
+    private JwtDecoder jwtDecoder;
 
-    @Configuration
-    static class StubControllers {
-        @Bean
-        JwtDecoder jwtDecoder() { return mock(JwtDecoder.class); }
-        @Bean
-        StubAuthController stubAuthController() { return new StubAuthController(); }
-        @Bean
-        StubResourceController stubResourceController() { return new StubResourceController(); }
-        @Bean
-        StubAdminController stubAdminController() { return new StubAdminController(); }
-        @Bean
-        StubReviewController stubReviewController() { return new StubReviewController(); }
-        @Bean
-        StubFileController stubFileController() { return new StubFileController(); }
-        @Bean
-        StubInternalController stubInternalController() { return new StubInternalController(); }
-        @Bean
-        StubSearchController stubSearchController() { return new StubSearchController(); }
-    }
+    // ── Stub controllers that map to the secured paths ──
 
     @RestController static class StubAuthController {
         @PostMapping("/api/auth/register") String register() { return "ok"; }
@@ -175,7 +170,7 @@ class SecurityConfigTest {
         @DisplayName("ADMINISTRATOR can access admin endpoints")
         void adminCanAccessAdminEndpoints() throws Exception {
             mockMvc.perform(post("/api/admin/resources/123/archive")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMINISTRATOR"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMINISTRATOR"))))
                 .andExpect(status().isOk());
         }
 
@@ -183,7 +178,7 @@ class SecurityConfigTest {
         @DisplayName("CONTRIBUTOR cannot access admin endpoints — returns 403")
         void contributorCannotAccessAdmin() throws Exception {
             mockMvc.perform(get("/api/admin/resources/archived")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
                 .andExpect(status().isForbidden());
         }
 
@@ -191,7 +186,7 @@ class SecurityConfigTest {
         @DisplayName("REGISTERED_VIEWER cannot access admin endpoints — returns 403")
         void viewerCannotAccessAdmin() throws Exception {
             mockMvc.perform(get("/api/admin/resources/archived")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
                 .andExpect(status().isForbidden());
         }
 
@@ -199,7 +194,7 @@ class SecurityConfigTest {
         @DisplayName("REVIEWER cannot access admin endpoints — returns 403")
         void reviewerCannotAccessAdmin() throws Exception {
             mockMvc.perform(get("/api/admin/resources/archived")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_REVIEWER"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_REVIEWER"))))
                 .andExpect(status().isForbidden());
         }
     }
@@ -212,7 +207,7 @@ class SecurityConfigTest {
         @DisplayName("REVIEWER can access review queue")
         void reviewerCanAccessQueue() throws Exception {
             mockMvc.perform(get("/api/reviews/queue")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_REVIEWER"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_REVIEWER"))))
                 .andExpect(status().isOk());
         }
 
@@ -220,7 +215,7 @@ class SecurityConfigTest {
         @DisplayName("ADMINISTRATOR can also access review queue")
         void adminCanAccessQueue() throws Exception {
             mockMvc.perform(get("/api/reviews/queue")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMINISTRATOR"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMINISTRATOR"))))
                 .andExpect(status().isOk());
         }
 
@@ -228,7 +223,7 @@ class SecurityConfigTest {
         @DisplayName("CONTRIBUTOR cannot access review endpoints — returns 403")
         void contributorCannotAccessReview() throws Exception {
             mockMvc.perform(get("/api/reviews/queue")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
                 .andExpect(status().isForbidden());
         }
 
@@ -236,7 +231,7 @@ class SecurityConfigTest {
         @DisplayName("REGISTERED_VIEWER cannot access review endpoints — returns 403")
         void viewerCannotAccessReview() throws Exception {
             mockMvc.perform(post("/api/reviews/123/approve")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
                 .andExpect(status().isForbidden());
         }
     }
@@ -251,7 +246,7 @@ class SecurityConfigTest {
             mockMvc.perform(post("/api/resources")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{}")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
                 .andExpect(status().isOk());
         }
 
@@ -261,7 +256,7 @@ class SecurityConfigTest {
             mockMvc.perform(put("/api/resources/123")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{}")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
                 .andExpect(status().isOk());
         }
 
@@ -269,7 +264,7 @@ class SecurityConfigTest {
         @DisplayName("CONTRIBUTOR can delete resources")
         void contributorCanDeleteResource() throws Exception {
             mockMvc.perform(delete("/api/resources/123")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
                 .andExpect(status().isOk());
         }
 
@@ -277,7 +272,7 @@ class SecurityConfigTest {
         @DisplayName("CONTRIBUTOR can submit resources for review")
         void contributorCanSubmitResource() throws Exception {
             mockMvc.perform(post("/api/resources/123/submit")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
                 .andExpect(status().isOk());
         }
 
@@ -287,7 +282,7 @@ class SecurityConfigTest {
             mockMvc.perform(post("/api/files/upload-url")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{}")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
                 .andExpect(status().isOk());
         }
 
@@ -297,7 +292,7 @@ class SecurityConfigTest {
             mockMvc.perform(post("/api/resources")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{}")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
                 .andExpect(status().isForbidden());
         }
 
@@ -307,7 +302,7 @@ class SecurityConfigTest {
             mockMvc.perform(post("/api/resources")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{}")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_REVIEWER"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_REVIEWER"))))
                 .andExpect(status().isForbidden());
         }
 
@@ -317,7 +312,7 @@ class SecurityConfigTest {
             mockMvc.perform(post("/api/files/upload-url")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{}")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
                 .andExpect(status().isForbidden());
         }
     }
@@ -332,7 +327,7 @@ class SecurityConfigTest {
             mockMvc.perform(post("/api/internal/thumbnails")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{}")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_SYSTEM"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_SYSTEM"))))
                 .andExpect(status().isOk());
         }
 
@@ -342,7 +337,7 @@ class SecurityConfigTest {
             mockMvc.perform(post("/api/internal/thumbnails")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{}")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMINISTRATOR"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMINISTRATOR"))))
                 .andExpect(status().isForbidden());
         }
     }
@@ -355,7 +350,7 @@ class SecurityConfigTest {
         @DisplayName("Any authenticated user can GET a resource")
         void authenticatedUserCanGetResource() throws Exception {
             mockMvc.perform(get("/api/resources/123")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
                 .andExpect(status().isOk());
         }
 
@@ -363,7 +358,7 @@ class SecurityConfigTest {
         @DisplayName("Any authenticated user can search resources")
         void authenticatedUserCanSearch() throws Exception {
             mockMvc.perform(get("/api/search/resources")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
                 .andExpect(status().isOk());
         }
 
@@ -371,7 +366,7 @@ class SecurityConfigTest {
         @DisplayName("Any authenticated user can list their own resources")
         void authenticatedUserCanListMine() throws Exception {
             mockMvc.perform(get("/api/resources/mine")
-                    .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
+                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
                 .andExpect(status().isOk());
         }
     }

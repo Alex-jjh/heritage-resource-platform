@@ -5,8 +5,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
@@ -21,9 +19,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Verifies that the dummy Bearer token with X-Mock-User-Role header
  * correctly authenticates and authorizes requests.
  */
-@WebMvcTest
+// 终极隔离：只加载当前测试类内部的 Stub 控制器，彻底阻断对真实业务组件（如 AdminService）的扫描
+@WebMvcTest(
+        controllers = {
+                LocalAuthFilterTest.LocalStubAuthController.class,
+                LocalAuthFilterTest.LocalStubResourceController.class,
+                LocalAuthFilterTest.LocalStubAdminController.class,
+                LocalAuthFilterTest.LocalStubReviewController.class,
+                LocalAuthFilterTest.LocalStubSearchController.class
+        },
+        properties = "app.internal-api-key=dummy-test-key"
+)
 @ActiveProfiles("local")
-@Import({LocalSecurityConfig.class, LocalAuthFilterTest.StubControllers.class})
+@Import(LocalSecurityConfig.class)
 class LocalAuthFilterTest {
 
     @Autowired
@@ -31,19 +39,7 @@ class LocalAuthFilterTest {
 
     private static final String DUMMY_TOKEN = "Bearer local-dev-token";
 
-    @Configuration
-    static class StubControllers {
-        @Bean
-        LocalStubAuthController localStubAuthController() { return new LocalStubAuthController(); }
-        @Bean
-        LocalStubResourceController localStubResourceController() { return new LocalStubResourceController(); }
-        @Bean
-        LocalStubAdminController localStubAdminController() { return new LocalStubAdminController(); }
-        @Bean
-        LocalStubReviewController localStubReviewController() { return new LocalStubReviewController(); }
-        @Bean
-        LocalStubSearchController localStubSearchController() { return new LocalStubSearchController(); }
-    }
+    // ── Stub controllers that map to the secured paths ──
 
     @RestController static class LocalStubAuthController {
         @PostMapping("/api/auth/register") String register() { return "ok"; }
