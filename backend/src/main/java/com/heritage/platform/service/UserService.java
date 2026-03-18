@@ -55,6 +55,10 @@ public class UserService {
         return userRepository.findByRoleAndContributorRequestedTrue(UserRole.REGISTERED_VIEWER);
     }
 
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
     /**
      * Grants contributor status to a user, updating both the local DB and Cognito.
      */

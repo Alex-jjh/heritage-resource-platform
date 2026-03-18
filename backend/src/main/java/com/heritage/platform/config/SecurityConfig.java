@@ -43,6 +43,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMINISTRATOR")
                 .requestMatchers("/api/users/pending-contributors").hasRole("ADMINISTRATOR")
+                .requestMatchers("/api/users/all").hasRole("ADMINISTRATOR")
                 .requestMatchers("/api/users/*/grant-contributor").hasRole("ADMINISTRATOR")
                 .requestMatchers("/api/users/*/revoke-contributor").hasRole("ADMINISTRATOR")
                 .requestMatchers("/api/reviews/**").hasAnyRole("REVIEWER", "ADMINISTRATOR")

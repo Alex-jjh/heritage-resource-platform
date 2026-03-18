@@ -47,6 +47,15 @@ public class UserController {
         return ResponseEntity.ok(pending);
     }
 
+    @GetMapping("/all")
+    public ResponseEntity<List<UserProfileResponse>> getAllUsers() {
+        List<UserProfileResponse> users = userService.getAllUsers()
+                .stream()
+                .map(UserProfileResponse::fromUser)
+                .toList();
+        return ResponseEntity.ok(users);
+    }
+
     @PostMapping("/{userId}/grant-contributor")
     public ResponseEntity<MessageResponse> grantContributor(@PathVariable UUID userId) {
         userService.grantContributorStatus(userId);
