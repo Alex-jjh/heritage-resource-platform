@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import type { AuthResponse, User } from "@/types";
@@ -69,6 +70,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .catch(() => clearSession())
       .finally(() => setIsLoading(false));
   }, [clearSession]);
+
+  // Auto-logout after 30 minutes of inactivity
+  const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+
+    function resetTimer() {
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+      idleTimer.current = setTimeout(() => {
+        clearSession();
+        window.location.href = "/login?reason=idle";
+      }, IDLE_TIMEOUT_MS);
+    }
+
+    const events = ["mousedown", "keydown", "touchstart", "scroll"];
+    events.forEach((e) => window.addEventListener(e, resetTimer, { passive: true }));
+    resetTimer();
+
+    return () => {
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+      events.forEach((e) => window.removeEventListener(e, resetTimer));
+    };
+  }, [user, clearSession]);
 
   const login = useCallback(async (email: string, password: string) => {
     const tokens = await apiClient.post<AuthResponse>("/api/auth/login", {

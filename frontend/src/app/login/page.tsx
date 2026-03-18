@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api-client";
@@ -19,7 +19,9 @@ import {
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
+  const idleLogout = searchParams.get("reason") === "idle";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -56,6 +58,11 @@ export default function LoginPage() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            {idleLogout && (
+              <div role="status" className="rounded-md bg-amber-50 p-3 text-sm text-amber-700">
+                You were logged out due to inactivity. Please sign in again.
+              </div>
+            )}
             {error && (
               <div
                 role="alert"
