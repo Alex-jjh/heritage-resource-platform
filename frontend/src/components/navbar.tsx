@@ -16,19 +16,25 @@ export function Navbar() {
       <Link href="/browse" onClick={() => setMenuOpen(false)}>
         <Button variant="ghost" size="sm" className="w-full justify-start sm:w-auto">Browse</Button>
       </Link>
+    </>
+  ) : null;
+
+  // Role-specific links go in user dropdown
+  const roleLinks = user ? (
+    <>
       {(user.role === "CONTRIBUTOR" || user.role === "REVIEWER" || user.role === "ADMINISTRATOR") && (
-        <Link href="/contribute" onClick={() => setMenuOpen(false)}>
-          <Button variant="ghost" size="sm" className="w-full justify-start sm:w-auto">Contribute</Button>
+        <Link href="/contribute" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors">
+          My Resources
         </Link>
       )}
       {(user.role === "REVIEWER" || user.role === "ADMINISTRATOR") && (
-        <Link href="/review" onClick={() => setMenuOpen(false)}>
-          <Button variant="ghost" size="sm" className="w-full justify-start sm:w-auto">Review</Button>
+        <Link href="/review" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors">
+          Review Queue
         </Link>
       )}
       {user.role === "ADMINISTRATOR" && (
-        <Link href="/admin/users" onClick={() => setMenuOpen(false)}>
-          <Button variant="ghost" size="sm" className="w-full justify-start sm:w-auto">Admin</Button>
+        <Link href="/admin/users" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors">
+          Admin Panel
         </Link>
       )}
     </>
@@ -74,10 +80,13 @@ export function Navbar() {
                       className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors">
                       <User className="size-4" /> Profile
                     </Link>
-                    <button onClick={() => { logout(); setUserMenuOpen(false); }}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted transition-colors">
-                      <LogOut className="size-4" /> Logout
-                    </button>
+                    {roleLinks && <div className="border-t">{roleLinks}</div>}
+                    <div className="border-t">
+                      <button onClick={() => { logout(); setUserMenuOpen(false); }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted transition-colors">
+                        <LogOut className="size-4" /> Logout
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -113,12 +122,15 @@ export function Navbar() {
                 </div>
               </div>
               {pageLinks}
-              <Link href="/profile" onClick={() => setMenuOpen(false)}>
-                <Button variant="ghost" size="sm" className="w-full justify-start"><User className="mr-2 size-4" /> Profile</Button>
-              </Link>
-              <Button variant="ghost" size="sm" className="w-full justify-start text-destructive" onClick={() => { logout(); setMenuOpen(false); }}>
-                <LogOut className="mr-2 size-4" /> Logout
-              </Button>
+              {roleLinks && <div className="border-t pt-1 mt-1">{roleLinks}</div>}
+              <div className="border-t pt-1 mt-1">
+                <Link href="/profile" onClick={() => setMenuOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start"><User className="mr-2 size-4" /> Profile</Button>
+                </Link>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-destructive" onClick={() => { logout(); setMenuOpen(false); }}>
+                  <LogOut className="mr-2 size-4" /> Logout
+                </Button>
+              </div>
             </>
           ) : (
             <>
