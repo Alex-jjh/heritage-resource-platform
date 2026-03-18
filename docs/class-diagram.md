@@ -198,60 +198,60 @@ classDiagram
     direction LR
 
     class AuthController {
-        <<RestController /api/auth>>
-        +POST /register
-        +POST /login
-        +POST /logout
+        <<RestController>>
+        +register(RegisterRequest) MessageResponse
+        +login(LoginRequest) AuthResponse
+        +logout(String) MessageResponse
     }
 
     class ResourceController {
-        <<RestController /api/resources>>
-        +POST /
-        +GET /{id}
-        +PUT /{id}
-        +DELETE /{id}
-        +POST /{id}/submit
-        +POST /{id}/revise
-        +GET /mine
+        <<RestController>>
+        +create(Principal, CreateResourceRequest) ResourceResponse
+        +getById(UUID, Principal) ResourceResponse
+        +update(UUID, Principal, UpdateResourceRequest) ResourceResponse
+        +delete(UUID, Principal) void
+        +submitForReview(UUID, Principal) ResourceResponse
+        +revise(UUID, Principal) ResourceResponse
+        +listMine(Principal) List~ResourceResponse~
     }
 
     class UserController {
-        <<RestController /api/users>>
-        +GET /me
-        +PUT /me
-        +GET /all
-        +GET /pending-contributors
-        +POST /{id}/grant-contributor
-        +POST /{id}/revoke-contributor
-        +PUT /{id}/role
-        +DELETE /{id}
+        <<RestController>>
+        +getProfile(Principal) UserProfileResponse
+        +updateProfile(Principal, UpdateProfileRequest) UserProfileResponse
+        +getAllUsers() List~UserProfileResponse~
+        +getPendingContributors() List~UserProfileResponse~
+        +grantContributor(UUID) MessageResponse
+        +revokeContributor(UUID) MessageResponse
+        +changeRole(UUID, Map) MessageResponse
+        +deleteUser(UUID) MessageResponse
     }
 
     class SearchController {
-        <<RestController /api/search>>
-        +GET /resources
+        <<RestController>>
+        +searchResources(String, UUID, UUID, int, int) Page~ResourceResponse~
     }
 
     class FileController {
-        <<RestController /api/files>>
-        +POST /upload-url
-        +POST /{resourceId}/references
+        <<RestController>>
+        +getUploadUrl(Principal, UploadUrlRequest) UploadUrlResponse
+        +registerFile(UUID, Principal, FileReferenceRequest) FileReferenceDto
     }
 
     class CategoryController {
-        <<RestController /api/categories>>
-        +GET /
-        +POST /
-        +PUT /{id}
-        +DELETE /{id}
+        <<RestController>>
+        +listAll() List~CategoryResponse~
+        +create(CreateCategoryRequest) CategoryResponse
+        +update(UUID, CreateCategoryRequest) CategoryResponse
+        +delete(UUID) void
     }
 
     class TagController {
-        <<RestController /api/tags>>
-        +GET /
-        +POST /
-        +PUT /{id}
-        +DELETE /{id}
+        <<RestController>>
+        +listAll() List~TagResponse~
+        +create(CreateTagRequest) TagResponse
+        +update(UUID, CreateTagRequest) TagResponse
+        +delete(UUID) void
     }
 
     AuthController ..> AuthService
