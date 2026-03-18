@@ -30,6 +30,9 @@ public class LocalSecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+            .cors(cors -> cors.configurationSource(
+                http.getSharedObject(org.springframework.context.ApplicationContext.class)
+                    .getBean(org.springframework.web.cors.CorsConfigurationSource.class)))
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
