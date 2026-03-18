@@ -39,22 +39,34 @@ public class SearchService {
         boolean hasCategory = categoryId != null;
         boolean hasTag = tagId != null;
 
+        Page<Resource> result;
         if (hasQuery && hasCategory && hasTag) {
-            return resourceRepository.searchByTextQueryAndCategoryAndTag(status, query.trim(), categoryId, tagId, pageable);
+            result = resourceRepository.searchByTextQueryAndCategoryAndTag(status, query.trim(), categoryId, tagId, pageable);
         } else if (hasQuery && hasCategory) {
-            return resourceRepository.searchByTextQueryAndCategory(status, query.trim(), categoryId, pageable);
+            result = resourceRepository.searchByTextQueryAndCategory(status, query.trim(), categoryId, pageable);
         } else if (hasQuery && hasTag) {
-            return resourceRepository.searchByTextQueryAndTag(status, query.trim(), tagId, pageable);
+            result = resourceRepository.searchByTextQueryAndTag(status, query.trim(), tagId, pageable);
         } else if (hasCategory && hasTag) {
-            return resourceRepository.findByStatusAndCategoryIdAndTagId(status, categoryId, tagId, pageable);
+            result = resourceRepository.findByStatusAndCategoryIdAndTagId(status, categoryId, tagId, pageable);
         } else if (hasQuery) {
-            return resourceRepository.searchByTextQuery(status, query.trim(), pageable);
+            result = resourceRepository.searchByTextQuery(status, query.trim(), pageable);
         } else if (hasCategory) {
-            return resourceRepository.findByStatusAndCategoryId(status, categoryId, pageable);
+            result = resourceRepository.findByStatusAndCategoryId(status, categoryId, pageable);
         } else if (hasTag) {
-            return resourceRepository.findByStatusAndTagId(status, tagId, pageable);
+            result = resourceRepository.findByStatusAndTagId(status, tagId, pageable);
         } else {
-            return resourceRepository.findByStatus(status, pageable);
+            result = resourceRepository.findByStatus(status, pageable);
         }
+
+        // Force-initialize lazy associations to prevent LazyInitializationException in DTO conversion
+        result.getContent().forEach(r -> {
+            if (r.getCategory() != null) r.getCategory().getName();
+            if (r.getTags() != null) r.getTags().size();
+            if (r.getFileReferences() != null) r.getFileReferences().size();
+            if (r.getExternalLinks() != null) r.getExternalLinks().size();
+            if (r.getContributor() != null) r.getContributor().getDisplayName();
+        });
+
+        return result;
     }
 }

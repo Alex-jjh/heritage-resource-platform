@@ -61,10 +61,16 @@ public class CommentService {
     /**
      * Returns paginated comments for a resource ordered by creation date descending.
      */
+    @Transactional(readOnly = true)
     public Page<Comment> getComments(UUID resourceId, Pageable pageable) {
         if (!resourceRepository.existsById(resourceId)) {
             throw new ResourceNotFoundException("Resource not found");
         }
-        return commentRepository.findByResourceIdOrderByCreatedAtDesc(resourceId, pageable);
+        Page<Comment> comments = commentRepository.findByResourceIdOrderByCreatedAtDesc(resourceId, pageable);
+        // Force-initialize lazy author association
+        comments.getContent().forEach(c -> {
+            if (c.getAuthor() != null) c.getAuthor().getDisplayName();
+        });
+        return comments;
     }
 }
