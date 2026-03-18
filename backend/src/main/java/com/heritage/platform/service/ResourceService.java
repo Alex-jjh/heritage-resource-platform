@@ -69,7 +69,7 @@ public class ResourceService {
             }
         }
 
-        return resourceRepository.save(resource);
+        return saveAndInitialize(resource);
     }
 
     /**
@@ -110,6 +110,12 @@ public class ResourceService {
 
         initializeLazyAssociations(resource);
         return resource;
+    }
+
+    private Resource saveAndInitialize(Resource resource) {
+        Resource saved = resourceRepository.save(resource);
+        initializeLazyAssociations(saved);
+        return saved;
     }
 
     private void initializeLazyAssociations(Resource resource) {
@@ -163,7 +169,7 @@ public class ResourceService {
             }
         }
 
-        return resourceRepository.save(resource);
+        return saveAndInitialize(resource);
     }
 
     /**
@@ -230,7 +236,7 @@ public class ResourceService {
         transition.setToStatus(targetStatus);
         statusTransitionRepository.save(transition);
 
-        return resourceRepository.save(resource);
+        return saveAndInitialize(resource);
     }
 
     /**
