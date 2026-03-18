@@ -199,7 +199,11 @@ export function ResourceForm({
         </Label>
         <Select value={categoryId} onValueChange={(val) => setCategoryId(val ?? "")}>
           <SelectTrigger className="w-full" id="category">
-            <SelectValue placeholder="Select a category" />
+            <SelectValue>
+              {categoryId
+                ? categories.find((c) => c.id === categoryId)?.name ?? "Select a category"
+                : "Select a category"}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {categories.map((cat) => (
