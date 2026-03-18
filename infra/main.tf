@@ -230,7 +230,7 @@ resource "aws_lambda_function" "thumbnail_generator" {
   environment {
     variables = {
       THUMBNAIL_PREFIX = "thumbnails/"
-      BACKEND_API_URL  = var.backend_api_url
+      BACKEND_API_URL  = "http://${aws_eip.backend.public_ip}:8080"
       API_KEY          = var.lambda_api_key
     }
   }

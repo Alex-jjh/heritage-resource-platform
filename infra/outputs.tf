@@ -22,3 +22,18 @@ output "lambda_thumbnail_function_arn" {
   description = "Lambda thumbnail generator function ARN"
   value       = aws_lambda_function.thumbnail_generator.arn
 }
+
+output "ec2_public_ip" {
+  description = "Elastic IP of the backend EC2 instance"
+  value       = aws_eip.backend.public_ip
+}
+
+output "ec2_ssh_command" {
+  description = "SSH command to connect to the backend"
+  value       = "ssh -i your-key.pem ubuntu@${aws_eip.backend.public_ip}"
+}
+
+output "backend_api_url" {
+  description = "Backend API URL"
+  value       = "http://${aws_eip.backend.public_ip}:8080"
+}

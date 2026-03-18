@@ -28,3 +28,20 @@ variable "lambda_api_key" {
   sensitive   = true
   default     = "change-me-in-production"
 }
+
+variable "ssh_public_key" {
+  description = "SSH public key for EC2 access"
+  type        = string
+}
+
+variable "ec2_instance_type" {
+  description = "EC2 instance type for backend"
+  type        = string
+  default     = "t3.small"
+}
+
+variable "db_password" {
+  description = "MySQL root password"
+  type        = string
+  sensitive   = true
+}
