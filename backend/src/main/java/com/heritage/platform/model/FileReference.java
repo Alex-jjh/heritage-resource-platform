@@ -16,7 +16,7 @@ public class FileReference {
     @JoinColumn(name = "resource_id", nullable = false)
     private Resource resource;
 
-    @Column(nullable = false)
+    @Column(name = "s3_key", nullable = false)
     private String s3Key;
 
     @Column(nullable = false)
