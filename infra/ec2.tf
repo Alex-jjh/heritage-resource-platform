@@ -140,6 +140,28 @@ resource "aws_iam_role_policy" "ec2_s3_access" {
   })
 }
 
+resource "aws_iam_role_policy" "ec2_cognito_access" {
+  name = "heritage-ec2-cognito-access"
+  role = aws_iam_role.ec2_backend.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "cognito-idp:AdminCreateUser",
+          "cognito-idp:AdminSetUserPassword",
+          "cognito-idp:AdminUpdateUserAttributes",
+          "cognito-idp:AdminGetUser",
+          "cognito-idp:AdminDeleteUser"
+        ]
+        Resource = aws_cognito_user_pool.heritage.arn
+      }
+    ]
+  })
+}
+
 resource "aws_iam_instance_profile" "backend" {
   name = "heritage-backend-${var.environment}"
   role = aws_iam_role.ec2_backend.name
