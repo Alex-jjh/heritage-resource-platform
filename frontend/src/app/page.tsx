@@ -28,13 +28,21 @@ export default function Home() {
   return (
     <main>
       {/* Hero section */}
-      <section className="relative overflow-hidden bg-primary py-20 text-primary-foreground sm:py-28">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="relative overflow-hidden py-24 sm:py-32">
+        {/* Background image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/hero-bg.jpeg')" }}
+        />
+        {/* Warm dark overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-stone-900/80 via-stone-900/60 to-stone-800/50" />
+
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl">
-            <h1 className="font-serif text-4xl font-bold tracking-tight sm:text-5xl">
+            <h1 className="font-serif text-4xl font-bold tracking-tight text-white sm:text-5xl drop-shadow-lg">
               Discover &amp; Preserve Cultural Heritage
             </h1>
-            <p className="mt-4 text-lg text-primary-foreground/80">
+            <p className="mt-4 text-lg text-stone-200/90 drop-shadow">
               A community platform for sharing images, stories, traditions,
               places, and educational materials that celebrate our shared
               cultural heritage.
@@ -44,7 +52,7 @@ export default function Home() {
                 <Link href="/browse">
                   <Button
                     size="lg"
-                    className="bg-accent text-accent-foreground hover:bg-accent/90"
+                    className="bg-amber-600 text-white hover:bg-amber-700 shadow-lg"
                   >
                     Browse Resources
                   </Button>
@@ -54,7 +62,7 @@ export default function Home() {
                   <Link href="/register">
                     <Button
                       size="lg"
-                      className="bg-accent text-accent-foreground hover:bg-accent/90"
+                      className="bg-amber-600 text-white hover:bg-amber-700 shadow-lg"
                     >
                       Get Started
                     </Button>
@@ -63,7 +71,7 @@ export default function Home() {
                     <Button
                       size="lg"
                       variant="outline"
-                      className="border-white/40 bg-white/10 text-white hover:bg-white/20"
+                      className="border-white/40 bg-white/10 text-white hover:bg-white/20 shadow-lg backdrop-blur-sm"
                     >
                       Sign In
                     </Button>
