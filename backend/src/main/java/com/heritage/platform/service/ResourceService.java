@@ -86,17 +86,20 @@ public class ResourceService {
 
         // Admins can see all resources
         if (user.getRole() == UserRole.ADMINISTRATOR) {
+            initializeLazyAssociations(resource);
             return resource;
         }
 
         // Owners can see their own resources regardless of status
         if (resource.getContributor().getId().equals(user.getId())) {
+            initializeLazyAssociations(resource);
             return resource;
         }
 
         // Reviewers can see PENDING_REVIEW resources
         if (user.getRole() == UserRole.REVIEWER
                 && resource.getStatus() == ResourceStatus.PENDING_REVIEW) {
+            initializeLazyAssociations(resource);
             return resource;
         }
 
@@ -105,7 +108,17 @@ public class ResourceService {
             throw new ResourceNotFoundException("Resource not found");
         }
 
+        initializeLazyAssociations(resource);
         return resource;
+    }
+
+    private void initializeLazyAssociations(Resource resource) {
+        if (resource.getCategory() != null) resource.getCategory().getName();
+        if (resource.getTags() != null) resource.getTags().size();
+        if (resource.getExternalLinks() != null) resource.getExternalLinks().size();
+        if (resource.getFileReferences() != null) resource.getFileReferences().size();
+        if (resource.getReviewFeedbacks() != null) resource.getReviewFeedbacks().size();
+        if (resource.getContributor() != null) resource.getContributor().getDisplayName();
     }
 
     /**
@@ -180,7 +193,10 @@ public class ResourceService {
     public List<Resource> listContributorResources(String cognitoSub) {
         User user = userRepository.findByCognitoSub(cognitoSub)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        return resourceRepository.findByContributorId(user.getId());
+        List<Resource> resources = resourceRepository.findByContributorId(user.getId());
+        // Force initialization of lazy associations within the transaction
+        resources.forEach(this::initializeLazyAssociations);
+        return resources;
     }
 
     /**
