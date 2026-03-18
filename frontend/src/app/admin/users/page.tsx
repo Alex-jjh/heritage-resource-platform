@@ -15,17 +15,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ShieldCheck, ShieldOff, Search } from "lucide-react";
+import { Trash2, Search, UserPlus } from "lucide-react";
 import type { User } from "@/types";
 
-const ROLE_LABELS: Record<string, string> = {
-  REGISTERED_VIEWER: "Viewer",
-  CONTRIBUTOR: "Contributor",
-  REVIEWER: "Reviewer",
-  ADMINISTRATOR: "Admin",
-};
+const ROLES = [
+  { value: "REGISTERED_VIEWER", label: "Viewer" },
+  { value: "CONTRIBUTOR", label: "Contributor" },
+  { value: "REVIEWER", label: "Reviewer" },
+  { value: "ADMINISTRATOR", label: "Admin" },
+];
 
-const ROLE_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+const ROLE_LABEL: Record<string, string> = Object.fromEntries(
+  ROLES.map((r) => [r.value, r.label])
+);
+
+const ROLE_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   REGISTERED_VIEWER: "secondary",
   CONTRIBUTOR: "default",
   REVIEWER: "outline",
@@ -33,88 +37,122 @@ const ROLE_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "o
 };
 
 function UsersContent() {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
+  const [showAdd, setShowAdd] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [newRole, setNewRole] = useState("REGISTERED_VIEWER");
+  const [addError, setAddError] = useState<string | null>(null);
 
-  const allUsersQuery = useQuery({
+  const usersQ = useQuery({
     queryKey: ["all-users"],
     queryFn: () => apiClient.get<User[]>("/api/users/all"),
   });
 
-  const grantMutation = useMutation({
-    mutationFn: (userId: string) =>
-      apiClient.post(`/api/users/${userId}/grant-contributor`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["all-users"] });
-    },
+  const changeRole = useMutation({
+    mutationFn: ({ id, role }: { id: string; role: string }) =>
+      apiClient.put(`/api/users/${id}/role`, { role }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["all-users"] }),
   });
 
-  const revokeMutation = useMutation({
-    mutationFn: (userId: string) =>
-      apiClient.post(`/api/users/${userId}/revoke-contributor`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["all-users"] });
-    },
+  const deleteUser = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/api/users/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["all-users"] }),
   });
 
-  const users = allUsersQuery.data ?? [];
+  const addUser = useMutation({
+    mutationFn: async () => {
+      // Register via public endpoint then change role if needed
+      await apiClient.post("/api/auth/register", {
+        email: newEmail, password: newPass, displayName: newName,
+      }, { skipAuth: true });
+      if (newRole !== "REGISTERED_VIEWER") {
+        // Refetch to get the new user's ID
+        const users = await apiClient.get<User[]>("/api/users/all");
+        const created = users.find((u) => u.email === newEmail);
+        if (created) {
+          await apiClient.put(`/api/users/${created.id}/role`, { role: newRole });
+        }
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["all-users"] });
+      setShowAdd(false);
+      setNewEmail(""); setNewName(""); setNewPass(""); setNewRole("REGISTERED_VIEWER");
+      setAddError(null);
+    },
+    onError: (err: Error) => setAddError(err.message),
+  });
+
+  const users = usersQ.data ?? [];
   const filtered = users.filter((u) => {
-    const matchesSearch =
-      !search ||
-      u.displayName.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase());
-    const matchesRole = roleFilter === "ALL" || u.role === roleFilter;
-    return matchesSearch && matchesRole;
+    const s = search.toLowerCase();
+    const matchSearch = !s || u.displayName.toLowerCase().includes(s) || u.email.toLowerCase().includes(s);
+    const matchRole = roleFilter === "ALL" || u.role === roleFilter;
+    return matchSearch && matchRole;
   });
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-serif text-3xl font-bold">User Management</h1>
-        <span className="text-sm text-muted-foreground">
-          {users.length} total users
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground">{users.length} users</span>
+          <Button size="sm" onClick={() => setShowAdd(!showAdd)}>
+            <UserPlus className="mr-1 size-4" /> Add User
+          </Button>
+        </div>
       </div>
+
+      {showAdd && (
+        <div className="mb-6 rounded-lg border p-4 space-y-3">
+          <h2 className="font-semibold">Add New User</h2>
+          {addError && <p className="text-sm text-destructive">{addError}</p>}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <Input placeholder="Display Name" value={newName} onChange={(e) => setNewName(e.target.value)} />
+            <Input placeholder="Email" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+            <Input placeholder="Password (min 8, A-z, 0-9)" type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)} />
+            <Select value={newRole} onValueChange={(v) => setNewRole(v ?? "REGISTERED_VIEWER")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => addUser.mutate()} disabled={addUser.isPending || !newEmail || !newName || !newPass}>
+              {addUser.isPending ? "Creating…" : "Create"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => { setShowAdd(false); setAddError(null); }}>Cancel</Button>
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-3 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by name or email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+          <Input placeholder="Search by name or email..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v ?? "ALL")}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by role" />
+          <SelectTrigger className="w-[160px]">
+            <SelectValue>{roleFilter === "ALL" ? "All Roles" : ROLE_LABEL[roleFilter]}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All Roles</SelectItem>
-            <SelectItem value="REGISTERED_VIEWER">Viewer</SelectItem>
-            <SelectItem value="CONTRIBUTOR">Contributor</SelectItem>
-            <SelectItem value="REVIEWER">Reviewer</SelectItem>
-            <SelectItem value="ADMINISTRATOR">Admin</SelectItem>
+            {ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
 
-      {allUsersQuery.isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full rounded-md" />
-          ))}
-        </div>
-      ) : allUsersQuery.isError ? (
-        <div role="alert" className="rounded-md bg-destructive/10 p-4 text-sm text-destructive">
-          Failed to load users.
-        </div>
+      {usersQ.isLoading ? (
+        <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-md" />)}</div>
+      ) : usersQ.isError ? (
+        <div role="alert" className="rounded-md bg-destructive/10 p-4 text-sm text-destructive">Failed to load users.</div>
       ) : filtered.length === 0 ? (
-        <div className="py-16 text-center">
-          <p className="text-lg text-muted-foreground">No users found.</p>
-        </div>
+        <div className="py-16 text-center"><p className="text-lg text-muted-foreground">No users found.</p></div>
       ) : (
         <div className="overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
@@ -133,39 +171,32 @@ function UsersContent() {
                   <td className="px-4 py-3 font-medium">{user.displayName}</td>
                   <td className="px-4 py-3 text-muted-foreground">{user.email}</td>
                   <td className="px-4 py-3">
-                    <Badge variant={ROLE_VARIANTS[user.role] ?? "secondary"}>
-                      {ROLE_LABELS[user.role] ?? user.role}
-                    </Badge>
+                    <Select
+                      value={user.role}
+                      onValueChange={(v) => { if (v && v !== user.role) changeRole.mutate({ id: user.id, role: v }); }}
+                    >
+                      <SelectTrigger className="w-[140px] h-8">
+                        <SelectValue>{ROLE_LABEL[user.role] ?? user.role}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </td>
                   <td className="px-4 py-3">
                     {user.contributorRequested && (
-                      <Badge variant="outline" className="text-amber-600 border-amber-300">
-                        Pending Request
-                      </Badge>
+                      <Badge variant="outline" className="text-amber-600 border-amber-300">Pending</Badge>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right space-x-2">
-                    {user.role === "CONTRIBUTOR" ? (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => revokeMutation.mutate(user.id)}
-                        disabled={revokeMutation.isPending}
-                      >
-                        <ShieldOff className="mr-1 size-3.5" />
-                        Revoke
-                      </Button>
-                    ) : user.role === "REGISTERED_VIEWER" ? (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => grantMutation.mutate(user.id)}
-                        disabled={grantMutation.isPending}
-                      >
-                        <ShieldCheck className="mr-1 size-3.5" />
-                        Grant Contributor
-                      </Button>
-                    ) : null}
+                  <td className="px-4 py-3 text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => { if (confirm(`Delete user ${user.email}?`)) deleteUser.mutate(user.id); }}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
                   </td>
                 </tr>
               ))}

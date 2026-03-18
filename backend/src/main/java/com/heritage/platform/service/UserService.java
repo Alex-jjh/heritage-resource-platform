@@ -59,6 +59,34 @@ public class UserService {
         return userRepository.findAll();
     }
 
+    @Transactional
+    public void changeUserRole(UUID userId, String roleName) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        UserRole newRole = UserRole.valueOf(roleName);
+        user.setRole(newRole);
+        user.setContributorRequested(false);
+        userRepository.save(user);
+        updateCognitoRole(user.getCognitoSub(), newRole);
+    }
+
+    @Transactional
+    public void deleteUser(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        // Delete from Cognito first
+        try {
+            cognitoClient.adminDeleteUser(
+                    software.amazon.awssdk.services.cognitoidentityprovider.model.AdminDeleteUserRequest.builder()
+                            .userPoolId(cognitoConfig.getUserPoolId())
+                            .username(user.getEmail())
+                            .build());
+        } catch (Exception e) {
+            // Log but continue — user may already be deleted from Cognito
+        }
+        userRepository.delete(user);
+    }
+
     /**
      * Grants contributor status to a user, updating both the local DB and Cognito.
      */

@@ -67,4 +67,19 @@ public class UserController {
         userService.revokeContributorStatus(userId);
         return ResponseEntity.ok(new MessageResponse("Contributor status revoked"));
     }
+
+    @PutMapping("/{userId}/role")
+    public ResponseEntity<MessageResponse> changeRole(
+            @PathVariable UUID userId,
+            @RequestBody java.util.Map<String, String> body) {
+        String role = body.get("role");
+        userService.changeUserRole(userId, role);
+        return ResponseEntity.ok(new MessageResponse("Role updated to " + role));
+    }
+
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<MessageResponse> deleteUser(@PathVariable UUID userId) {
+        userService.deleteUser(userId);
+        return ResponseEntity.ok(new MessageResponse("User deleted"));
+    }
 }
