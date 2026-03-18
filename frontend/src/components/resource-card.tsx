@@ -11,9 +11,9 @@ export function ResourceCard({ resource }: { resource: ResourceResponse }) {
       <Card className="h-full transition-shadow group-hover:shadow-md">
         <CardHeader className="pb-2">
           <div className="aspect-[4/3] w-full rounded-md bg-muted flex items-center justify-center overflow-hidden">
-            {resource.thumbnailS3Key ? (
+            {resource.thumbnailUrl ? (
               <img
-                src={resource.thumbnailS3Key}
+                src={resource.thumbnailUrl}
                 alt={resource.title}
                 className="h-full w-full object-cover"
               />

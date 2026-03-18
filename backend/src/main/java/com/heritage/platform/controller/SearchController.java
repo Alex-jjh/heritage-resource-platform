@@ -2,6 +2,7 @@ package com.heritage.platform.controller;
 
 import com.heritage.platform.dto.ResourceResponse;
 import com.heritage.platform.model.Resource;
+import com.heritage.platform.service.FileService;
 import com.heritage.platform.service.SearchService;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -15,9 +16,11 @@ import java.util.UUID;
 public class SearchController {
 
     private final SearchService searchService;
+    private final FileService fileService;
 
-    public SearchController(SearchService searchService) {
+    public SearchController(SearchService searchService, FileService fileService) {
         this.searchService = searchService;
+        this.fileService = fileService;
     }
 
     @GetMapping("/resources")
@@ -28,7 +31,7 @@ public class SearchController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Page<Resource> results = searchService.searchResources(q, categoryId, tagId, page, size);
-        Page<ResourceResponse> response = results.map(ResourceResponse::fromEntity);
+        Page<ResourceResponse> response = results.map(r -> ResourceResponse.fromEntity(r, fileService::generateDownloadUrl));
         return ResponseEntity.ok(response);
     }
 
@@ -36,7 +39,7 @@ public class SearchController {
     public ResponseEntity<List<ResourceResponse>> getFeatured() {
         Page<Resource> results = searchService.searchResources(null, null, null, 0, 3);
         List<ResourceResponse> response = results.getContent().stream()
-                .map(ResourceResponse::fromEntity)
+                .map(r -> ResourceResponse.fromEntity(r, fileService::generateDownloadUrl))
                 .toList();
         return ResponseEntity.ok(response);
     }

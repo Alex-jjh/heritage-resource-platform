@@ -83,6 +83,7 @@ export interface ResourceResponse {
   contributorName: string;
   contributorId: string;
   thumbnailS3Key: string | null;
+  thumbnailUrl: string | null;
   createdAt: string;
   updatedAt: string;
   approvedAt: string | null;

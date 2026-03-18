@@ -24,6 +24,7 @@ public class ResourceResponse {
     private String contributorName;
     private UUID contributorId;
     private String thumbnailS3Key;
+    private String thumbnailUrl;
     private Instant createdAt;
     private Instant updatedAt;
     private Instant approvedAt;
@@ -31,6 +32,10 @@ public class ResourceResponse {
     public ResourceResponse() {}
 
     public static ResourceResponse fromEntity(Resource resource) {
+        return fromEntity(resource, null);
+    }
+
+    public static ResourceResponse fromEntity(Resource resource, Function<String, String> thumbnailUrlGenerator) {
         ResourceResponse resp = new ResourceResponse();
         resp.id = resource.getId();
         resp.title = resource.getTitle();
@@ -51,6 +56,9 @@ public class ResourceResponse {
         resp.contributorName = resource.getContributor().getDisplayName();
         resp.contributorId = resource.getContributor().getId();
         resp.thumbnailS3Key = resource.getThumbnailS3Key();
+        if (resource.getThumbnailS3Key() != null && thumbnailUrlGenerator != null) {
+            resp.thumbnailUrl = thumbnailUrlGenerator.apply(resource.getThumbnailS3Key());
+        }
         resp.createdAt = resource.getCreatedAt();
         resp.updatedAt = resource.getUpdatedAt();
         resp.approvedAt = resource.getApprovedAt();
@@ -86,6 +94,9 @@ public class ResourceResponse {
         resp.contributorName = resource.getContributor().getDisplayName();
         resp.contributorId = resource.getContributor().getId();
         resp.thumbnailS3Key = resource.getThumbnailS3Key();
+        if (resource.getThumbnailS3Key() != null && downloadUrlGenerator != null) {
+            resp.thumbnailUrl = downloadUrlGenerator.apply(resource.getThumbnailS3Key());
+        }
         resp.createdAt = resource.getCreatedAt();
         resp.updatedAt = resource.getUpdatedAt();
         resp.approvedAt = resource.getApprovedAt();
@@ -106,6 +117,7 @@ public class ResourceResponse {
     public String getContributorName() { return contributorName; }
     public UUID getContributorId() { return contributorId; }
     public String getThumbnailS3Key() { return thumbnailS3Key; }
+    public String getThumbnailUrl() { return thumbnailUrl; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public Instant getApprovedAt() { return approvedAt; }
