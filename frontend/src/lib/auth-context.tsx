@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const tokens = await apiClient.post<AuthResponse>("/api/auth/login", {
       email,
       password,
-    });
+    }, { skipAuth: true });
     storeTokens(tokens);
     const profile = await apiClient.get<User>("/api/users/me");
     setUser(profile);
@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
         displayName,
-      });
+      }, { skipAuth: true });
     },
     []
   );

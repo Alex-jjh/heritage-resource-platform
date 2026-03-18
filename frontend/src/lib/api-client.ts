@@ -3,6 +3,7 @@ const BASE_URL =
 
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
+  skipAuth?: boolean;
 };
 
 let onUnauthorized: (() => void) | null = null;
@@ -20,16 +21,18 @@ async function request<T>(
   path: string,
   options: RequestOptions = {}
 ): Promise<T> {
-  const { body, headers: customHeaders, ...rest } = options;
+  const { body, headers: customHeaders, skipAuth, ...rest } = options;
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(customHeaders as Record<string, string>),
   };
 
-  const token = getAccessToken();
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+  if (!skipAuth) {
+    const token = getAccessToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
   }
 
   const response = await fetch(`${BASE_URL}${path}`, {
