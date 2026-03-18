@@ -34,6 +34,11 @@ output "ec2_ssh_command" {
 }
 
 output "backend_api_url" {
-  description = "Backend API URL"
+  description = "Backend API URL (HTTP direct)"
   value       = "http://${aws_eip.backend.public_ip}:8080"
+}
+
+output "backend_api_url_https" {
+  description = "Backend API URL via CloudFront (HTTPS)"
+  value       = "https://${aws_cloudfront_distribution.backend_api.domain_name}"
 }
