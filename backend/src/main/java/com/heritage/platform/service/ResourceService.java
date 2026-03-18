@@ -76,6 +76,7 @@ public class ResourceService {
      * Gets a resource by ID with access control based on status and role.
      * Non-admin users can only see APPROVED resources (or their own).
      */
+    @Transactional(readOnly = true)
     public Resource getResourceById(UUID resourceId, String cognitoSub) {
         Resource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
@@ -175,6 +176,7 @@ public class ResourceService {
     /**
      * Lists all resources owned by the given contributor.
      */
+    @Transactional(readOnly = true)
     public List<Resource> listContributorResources(String cognitoSub) {
         User user = userRepository.findByCognitoSub(cognitoSub)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));

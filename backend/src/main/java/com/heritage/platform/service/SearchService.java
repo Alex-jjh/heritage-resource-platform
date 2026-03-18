@@ -8,6 +8,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -26,6 +27,7 @@ public class SearchService {
      * Searches approved resources with optional text query, category, and tag filters.
      * All filters are combined with AND logic. Archived resources are always excluded.
      */
+    @Transactional(readOnly = true)
     public Page<Resource> searchResources(String query, UUID categoryId, UUID tagId, int page, int size) {
         if (size <= 0) {
             size = DEFAULT_PAGE_SIZE;
