@@ -33,8 +33,18 @@ public class ReviewService {
     /**
      * Returns all PENDING_REVIEW resources ordered by submission date ascending.
      */
+    @Transactional(readOnly = true)
     public List<Resource> getReviewQueue() {
-        return resourceRepository.findByStatusOrderByCreatedAtAsc(ResourceStatus.PENDING_REVIEW);
+        List<Resource> resources = resourceRepository.findByStatusOrderByCreatedAtAsc(ResourceStatus.PENDING_REVIEW);
+        resources.forEach(r -> {
+            if (r.getCategory() != null) r.getCategory().getName();
+            if (r.getTags() != null) r.getTags().size();
+            if (r.getFileReferences() != null) r.getFileReferences().size();
+            if (r.getExternalLinks() != null) r.getExternalLinks().size();
+            if (r.getReviewFeedbacks() != null) r.getReviewFeedbacks().size();
+            if (r.getContributor() != null) r.getContributor().getDisplayName();
+        });
+        return resources;
     }
 
     /**
