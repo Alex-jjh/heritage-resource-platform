@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, ApiError } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
@@ -19,6 +20,7 @@ import type { ResourceResponse, ResourceStatus } from "@/types";
 
 function ContributeDashboardContent() {
   const queryClient = useQueryClient();
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const resourcesQuery = useQuery({
     queryKey: ["my-resources"],
@@ -30,7 +32,9 @@ function ContributeDashboardContent() {
     mutationFn: (id: string) =>
       apiClient.post(`/api/resources/${id}/submit`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["my-resources"] });
+      queryClient.refetchQueries({ queryKey: ["my-resources"] });
+      setSuccessMsg("Resource submitted for review!");
+      setTimeout(() => setSuccessMsg(null), 4000);
     },
   });
 
@@ -38,7 +42,9 @@ function ContributeDashboardContent() {
     mutationFn: (id: string) =>
       apiClient.post(`/api/resources/${id}/revise`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["my-resources"] });
+      queryClient.refetchQueries({ queryKey: ["my-resources"] });
+      setSuccessMsg("Resource moved back to draft for revision.");
+      setTimeout(() => setSuccessMsg(null), 4000);
     },
   });
 
@@ -53,6 +59,12 @@ function ContributeDashboardContent() {
           </Button>
         </Link>
       </div>
+
+      {successMsg && (
+        <div role="status" className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-700">
+          {successMsg}
+        </div>
+      )}
 
       {resourcesQuery.isLoading ? (
         <div className="space-y-4">
