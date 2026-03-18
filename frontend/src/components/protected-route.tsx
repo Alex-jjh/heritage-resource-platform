@@ -25,7 +25,7 @@ export function ProtectedRoute({
       return;
     }
 
-    if (requiredRoles && user && !requiredRoles.includes(user.role)) {
+    if (requiredRoles && user && !requiredRoles.includes(user.role) && user.role !== "ADMINISTRATOR") {
       router.replace("/");
     }
   }, [isLoading, isAuthenticated, user, requiredRoles, router]);
@@ -42,7 +42,7 @@ export function ProtectedRoute({
     return null;
   }
 
-  if (requiredRoles && user && !requiredRoles.includes(user.role)) {
+  if (requiredRoles && user && !requiredRoles.includes(user.role) && user.role !== "ADMINISTRATOR") {
     return null;
   }
 
