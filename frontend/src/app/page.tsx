@@ -17,10 +17,13 @@ export default function Home() {
   const featuredQuery = useQuery({
     queryKey: ["featured-resources"],
     queryFn: () =>
-      apiClient.get<Page<ResourceResponse>>(
-        `/api/search/resources?page=0&size=${FEATURED_COUNT}`
-      ),
-    enabled: isAuthenticated,
+      isAuthenticated
+        ? apiClient.get<Page<ResourceResponse>>(
+            `/api/search/resources?page=0&size=${FEATURED_COUNT}`
+          )
+        : apiClient.get<ResourceResponse[]>("/api/search/featured", { skipAuth: true }).then(
+            (items) => ({ content: items, totalElements: items.length } as Page<ResourceResponse>)
+          ),
   });
 
   const resources = featuredQuery.data?.content ?? [];
@@ -83,22 +86,23 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Featured resources section — only shown to authenticated users */}
-      {isAuthenticated && (
-        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <h2 className="font-serif text-2xl font-bold">
-              Featured Resources
-            </h2>
+      {/* Featured resources section */}
+      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between">
+          <h2 className="font-serif text-2xl font-bold">
+            Featured Resources
+          </h2>
+          {isAuthenticated && (
             <Link href="/browse">
               <Button variant="link" className="text-accent">
                 View all →
               </Button>
             </Link>
-          </div>
+          )}
+        </div>
 
-          <div className="mt-6">
-            {featuredQuery.isLoading || authLoading ? (
+        <div className="mt-6">
+          {featuredQuery.isLoading || authLoading ? (
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {Array.from({ length: FEATURED_COUNT }).map((_, i) => (
                   <div key={i} className="space-y-3">
@@ -132,8 +136,17 @@ export default function Home() {
               </div>
             )}
           </div>
-        </section>
-      )}
+
+        {!isAuthenticated && resources.length > 0 && (
+          <div className="mt-8 text-center">
+            <Link href="/login">
+              <Button variant="outline" size="lg">
+                Sign in to view more →
+              </Button>
+            </Link>
+          </div>
+        )}
+      </section>
 
       {/* Info section for unauthenticated visitors */}
       {!authLoading && !isAuthenticated && (

@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -28,6 +29,15 @@ public class SearchController {
             @RequestParam(defaultValue = "20") int size) {
         Page<Resource> results = searchService.searchResources(q, categoryId, tagId, page, size);
         Page<ResourceResponse> response = results.map(ResourceResponse::fromEntity);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/featured")
+    public ResponseEntity<List<ResourceResponse>> getFeatured() {
+        Page<Resource> results = searchService.searchResources(null, null, null, 0, 3);
+        List<ResourceResponse> response = results.getContent().stream()
+                .map(ResourceResponse::fromEntity)
+                .toList();
         return ResponseEntity.ok(response);
     }
 }
