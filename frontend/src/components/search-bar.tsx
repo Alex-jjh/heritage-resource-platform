@@ -56,9 +56,13 @@ export function SearchBar({
       </div>
       <div className="w-full sm:w-48">
         <label htmlFor="category-filter" className="sr-only">Filter by category</label>
-        <Select value={categoryId} onValueChange={wrapChange(onCategoryChange)}>
+        <Select value={categoryId || "all"} onValueChange={wrapChange(onCategoryChange)}>
           <SelectTrigger id="category-filter">
-            <SelectValue placeholder="All categories" />
+            <SelectValue>
+              {categoryId && categoryId !== "all"
+                ? categories.find((c) => c.id === categoryId)?.name ?? categoryId
+                : "All categories"}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All categories</SelectItem>
@@ -70,9 +74,13 @@ export function SearchBar({
       </div>
       <div className="w-full sm:w-48">
         <label htmlFor="tag-filter" className="sr-only">Filter by tag</label>
-        <Select value={tagId} onValueChange={wrapChange(onTagChange)}>
+        <Select value={tagId || "all"} onValueChange={wrapChange(onTagChange)}>
           <SelectTrigger id="tag-filter">
-            <SelectValue placeholder="All tags" />
+            <SelectValue>
+              {tagId && tagId !== "all"
+                ? tags.find((t) => t.id === tagId)?.name ?? tagId
+                : "All tags"}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All tags</SelectItem>

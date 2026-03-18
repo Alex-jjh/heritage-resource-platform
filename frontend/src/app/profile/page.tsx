@@ -41,8 +41,7 @@ function ProfileContent() {
 
   if (!user) return null;
 
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSave() {
     setError(null);
     setSuccess(false);
 
@@ -82,77 +81,57 @@ function ProfileContent() {
           <CardTitle className="text-2xl">My Profile</CardTitle>
           <CardDescription>View and update your account details</CardDescription>
         </CardHeader>
-        <form onSubmit={handleSave}>
-          <CardContent className="space-y-4">
-            {error && (
-              <div
-                role="alert"
-                className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
-              >
-                {error}
-              </div>
-            )}
-            {success && (
-              <div
-                role="status"
-                className="rounded-md bg-green-50 p-3 text-sm text-green-700"
-              >
-                Profile updated successfully.
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="displayName">Display Name</Label>
-              {isEditing ? (
-                <Input
-                  id="displayName"
-                  type="text"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  required
-                  maxLength={100}
-                />
-              ) : (
-                <p id="displayName" className="text-sm">
-                  {user.displayName}
-                </p>
-              )}
+        <CardContent className="space-y-4">
+          {error && (
+            <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              {error}
             </div>
-
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <p className="text-sm text-muted-foreground">{user.email}</p>
+          )}
+          {success && (
+            <div role="status" className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+              Profile updated successfully.
             </div>
-
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <p className="text-sm text-muted-foreground">
-                {ROLE_LABELS[user.role] ?? user.role}
-              </p>
-            </div>
-          </CardContent>
-          <CardFooter className="flex gap-2">
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="displayName">Display Name</Label>
             {isEditing ? (
-              <>
-                <Button type="submit" disabled={isSaving}>
-                  {isSaving ? "Saving…" : "Save"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCancel}
-                  disabled={isSaving}
-                >
-                  Cancel
-                </Button>
-              </>
+              <Input
+                id="displayName"
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                maxLength={100}
+                autoFocus
+              />
             ) : (
-              <Button type="button" onClick={() => setIsEditing(true)}>
-                Edit Profile
-              </Button>
+              <p id="displayName" className="text-sm">{user.displayName}</p>
             )}
-          </CardFooter>
-        </form>
+          </div>
+          <div className="space-y-2">
+            <Label>Email</Label>
+            <p className="text-sm text-muted-foreground">{user.email}</p>
+          </div>
+          <div className="space-y-2">
+            <Label>Role</Label>
+            <p className="text-sm text-muted-foreground">{ROLE_LABELS[user.role] ?? user.role}</p>
+          </div>
+        </CardContent>
+        <CardFooter className="flex gap-2">
+          {isEditing ? (
+            <>
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? "Saving…" : "Save"}
+              </Button>
+              <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <Button onClick={() => { setSuccess(false); setIsEditing(true); }}>
+              Edit Profile
+            </Button>
+          )}
+        </CardFooter>
       </Card>
     </main>
   );
