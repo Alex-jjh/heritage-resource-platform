@@ -90,7 +90,6 @@ function ResourceDetailContent({ id }: { id: string }) {
       </Link>
 
       <div className="mt-4 space-y-6">
-        {/* Header */}
         <div>
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-3xl font-bold">{resource.title}</h1>
@@ -110,7 +109,6 @@ function ResourceDetailContent({ id }: { id: string }) {
           </p>
         </div>
 
-        {/* Metadata */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <span className="text-xs font-medium uppercase text-muted-foreground">Category</span>
@@ -124,7 +122,6 @@ function ResourceDetailContent({ id }: { id: string }) {
           )}
         </div>
 
-        {/* Tags */}
         {resource.tags.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {resource.tags.map((tag) => (
@@ -133,7 +130,6 @@ function ResourceDetailContent({ id }: { id: string }) {
           </div>
         )}
 
-        {/* Description */}
         {resource.description && (
           <div>
             <h2 className="text-lg font-semibold mb-2">Description</h2>
@@ -141,7 +137,6 @@ function ResourceDetailContent({ id }: { id: string }) {
           </div>
         )}
 
-        {/* Copyright */}
         <div>
           <span className="text-xs font-medium uppercase text-muted-foreground">Copyright</span>
           <p className="text-sm">{resource.copyrightDeclaration}</p>
@@ -149,7 +144,6 @@ function ResourceDetailContent({ id }: { id: string }) {
 
         <Separator />
 
-        {/* File Attachments */}
         {resource.fileReferences.length > 0 && (
           <div>
             <h2 className="text-lg font-semibold mb-3">File Attachments</h2>
@@ -178,7 +172,6 @@ function ResourceDetailContent({ id }: { id: string }) {
           </div>
         )}
 
-        {/* External Links */}
         {resource.externalLinks.length > 0 && (
           <div>
             <h2 className="text-lg font-semibold mb-3">External Links</h2>
@@ -201,7 +194,6 @@ function ResourceDetailContent({ id }: { id: string }) {
 
         <Separator />
 
-        {/* Admin actions for approved resources */}
         {isAdmin && resource.status === "APPROVED" && (
           <div className="rounded-lg border p-4 space-y-3">
             <h2 className="text-lg font-semibold">Admin Actions</h2>
@@ -233,7 +225,6 @@ function ResourceDetailContent({ id }: { id: string }) {
           </div>
         )}
 
-        {/* Comments — only for approved resources */}
         {resource.status === "APPROVED" && (
           <CommentSection resourceId={resource.id} />
         )}

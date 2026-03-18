@@ -42,26 +42,20 @@ function ReviewDetailContent({ id }: { id: string }) {
       router.push("/review");
     },
     onError: (err) => {
-      setActionError(
-        err instanceof ApiError ? err.message : "Failed to approve resource."
-      );
+      setActionError(err instanceof ApiError ? err.message : "Failed to approve resource.");
     },
   });
 
   const rejectMutation = useMutation({
     mutationFn: (comments: string) =>
-      apiClient.post<ResourceResponse>(`/api/reviews/${id}/reject`, {
-        comments,
-      }),
+      apiClient.post<ResourceResponse>(`/api/reviews/${id}/reject`, { comments }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["resource", id] });
       queryClient.invalidateQueries({ queryKey: ["review-queue"] });
       router.push("/review");
     },
     onError: (err) => {
-      setActionError(
-        err instanceof ApiError ? err.message : "Failed to reject resource."
-      );
+      setActionError(err instanceof ApiError ? err.message : "Failed to reject resource.");
     },
   });
 
@@ -93,16 +87,10 @@ function ReviewDetailContent({ id }: { id: string }) {
   if (resourceQuery.isError) {
     return (
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <div
-          role="alert"
-          className="rounded-md bg-destructive/10 p-4 text-sm text-destructive"
-        >
+        <div role="alert" className="rounded-md bg-destructive/10 p-4 text-sm text-destructive">
           Resource not found or you don&apos;t have permission to review it.
         </div>
-        <Link
-          href="/review"
-          className="mt-4 inline-block text-sm text-accent hover:underline"
-        >
+        <Link href="/review" className="mt-4 inline-block text-sm text-accent hover:underline">
           ← Back to review queue
         </Link>
       </main>
@@ -120,7 +108,6 @@ function ReviewDetailContent({ id }: { id: string }) {
       </Link>
 
       <div className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* Resource detail — left/main column */}
         <div className="lg:col-span-2 space-y-6">
           <div>
             <div className="flex items-center gap-3 flex-wrap">
@@ -131,88 +118,62 @@ function ReviewDetailContent({ id }: { id: string }) {
               By {resource.contributorName} · Submitted{" "}
               <time dateTime={resource.updatedAt}>
                 {new Date(resource.updatedAt).toLocaleDateString(undefined, {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
+                  year: "numeric", month: "long", day: "numeric",
                 })}
               </time>
             </p>
           </div>
 
-          {/* Metadata */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <span className="text-xs font-medium uppercase text-muted-foreground">
-                Category
-              </span>
+              <span className="text-xs font-medium uppercase text-muted-foreground">Category</span>
               <p className="text-sm">{resource.category.name}</p>
             </div>
             {resource.place && (
               <div>
-                <span className="text-xs font-medium uppercase text-muted-foreground">
-                  Place
-                </span>
+                <span className="text-xs font-medium uppercase text-muted-foreground">Place</span>
                 <p className="text-sm">{resource.place}</p>
               </div>
             )}
           </div>
 
-          {/* Tags */}
           {resource.tags.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {resource.tags.map((tag) => (
-                <Badge key={tag.id} variant="outline">
-                  {tag.name}
-                </Badge>
+                <Badge key={tag.id} variant="outline">{tag.name}</Badge>
               ))}
             </div>
           )}
 
-          {/* Description */}
           {resource.description && (
             <div>
               <h2 className="text-lg font-semibold mb-2">Description</h2>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                {resource.description}
-              </p>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{resource.description}</p>
             </div>
           )}
 
-          {/* Copyright */}
           <div>
-            <span className="text-xs font-medium uppercase text-muted-foreground">
-              Copyright
-            </span>
+            <span className="text-xs font-medium uppercase text-muted-foreground">Copyright</span>
             <p className="text-sm">{resource.copyrightDeclaration}</p>
           </div>
 
           <Separator />
 
-          {/* File Attachments */}
           {resource.fileReferences.length > 0 && (
             <div>
               <h2 className="text-lg font-semibold mb-3">File Attachments</h2>
               <ul className="space-y-2">
                 {resource.fileReferences.map((file) => (
-                  <li
-                    key={file.id}
-                    className="flex items-center justify-between rounded-md border p-3"
-                  >
+                  <li key={file.id} className="flex items-center justify-between rounded-md border p-3">
                     <div>
-                      <p className="text-sm font-medium">
-                        {file.originalFileName}
-                      </p>
+                      <p className="text-sm font-medium">{file.originalFileName}</p>
                       <p className="text-xs text-muted-foreground">
                         {file.contentType} · {formatFileSize(file.fileSize)}
                       </p>
                     </div>
                     {file.downloadUrl && (
-                      <a
-                        href={file.downloadUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex h-7 items-center rounded-md border border-border bg-background px-2.5 text-sm font-medium hover:bg-muted"
-                      >
+                      <a href={file.downloadUrl} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex h-7 items-center rounded-md border border-border bg-background px-2.5 text-sm font-medium hover:bg-muted">
                         Download
                       </a>
                     )}
@@ -222,19 +183,14 @@ function ReviewDetailContent({ id }: { id: string }) {
             </div>
           )}
 
-          {/* External Links */}
           {resource.externalLinks.length > 0 && (
             <div>
               <h2 className="text-lg font-semibold mb-3">External Links</h2>
               <ul className="space-y-2">
                 {resource.externalLinks.map((link) => (
                   <li key={link.id}>
-                    <a
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-accent hover:underline"
-                    >
+                    <a href={link.url} target="_blank" rel="noopener noreferrer"
+                      className="text-sm text-accent hover:underline">
                       {link.label || link.url}
                     </a>
                   </li>
@@ -244,7 +200,6 @@ function ReviewDetailContent({ id }: { id: string }) {
           )}
         </div>
 
-        {/* Review panel — right column */}
         <aside className="space-y-4">
           <div className="rounded-lg border p-5 space-y-4 sticky top-8">
             <h2 className="text-lg font-semibold">Review Actions</h2>
@@ -257,19 +212,12 @@ function ReviewDetailContent({ id }: { id: string }) {
             ) : (
               <>
                 {actionError && (
-                  <div
-                    role="alert"
-                    className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
-                  >
+                  <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
                     {actionError}
                   </div>
                 )}
 
-                <Button
-                  className="w-full"
-                  onClick={handleApprove}
-                  disabled={isActing}
-                >
+                <Button className="w-full" onClick={handleApprove} disabled={isActing}>
                   <CheckCircle2 className="mr-1.5 size-4" />
                   {approveMutation.isPending ? "Approving…" : "Approve"}
                 </Button>
@@ -277,10 +225,7 @@ function ReviewDetailContent({ id }: { id: string }) {
                 <Separator />
 
                 <div className="space-y-2">
-                  <label
-                    htmlFor="reject-feedback"
-                    className="text-sm font-medium"
-                  >
+                  <label htmlFor="reject-feedback" className="text-sm font-medium">
                     Rejection Feedback
                   </label>
                   <Textarea
@@ -294,16 +239,9 @@ function ReviewDetailContent({ id }: { id: string }) {
                     rows={4}
                   />
                   {feedbackError && (
-                    <p role="alert" className="text-sm text-destructive">
-                      {feedbackError}
-                    </p>
+                    <p role="alert" className="text-sm text-destructive">{feedbackError}</p>
                   )}
-                  <Button
-                    variant="destructive"
-                    className="w-full"
-                    onClick={handleReject}
-                    disabled={isActing}
-                  >
+                  <Button variant="destructive" className="w-full" onClick={handleReject} disabled={isActing}>
                     <XCircle className="mr-1.5 size-4" />
                     {rejectMutation.isPending ? "Rejecting…" : "Reject"}
                   </Button>

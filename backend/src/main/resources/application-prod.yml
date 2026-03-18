@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    url: jdbc:mysql://${RDS_ENDPOINT}:3306/heritage
+    username: ${RDS_USERNAME}
+    password: ${RDS_PASSWORD}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://cognito-idp.${AWS_REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}
+  flyway:
+    enabled: true
+
+aws:
+  cognito:
+    user-pool-id: ${COGNITO_USER_POOL_ID}
+    client-id: ${COGNITO_CLIENT_ID}
+    region: ${AWS_REGION}
+  s3:
+    bucket: ${S3_BUCKET}
+    region: ${AWS_REGION}
+
+app:
+  internal-api-key: ${INTERNAL_API_KEY}
+  cors:
+    allowed-origin: ${FRONTEND_ORIGIN:https://your-domain.com}
