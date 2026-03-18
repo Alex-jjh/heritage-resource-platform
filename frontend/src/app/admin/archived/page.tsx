@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
 import { StatusBadge } from "@/components/status-badge";
+import { AdminNav } from "@/components/admin-nav";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ResourceResponse } from "@/types";
@@ -18,6 +19,7 @@ function ArchivedContent() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <AdminNav />
       <h1 className="font-serif text-3xl font-bold mb-6">Archived Resources</h1>
 
       {archivedQuery.isLoading ? (

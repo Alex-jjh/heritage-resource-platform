@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Trash2, Search, UserPlus } from "lucide-react";
+import { AdminNav } from "@/components/admin-nav";
 import type { User } from "@/types";
 
 const ROLES = [
@@ -96,6 +97,7 @@ function UsersContent() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <AdminNav />
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-serif text-3xl font-bold">User Management</h1>
         <div className="flex items-center gap-3">

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Pencil, Trash2, X, Check } from "lucide-react";
+import { AdminNav } from "@/components/admin-nav";
 import type { Category } from "@/types";
 
 function CategoriesContent() {
@@ -79,6 +80,7 @@ function CategoriesContent() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+      <AdminNav />
       <h1 className="font-serif text-3xl font-bold mb-6">Category Management</h1>
 
       {error && (
