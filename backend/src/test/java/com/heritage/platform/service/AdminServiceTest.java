@@ -4,6 +4,7 @@ import com.heritage.platform.exception.InvalidStatusTransitionException;
 import com.heritage.platform.exception.ResourceNotFoundException;
 import com.heritage.platform.model.*;
 import com.heritage.platform.repository.ResourceRepository;
+import com.heritage.platform.repository.ReviewFeedbackRepository;
 import com.heritage.platform.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,7 @@ import static org.mockito.Mockito.*;
 class AdminServiceTest {
 
     @Mock private ResourceRepository resourceRepository;
+    @Mock private ReviewFeedbackRepository reviewFeedbackRepository;
     @Mock private UserRepository userRepository;
     @Mock private ResourceService resourceService;
 
@@ -32,7 +34,7 @@ class AdminServiceTest {
 
     @BeforeEach
     void setUp() {
-        adminService = new AdminService(resourceRepository, userRepository, resourceService);
+        adminService = new AdminService(resourceRepository, reviewFeedbackRepository, userRepository, resourceService);
 
         admin = new User();
         admin.setId(UUID.randomUUID());
@@ -123,7 +125,7 @@ class AdminServiceTest {
         when(resourceService.transitionStatus(resource.getId(), ResourceStatus.DRAFT, admin))
                 .thenReturn(draftResource);
 
-        Resource result = adminService.unpublishResource(resource.getId(), "admin-sub");
+        Resource result = adminService.unpublishResource(resource.getId(), "admin-sub", "Violates guidelines");
 
         assertThat(result.getStatus()).isEqualTo(ResourceStatus.DRAFT);
         verify(resourceService).transitionStatus(resource.getId(), ResourceStatus.DRAFT, admin);
@@ -136,7 +138,7 @@ class AdminServiceTest {
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
 
-        assertThatThrownBy(() -> adminService.unpublishResource(resource.getId(), "admin-sub"))
+        assertThatThrownBy(() -> adminService.unpublishResource(resource.getId(), "admin-sub", "reason"))
                 .isInstanceOf(InvalidStatusTransitionException.class)
                 .hasMessageContaining("PENDING_REVIEW")
                 .hasMessageContaining("APPROVED");
@@ -147,7 +149,7 @@ class AdminServiceTest {
         UUID id = UUID.randomUUID();
         when(resourceRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> adminService.unpublishResource(id, "admin-sub"))
+        assertThatThrownBy(() -> adminService.unpublishResource(id, "admin-sub", "reason"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
