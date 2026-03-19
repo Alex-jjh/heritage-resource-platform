@@ -31,7 +31,7 @@ export function ResourceCard({ resource }: { resource: ResourceResponse }) {
             <p className="text-xs text-muted-foreground">{resource.place}</p>
           )}
         </CardContent>
-        <CardFooter className="flex flex-wrap gap-1 pt-0">
+        <CardFooter className="flex flex-wrap gap-1 pt-2 pb-4">
           {resource.tags.slice(0, 3).map((tag) => (
             <Badge key={tag.id} variant="outline" className="text-xs">
               {tag.name}
