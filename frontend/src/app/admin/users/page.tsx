@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Trash2, Search, UserPlus } from "lucide-react";
 import { AdminNav } from "@/components/admin-nav";
+import { PageContainer } from "@/components/page-container";
 import type { User } from "@/types";
 
 const ROLES = [
@@ -96,7 +97,7 @@ function UsersContent() {
   });
 
   return (
-    <main className="px-6 py-8 sm:px-12 lg:px-16">
+    <main><PageContainer>
       <AdminNav />
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-serif text-3xl font-bold">User Management</h1>
@@ -199,7 +200,7 @@ function UsersContent() {
           </table>
         </div>
       )}
-    </main>
+    </PageContainer></main>
   );
 }
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { apiClient, ApiError } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
+import { PageContainer } from "@/components/page-container";
 import { ResourceForm, type ResourceFormData } from "@/components/resource-form";
 import Link from "next/link";
 import type { ResourceResponse } from "@/types";
@@ -35,7 +36,7 @@ function CreateResourceContent() {
   }
 
   return (
-    <main className="px-6 py-8 sm:px-12 lg:px-16 max-w-3xl">
+    <main><PageContainer narrow>
       <Link
         href="/contribute"
         className="text-sm text-accent hover:underline"
@@ -55,7 +56,7 @@ function CreateResourceContent() {
         submitLabel="Create Draft"
         error={error}
       />
-    </main>
+    </PageContainer></main>
   );
 }
 

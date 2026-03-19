@@ -15,7 +15,7 @@ export function AdminNav() {
 
   return (
     <nav className="border-b mb-6">
-      <div className="px-4 sm:px-6 lg:px-8 flex gap-1 overflow-x-auto">
+      <div className="px-6 sm:px-10 lg:px-20 xl:px-32 flex gap-1 overflow-x-auto">
         {TABS.map((tab) => {
           const active = pathname === tab.href;
           return (

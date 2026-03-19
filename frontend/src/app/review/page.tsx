@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
+import { PageContainer } from "@/components/page-container";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,7 +18,7 @@ function ReviewQueueContent() {
   });
 
   return (
-    <main className="px-6 py-8 sm:px-12 lg:px-16">
+    <main><PageContainer>
       <h1 className="font-serif text-3xl font-bold mb-6">Review Queue</h1>
 
       {queueQuery.isLoading ? (
@@ -87,7 +88,7 @@ function ReviewQueueContent() {
           </table>
         </div>
       )}
-    </main>
+    </PageContainer></main>
   );
 }
 

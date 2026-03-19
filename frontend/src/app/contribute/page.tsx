@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, ApiError } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
+import { PageContainer } from "@/components/page-container";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,7 +50,7 @@ function ContributeDashboardContent() {
   });
 
   return (
-    <main className="px-6 py-8 sm:px-12 lg:px-16">
+    <main><PageContainer>
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-serif text-3xl font-bold">My Resources</h1>
         <Link href="/contribute/new">
@@ -102,7 +103,7 @@ function ContributeDashboardContent() {
           ))}
         </div>
       )}
-    </main>
+    </PageContainer></main>
   );
 }
 

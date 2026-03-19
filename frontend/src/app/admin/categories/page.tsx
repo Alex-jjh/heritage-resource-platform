@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Pencil, Trash2, X, Check } from "lucide-react";
 import { AdminNav } from "@/components/admin-nav";
+import { PageContainer } from "@/components/page-container";
 import type { Category } from "@/types";
 
 function CategoriesContent() {
@@ -79,7 +80,7 @@ function CategoriesContent() {
   }
 
   return (
-    <main className="px-6 py-8 sm:px-12 lg:px-16">
+    <main><PageContainer>
       <AdminNav />
       <h1 className="font-serif text-3xl font-bold mb-6">Category Management</h1>
 
@@ -185,7 +186,7 @@ function CategoriesContent() {
           </table>
         </div>
       )}
-    </main>
+    </PageContainer></main>
   );
 }
 

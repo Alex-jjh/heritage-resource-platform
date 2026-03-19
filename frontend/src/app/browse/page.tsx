@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
+import { PageContainer } from "@/components/page-container";
 import { SearchBar } from "@/components/search-bar";
 import { ResourceCard } from "@/components/resource-card";
 import { Button } from "@/components/ui/button";
@@ -71,7 +72,7 @@ function BrowseContent() {
   const data = resourcesQuery.data;
 
   return (
-    <main className="px-6 py-8 sm:px-12 lg:px-16">
+    <main><PageContainer>
       <h1 className="text-3xl font-bold mb-6">Browse Heritage Resources</h1>
 
       <SearchBar
@@ -147,7 +148,7 @@ function BrowseContent() {
           </>
         ) : null}
       </div>
-    </main>
+    </PageContainer></main>
   );
 }
 

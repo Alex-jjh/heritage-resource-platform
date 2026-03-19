@@ -6,6 +6,7 @@ import { apiClient } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
 import { StatusBadge } from "@/components/status-badge";
 import { AdminNav } from "@/components/admin-nav";
+import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ResourceResponse } from "@/types";
@@ -18,7 +19,7 @@ function ArchivedContent() {
   });
 
   return (
-    <main className="px-6 py-8 sm:px-12 lg:px-16">
+    <main><PageContainer>
       <AdminNav />
       <h1 className="font-serif text-3xl font-bold mb-6">Archived Resources</h1>
 
@@ -68,7 +69,7 @@ function ArchivedContent() {
           </table>
         </div>
       )}
-    </main>
+    </PageContainer></main>
   );
 }
 
