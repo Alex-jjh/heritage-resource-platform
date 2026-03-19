@@ -40,7 +40,7 @@ export default function Home() {
         {/* Warm dark overlay for readability */}
         <div className="absolute inset-0 bg-gradient-to-r from-stone-900/80 via-stone-900/60 to-stone-800/50" />
 
-        <div className="relative mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8">
+        <div className="relative px-6 sm:px-12 lg:px-16">
           <div className="max-w-2xl">
             <h1 className="font-serif text-4xl font-bold tracking-tight text-white sm:text-5xl drop-shadow-lg">
               Discover &amp; Preserve Cultural Heritage
@@ -87,7 +87,7 @@ export default function Home() {
       </section>
 
       {/* Featured resources section */}
-      <section className="mx-auto max-w-screen-2xl px-4 py-12 sm:px-6 lg:px-8">
+      <section className="px-6 py-12 sm:px-12 lg:px-16">
         <div className="flex items-center justify-between">
           <h2 className="font-serif text-2xl font-bold">
             Featured Resources
@@ -150,7 +150,7 @@ export default function Home() {
 
       {/* Info section for unauthenticated visitors */}
       {!authLoading && !isAuthenticated && (
-        <section className="mx-auto max-w-screen-2xl px-4 py-16 sm:px-6 lg:px-8">
+        <section className="px-6 py-16 sm:px-12 lg:px-16">
           <div className="grid gap-8 sm:grid-cols-3">
             <div className="text-center">
               <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-2xl">

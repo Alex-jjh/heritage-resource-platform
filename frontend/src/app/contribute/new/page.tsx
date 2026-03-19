@@ -35,7 +35,7 @@ function CreateResourceContent() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
+    <main className="px-6 py-8 sm:px-12 lg:px-16 max-w-3xl">
       <Link
         href="/contribute"
         className="text-sm text-accent hover:underline"

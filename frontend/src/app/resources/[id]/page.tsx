@@ -60,7 +60,7 @@ function ResourceDetailContent({ id }: { id: string }) {
 
   if (resourceQuery.isLoading) {
     return (
-      <main className="mx-auto max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+      <main className="px-6 py-8 sm:px-12 lg:px-16 space-y-6">
         <Skeleton className="h-8 w-2/3" />
         <Skeleton className="h-5 w-1/3" />
         <Skeleton className="h-40 w-full" />
@@ -70,7 +70,7 @@ function ResourceDetailContent({ id }: { id: string }) {
 
   if (resourceQuery.isError) {
     return (
-      <main className="mx-auto max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="px-6 py-8 sm:px-12 lg:px-16">
         <div role="alert" className="rounded-md bg-destructive/10 p-4 text-sm text-destructive">
           Resource not found or you don&apos;t have permission to view it.
         </div>
@@ -84,7 +84,7 @@ function ResourceDetailContent({ id }: { id: string }) {
   const resource = resourceQuery.data!;
 
   return (
-    <main className="mx-auto max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-8">
+    <main className="px-6 py-8 sm:px-12 lg:px-16">
       <Link href="/browse" className="text-sm text-accent hover:underline">
         ← Back to browse
       </Link>

@@ -49,7 +49,7 @@ function ContributeDashboardContent() {
   });
 
   return (
-    <main className="mx-auto max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-8">
+    <main className="px-6 py-8 sm:px-12 lg:px-16">
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-serif text-3xl font-bold">My Resources</h1>
         <Link href="/contribute/new">

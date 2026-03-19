@@ -71,7 +71,7 @@ function BrowseContent() {
   const data = resourcesQuery.data;
 
   return (
-    <main className="mx-auto max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-8">
+    <main className="px-6 py-8 sm:px-12 lg:px-16">
       <h1 className="text-3xl font-bold mb-6">Browse Heritage Resources</h1>
 
       <SearchBar
