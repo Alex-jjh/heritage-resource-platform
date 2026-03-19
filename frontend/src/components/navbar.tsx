@@ -39,7 +39,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8" aria-label="Main navigation">
+      <nav className="mx-auto flex max-w-screen-2xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8" aria-label="Main navigation">
         {/* Left: Logo */}
         <Link href="/" className="flex items-center gap-2 shrink-0">
           <span className="text-2xl" aria-hidden="true">🏛️</span>
