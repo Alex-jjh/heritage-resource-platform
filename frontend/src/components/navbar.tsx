@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Menu, X, User, LogOut, ChevronDown } from "lucide-react";
@@ -10,76 +11,84 @@ export function Navbar() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   const userInitial = user?.displayName?.charAt(0)?.toUpperCase() ?? "?";
 
-  // Navigation links based on role
-  const navLinks = isAuthenticated && user ? (
-    <>
-      <Link href="/browse">
-        <Button variant="ghost" size="sm">Browse</Button>
+  function navLink(href: string, label: string) {
+    const active = pathname === href || pathname.startsWith(href + "/");
+    return (
+      <Link
+        key={href}
+        href={href}
+        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+          active
+            ? "bg-primary/10 text-primary"
+            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+        }`}
+      >
+        {label}
       </Link>
-      {(user.role === "CONTRIBUTOR" || user.role === "REVIEWER" || user.role === "ADMINISTRATOR") && (
-        <Link href="/contribute">
-          <Button variant="ghost" size="sm">My Resources</Button>
-        </Link>
-      )}
-      {(user.role === "REVIEWER" || user.role === "ADMINISTRATOR") && (
-        <Link href="/review">
-          <Button variant="ghost" size="sm">Review</Button>
-        </Link>
-      )}
-      {user.role === "ADMINISTRATOR" && (
-        <Link href="/admin/users">
-          <Button variant="ghost" size="sm">Admin</Button>
-        </Link>
-      )}
-    </>
-  ) : null;
+    );
+  }
+
+  const links = isAuthenticated && user ? [
+    { href: "/browse", label: "Browse" },
+    ...((user.role === "CONTRIBUTOR" || user.role === "REVIEWER" || user.role === "ADMINISTRATOR")
+      ? [{ href: "/contribute", label: "My Resources" }] : []),
+    ...((user.role === "REVIEWER" || user.role === "ADMINISTRATOR")
+      ? [{ href: "/review", label: "Review" }] : []),
+    ...(user.role === "ADMINISTRATOR"
+      ? [{ href: "/admin/users", label: "Admin" }] : []),
+  ] : [];
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-      <nav className="mx-auto flex max-w-screen-2xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8" aria-label="Main navigation">
-        {/* Left: Logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0">
-          <span className="text-2xl" aria-hidden="true">🏛️</span>
-          <span className="font-serif text-xl font-bold text-primary">Heritage Platform</span>
-        </Link>
+    <header className="sticky top-0 z-50 w-full border-b bg-white">
+      <div className="flex h-14 items-center px-4 sm:px-6">
+        {/* Left: Logo + Nav links */}
+        <div className="flex items-center gap-1">
+          <Link href="/" className="flex items-center gap-2 mr-4 shrink-0">
+            <span className="text-2xl" aria-hidden="true">🏛️</span>
+            <span className="hidden sm:inline font-serif text-lg font-bold text-primary">
+              Heritage Platform
+            </span>
+          </Link>
 
-        {/* Center: Nav links (desktop) */}
-        <div className="hidden sm:flex items-center gap-1">
-          {isLoading ? null : navLinks}
+          {/* Desktop nav links */}
+          <div className="hidden md:flex items-center gap-0.5">
+            {links.map((l) => navLink(l.href, l.label))}
+          </div>
         </div>
 
-        {/* Right: User area (desktop) */}
-        <div className="hidden sm:flex items-center gap-2">
-          {isLoading ? (
-            <span className="text-sm text-muted-foreground">Loading…</span>
-          ) : isAuthenticated && user ? (
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Right: User area */}
+        <div className="hidden md:flex items-center gap-2">
+          {isLoading ? null : isAuthenticated && user ? (
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 onBlur={() => setTimeout(() => setUserMenuOpen(false), 150)}
-                className="flex items-center gap-1.5 rounded-full border px-2 py-1 hover:bg-muted transition-colors"
+                className="flex items-center gap-2 rounded-full hover:bg-muted px-2 py-1 transition-colors"
               >
-                <span className="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+                <span className="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                   {userInitial}
                 </span>
-                <span className="text-sm font-medium max-w-[120px] truncate">{user.displayName}</span>
                 <ChevronDown className="size-3.5 text-muted-foreground" />
               </button>
               {userMenuOpen && (
-                <div className="absolute right-0 mt-1 w-48 rounded-md border bg-card shadow-lg py-1 z-50">
-                  <div className="px-3 py-2 border-b">
+                <div className="absolute right-0 mt-1 w-52 rounded-md border bg-white shadow-lg py-1 z-50">
+                  <div className="px-4 py-2.5 border-b">
                     <p className="text-sm font-medium truncate">{user.displayName}</p>
                     <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                   </div>
                   <Link href="/profile" onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors">
+                    className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-muted transition-colors">
                     <User className="size-4" /> Profile
                   </Link>
                   <button onClick={() => { logout(); setUserMenuOpen(false); }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted transition-colors">
+                    className="flex w-full items-center gap-2 px-4 py-2 text-sm text-destructive hover:bg-muted transition-colors">
                     <LogOut className="size-4" /> Logout
                   </button>
                 </div>
@@ -88,23 +97,21 @@ export function Navbar() {
           ) : (
             <>
               <Link href="/login"><Button variant="ghost" size="sm">Login</Button></Link>
-              <Link href="/register"><Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90">Register</Button></Link>
+              <Link href="/register"><Button size="sm">Register</Button></Link>
             </>
           )}
         </div>
 
         {/* Mobile hamburger */}
-        <Button variant="ghost" size="sm" className="sm:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu">
+        <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setMenuOpen(!menuOpen)}>
           {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
         </Button>
-      </nav>
+      </div>
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="sm:hidden border-t px-4 py-3 flex flex-col gap-1 bg-card">
-          {isLoading ? (
-            <span className="text-sm text-muted-foreground">Loading…</span>
-          ) : isAuthenticated && user ? (
+        <div className="md:hidden border-t px-4 py-3 flex flex-col gap-1 bg-white">
+          {isAuthenticated && user ? (
             <>
               <div className="flex items-center gap-2 px-2 py-2 mb-2 border-b pb-3">
                 <span className="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
@@ -115,24 +122,11 @@ export function Navbar() {
                   <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                 </div>
               </div>
-              <Link href="/browse" onClick={() => setMenuOpen(false)}>
-                <Button variant="ghost" size="sm" className="w-full justify-start">Browse</Button>
-              </Link>
-              {(user.role === "CONTRIBUTOR" || user.role === "REVIEWER" || user.role === "ADMINISTRATOR") && (
-                <Link href="/contribute" onClick={() => setMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start">My Resources</Button>
+              {links.map((l) => (
+                <Link key={l.href} href={l.href} onClick={() => setMenuOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start">{l.label}</Button>
                 </Link>
-              )}
-              {(user.role === "REVIEWER" || user.role === "ADMINISTRATOR") && (
-                <Link href="/review" onClick={() => setMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start">Review</Button>
-                </Link>
-              )}
-              {user.role === "ADMINISTRATOR" && (
-                <Link href="/admin/users" onClick={() => setMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start">Admin</Button>
-                </Link>
-              )}
+              ))}
               <div className="border-t pt-1 mt-1">
                 <Link href="/profile" onClick={() => setMenuOpen(false)}>
                   <Button variant="ghost" size="sm" className="w-full justify-start"><User className="mr-2 size-4" /> Profile</Button>
@@ -148,7 +142,7 @@ export function Navbar() {
                 <Button variant="ghost" size="sm" className="w-full justify-start">Login</Button>
               </Link>
               <Link href="/register" onClick={() => setMenuOpen(false)}>
-                <Button size="sm" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">Register</Button>
+                <Button size="sm" className="w-full">Register</Button>
               </Link>
             </>
           )}
