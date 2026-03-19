@@ -179,20 +179,20 @@ function ResourceListItem({
           )}
         </div>
 
-        {/* Reviewer feedback for rejected resources */}
-        {isRejected &&
+        {/* Reviewer/Admin feedback for rejected or unpublished resources */}
+        {(isRejected || isDraft) &&
           resource.reviewFeedbacks &&
           resource.reviewFeedbacks.length > 0 && (
-            <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 space-y-2">
-              <div className="flex items-center gap-1.5 text-sm font-medium text-red-800">
+            <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 space-y-2">
+              <div className="flex items-center gap-1.5 text-sm font-medium text-amber-800">
                 <MessageSquare className="size-4" />
-                Reviewer Feedback
+                Admin / Reviewer Feedback
               </div>
               {resource.reviewFeedbacks.map((fb) => (
-                <div key={fb.id} className="text-sm text-red-700">
+                <div key={fb.id} className="text-sm text-amber-700">
                   <p>{fb.comments}</p>
-                  <p className="mt-1 text-xs text-red-500">
-                    {new Date(fb.createdAt).toLocaleDateString(undefined, {
+                  <p className="mt-1 text-xs text-amber-500">
+                    {fb.decision} · {new Date(fb.createdAt).toLocaleDateString(undefined, {
                       year: "numeric",
                       month: "short",
                       day: "numeric",

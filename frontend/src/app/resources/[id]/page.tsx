@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { Archive, Undo2 } from "lucide-react";
 import type { ResourceResponse, ResourceStatus } from "@/types";
 
@@ -27,6 +28,8 @@ function ResourceDetailContent({ id }: { id: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [adminError, setAdminError] = useState<string | null>(null);
+  const [unpublishReason, setUnpublishReason] = useState("");
+  const [showUnpublishForm, setShowUnpublishForm] = useState(false);
   const isAdmin = user?.role === "ADMINISTRATOR";
 
   const resourceQuery = useQuery({
@@ -47,11 +50,13 @@ function ResourceDetailContent({ id }: { id: string }) {
   });
 
   const unpublishMutation = useMutation({
-    mutationFn: () =>
-      apiClient.post<ResourceResponse>(`/api/admin/resources/${id}/unpublish`),
+    mutationFn: (reason: string) =>
+      apiClient.post<ResourceResponse>(`/api/admin/resources/${id}/unpublish`, { reason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["resource", id] });
       setAdminError(null);
+      setShowUnpublishForm(false);
+      setUnpublishReason("");
     },
     onError: (err) => {
       setAdminError(err instanceof ApiError ? err.message : "Failed to unpublish resource.");
@@ -215,13 +220,40 @@ function ResourceDetailContent({ id }: { id: string }) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => unpublishMutation.mutate()}
+                onClick={() => setShowUnpublishForm(!showUnpublishForm)}
                 disabled={archiveMutation.isPending || unpublishMutation.isPending}
               >
                 <Undo2 className="mr-1 size-3.5" />
-                {unpublishMutation.isPending ? "Unpublishing…" : "Unpublish"}
+                Unpublish
               </Button>
             </div>
+            {showUnpublishForm && (
+              <div className="mt-3 space-y-2 rounded-md border border-amber-200 bg-amber-50 p-3">
+                <label htmlFor="unpublish-reason" className="text-sm font-medium text-amber-800">
+                  Reason for unpublishing (visible to contributor)
+                </label>
+                <Textarea
+                  id="unpublish-reason"
+                  placeholder="Explain why this resource is being unpublished…"
+                  value={unpublishReason}
+                  onChange={(e) => setUnpublishReason(e.target.value)}
+                  rows={3}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => unpublishMutation.mutate(unpublishReason.trim())}
+                    disabled={unpublishMutation.isPending}
+                  >
+                    {unpublishMutation.isPending ? "Unpublishing…" : "Confirm Unpublish"}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => { setShowUnpublishForm(false); setUnpublishReason(""); }}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

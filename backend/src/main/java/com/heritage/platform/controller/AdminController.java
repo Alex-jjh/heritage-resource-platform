@@ -31,8 +31,10 @@ public class AdminController {
     @PostMapping("/{id}/unpublish")
     public ResponseEntity<ResourceResponse> unpublishResource(
             @PathVariable UUID id,
-            Principal principal) {
-        Resource resource = adminService.unpublishResource(id, principal.getName());
+            Principal principal,
+            @RequestBody(required = false) java.util.Map<String, String> body) {
+        String reason = body != null ? body.get("reason") : null;
+        Resource resource = adminService.unpublishResource(id, principal.getName(), reason);
         return ResponseEntity.ok(ResourceResponse.fromEntity(resource));
     }
 
