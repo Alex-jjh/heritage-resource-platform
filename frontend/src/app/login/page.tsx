@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
@@ -30,6 +30,14 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const { login } = useAuth();
   const idleLogout = searchParams.get("reason") === "idle";
+  const [showIdleMsg, setShowIdleMsg] = useState(idleLogout);
+
+  // Clear the ?reason=idle from URL after showing the message once
+  useEffect(() => {
+    if (idleLogout) {
+      router.replace("/login", { scroll: false });
+    }
+  }, [idleLogout, router]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,7 +74,7 @@ function LoginContent() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
-            {idleLogout && (
+            {showIdleMsg && (
               <div role="status" className="rounded-md bg-amber-50 p-3 text-sm text-amber-700">
                 You were logged out due to inactivity. Please sign in again.
               </div>
