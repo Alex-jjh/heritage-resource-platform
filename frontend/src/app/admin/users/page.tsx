@@ -99,9 +99,9 @@ function UsersContent() {
   return (
     <main><PageContainer>
       <AdminNav />
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="font-serif text-3xl font-bold">User Management</h1>
-        <div className="flex items-center gap-3">
+      <div className="rounded-lg border bg-card p-6">
+        <h2 className="text-xl font-semibold mb-6">User Management</h2>
+        <div className="flex items-center justify-between mb-6">
           <span className="text-sm text-muted-foreground">{users.length} users</span>
           <Button size="sm" onClick={() => setShowAdd(!showAdd)}>
             <UserPlus className="mr-1 size-4" /> Add User
@@ -200,6 +200,7 @@ function UsersContent() {
           </table>
         </div>
       )}
+      </div>
     </PageContainer></main>
   );
 }

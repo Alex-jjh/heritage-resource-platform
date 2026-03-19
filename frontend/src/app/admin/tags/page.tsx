@@ -82,7 +82,8 @@ function TagsContent() {
   return (
     <main><PageContainer>
       <AdminNav />
-      <h1 className="font-serif text-3xl font-bold mb-6">Tag Management</h1>
+      <div className="rounded-lg border bg-card p-6">
+        <h2 className="text-xl font-semibold mb-6">Tag Management</h2>
 
       {error && (
         <div role="alert" className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
@@ -186,6 +187,7 @@ function TagsContent() {
           </table>
         </div>
       )}
+      </div>
     </PageContainer></main>
   );
 }

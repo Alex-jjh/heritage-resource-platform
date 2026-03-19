@@ -14,25 +14,28 @@ export function AdminNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="border-b mb-6">
-      <div className="px-6 sm:px-10 lg:px-20 xl:px-32 flex gap-1 overflow-x-auto">
-        {TABS.map((tab) => {
-          const active = pathname === tab.href;
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                active
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
-              }`}
-            >
-              {tab.label}
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+    <div className="mb-8">
+      <h1 className="font-serif text-3xl font-bold mb-4">Admin Panel</h1>
+      <nav className="border-b">
+        <div className="flex gap-1 overflow-x-auto">
+          {TABS.map((tab) => {
+            const active = pathname === tab.href;
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  active
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
+                }`}
+              >
+                {tab.label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </div>
   );
 }

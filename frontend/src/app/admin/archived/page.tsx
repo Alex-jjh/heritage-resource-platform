@@ -21,7 +21,8 @@ function ArchivedContent() {
   return (
     <main><PageContainer>
       <AdminNav />
-      <h1 className="font-serif text-3xl font-bold mb-6">Archived Resources</h1>
+      <div className="rounded-lg border bg-card p-6">
+        <h2 className="text-xl font-semibold mb-6">Archived Resources</h2>
 
       {archivedQuery.isLoading ? (
         <div className="space-y-3">
@@ -69,6 +70,7 @@ function ArchivedContent() {
           </table>
         </div>
       )}
+      </div>
     </PageContainer></main>
   );
 }

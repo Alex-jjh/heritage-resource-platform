@@ -15,8 +15,9 @@ export function Navbar() {
 
   const userInitial = user?.displayName?.charAt(0)?.toUpperCase() ?? "?";
 
-  function navLink(href: string, label: string) {
-    const active = pathname === href || pathname.startsWith(href + "/");
+  function navLink(href: string, label: string, matchPrefix?: string) {
+    const base = matchPrefix ?? href;
+    const active = pathname === base || pathname.startsWith(base + "/");
     return (
       <Link
         key={href}
@@ -39,7 +40,7 @@ export function Navbar() {
     ...((user.role === "REVIEWER" || user.role === "ADMINISTRATOR")
       ? [{ href: "/review", label: "Review" }] : []),
     ...(user.role === "ADMINISTRATOR"
-      ? [{ href: "/admin/users", label: "Admin" }] : []),
+      ? [{ href: "/admin/users", label: "Admin", matchPrefix: "/admin" }] : []),
   ] : [];
 
   return (
@@ -56,7 +57,7 @@ export function Navbar() {
 
           {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-0.5">
-            {links.map((l) => navLink(l.href, l.label))}
+            {links.map((l) => navLink(l.href, l.label, (l as { matchPrefix?: string }).matchPrefix))}
           </div>
         </div>
 
