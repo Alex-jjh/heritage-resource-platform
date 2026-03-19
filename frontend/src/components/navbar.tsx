@@ -139,10 +139,10 @@ export function Navbar() {
             </>
           ) : (
             <>
-              <Link href="/login" onClick={() => setMenuOpen(false)}>
-                <Button variant="ghost" size="sm" className="w-full justify-start">Login</Button>
+              <Link href="/login" onClick={() => setMenuOpen(false)} className="w-full">
+                <Button variant="outline" size="sm" className="w-full">Login</Button>
               </Link>
-              <Link href="/register" onClick={() => setMenuOpen(false)}>
+              <Link href="/register" onClick={() => setMenuOpen(false)} className="w-full">
                 <Button size="sm" className="w-full">Register</Button>
               </Link>
             </>
