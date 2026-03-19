@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient, ApiError } from "@/lib/api-client";
+import { apiClient } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
 import { PageContainer } from "@/components/page-container";
 import { StatusBadge } from "@/components/status-badge";
@@ -16,7 +16,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Pencil, Send, RotateCcw, MessageSquare } from "lucide-react";
+import { Plus, Pencil, Send, RotateCcw, MessageSquare, Eye } from "lucide-react";
 import type { ResourceResponse, ResourceStatus } from "@/types";
 
 function ContributeDashboardContent() {
@@ -147,6 +147,12 @@ function ResourceListItem({
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap items-center gap-2">
+          <Link href={`/resources/${resource.id}`}>
+            <Button variant="ghost" size="sm">
+              <Eye className="mr-1 size-3.5" />
+              View
+            </Button>
+          </Link>
           {isDraft && (
             <>
               <Link href={`/contribute/${resource.id}/edit`}>
