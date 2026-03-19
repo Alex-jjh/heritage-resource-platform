@@ -92,9 +92,7 @@ export function SearchBar({
       </div>
       <div className="flex gap-2">
         <Button onClick={onSearch}>Search</Button>
-        {hasFilters && (
-          <Button variant="outline" onClick={onClear}>Clear</Button>
-        )}
+        <Button variant="outline" onClick={onClear} disabled={!hasFilters}>Clear</Button>
       </div>
     </div>
   );
