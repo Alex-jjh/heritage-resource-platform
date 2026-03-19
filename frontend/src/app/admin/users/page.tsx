@@ -107,7 +107,6 @@ function UsersContent() {
             <UserPlus className="mr-1 size-4" /> Add User
           </Button>
         </div>
-      </div>
 
       {showAdd && (
         <div className="mb-6 rounded-lg border p-4 space-y-3">
