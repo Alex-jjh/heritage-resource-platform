@@ -82,6 +82,26 @@ public class AdminService {
     }
 
     /**
+     * Restores an archived resource back to APPROVED status.
+     */
+    @Transactional
+    public Resource restoreResource(UUID resourceId, String cognitoSub) {
+        Resource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
+
+        if (resource.getStatus() != ResourceStatus.ARCHIVED) {
+            throw new InvalidStatusTransitionException(
+                    String.format("Resource is in %s status. Only ARCHIVED resources can be restored.",
+                            resource.getStatus()));
+        }
+
+        User admin = userRepository.findByCognitoSub(cognitoSub)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        return resourceService.transitionStatus(resourceId, ResourceStatus.APPROVED, admin);
+    }
+
+    /**
      * Returns all archived resources.
      */
     @Transactional(readOnly = true)

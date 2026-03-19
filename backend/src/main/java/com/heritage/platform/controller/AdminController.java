@@ -38,6 +38,14 @@ public class AdminController {
         return ResponseEntity.ok(ResourceResponse.fromEntity(resource));
     }
 
+    @PostMapping("/{id}/restore")
+    public ResponseEntity<ResourceResponse> restoreResource(
+            @PathVariable UUID id,
+            Principal principal) {
+        Resource resource = adminService.restoreResource(id, principal.getName());
+        return ResponseEntity.ok(ResourceResponse.fromEntity(resource));
+    }
+
     @GetMapping("/archived")
     public ResponseEntity<List<ResourceResponse>> getArchivedResources() {
         List<ResourceResponse> archived = adminService.getArchivedResources()

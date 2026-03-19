@@ -15,7 +15,7 @@ public enum ResourceStatus {
         PENDING_REVIEW, Set.of(APPROVED, REJECTED),
         APPROVED, Set.of(ARCHIVED, DRAFT),
         REJECTED, Set.of(DRAFT),
-        ARCHIVED, Set.of()
+        ARCHIVED, Set.of(APPROVED)
     );
 
     public boolean canTransitionTo(ResourceStatus target) {

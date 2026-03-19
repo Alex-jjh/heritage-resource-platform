@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
 import { StatusBadge } from "@/components/status-badge";
@@ -9,13 +9,23 @@ import { AdminNav } from "@/components/admin-nav";
 import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RotateCcw } from "lucide-react";
 import type { ResourceResponse } from "@/types";
 
 function ArchivedContent() {
+  const queryClient = useQueryClient();
   const archivedQuery = useQuery({
     queryKey: ["archived-resources"],
     queryFn: () =>
       apiClient.get<ResourceResponse[]>("/api/admin/resources/archived"),
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiClient.post(`/api/admin/resources/${id}/restore`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["archived-resources"] });
+    },
   });
 
   return (
@@ -59,7 +69,16 @@ function ArchivedContent() {
                   <td className="px-4 py-3">
                     <StatusBadge status={resource.status} />
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => restoreMutation.mutate(resource.id)}
+                      disabled={restoreMutation.isPending}
+                    >
+                      <RotateCcw className="mr-1 size-3.5" />
+                      {restoreMutation.isPending ? "Restoring…" : "Restore"}
+                    </Button>
                     <Link href={`/resources/${resource.id}`}>
                       <Button variant="outline" size="sm">View</Button>
                     </Link>
