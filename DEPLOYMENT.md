@@ -62,6 +62,15 @@ terraform apply `
 
 创建的资源：EC2 + EIP、Security Group、IAM Role、Cognito User Pool、S3 Bucket、Lambda、CloudFront（待验证）。
 
+## Swagger / OpenAPI 文档
+
+部署后可通过以下地址访问交互式 API 文档：
+
+- Swagger UI: `http://<EC2-IP>:8080/swagger-ui.html`
+- OpenAPI JSON: `http://<EC2-IP>:8080/v3/api-docs`
+
+Swagger UI 支持直接在页面上输入 JWT token 测试所有 API 端点。无需认证即可访问文档页面本身。
+
 ## EC2 后端管理
 
 SSH 连接：

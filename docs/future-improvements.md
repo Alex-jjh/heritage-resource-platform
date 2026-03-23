@@ -40,7 +40,7 @@ Current:  mvn package → SCP JAR → systemctl restart
 Future:   docker build → docker push → docker pull + docker-compose up
 ```
 
-### Swagger / OpenAPI
+### Swagger / OpenAPI ✅ IMPLEMENTED
 
 **Problem:** API documentation only exists in code. Frontend developers must read Controller source files to understand endpoints, request/response formats, and error codes.
 
@@ -236,9 +236,9 @@ query {
 
 ```
 Phase 1 (Quick wins):
-  ✅ Docker + Docker Compose
-  ✅ Swagger / OpenAPI
-  ✅ Nginx + Let's Encrypt HTTPS
+  ✅ Swagger / OpenAPI (DONE)
+  ⬜ Docker + Docker Compose
+  ⬜ Nginx + Let's Encrypt HTTPS
 
 Phase 2 (Performance & UX):
   ✅ Redis caching

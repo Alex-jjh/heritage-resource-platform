@@ -33,6 +33,7 @@
                                    │  │  - REST API             │  │
                                    │  │  - JWT validation       │  │
                                    │  │  - S3 pre-signed URLs   │  │
+                                   │  │  - Swagger UI (/swagger-ui.html) │  │
                                    │  └────────────┬───────────┘  │
                                    │               │              │
                                    │  ┌────────────▼───────────┐  │

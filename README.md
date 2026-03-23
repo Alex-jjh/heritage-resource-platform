@@ -51,6 +51,7 @@ DRAFT → PENDING_REVIEW → APPROVED (published)
 - **Admin Panel** — User management (role changes, add/delete users), category and tag CRUD, archived resource management
 - **Authentication** — AWS Cognito with email/password, JWT-based API auth
 - **Auto Thumbnails** — Lambda automatically generates thumbnails when images are uploaded to S3
+- **API Documentation** — Interactive Swagger UI at `/swagger-ui.html` with OpenAPI 3.0 spec, JWT auth support
 - **Idle Timeout** — 30-minute inactivity auto-logout for security
 
 ## Tech Stack
@@ -58,7 +59,7 @@ DRAFT → PENDING_REVIEW → APPROVED (published)
 | Layer | Technology |
 |-------|-----------|
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS v4, shadcn/ui, TanStack Query |
-| Backend | Spring Boot 3.4, Java 21, Spring Security, Spring Data JPA, Flyway |
+| Backend | Spring Boot 3.4, Java 21, Spring Security, Spring Data JPA, Flyway, SpringDoc OpenAPI |
 | Database | MySQL 8.0 |
 | Auth | AWS Cognito (User Pool + JWT) |
 | Storage | AWS S3 (pre-signed URLs) |
@@ -77,7 +78,7 @@ heritage-resource-platform/
 │   └── src/lib/       # API client, auth context
 ├── backend/           # Spring Boot application
 │   └── src/main/java/com/heritage/platform/
-│       ├── config/    # Security, CORS, AWS configs
+│       ├── config/    # Security, CORS, AWS configs, OpenAPI
 │       ├── controller/# REST API endpoints
 │       ├── service/   # Business logic
 │       ├── repository/# JPA repositories
