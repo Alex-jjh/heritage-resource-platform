@@ -83,3 +83,75 @@ cd backend && mvn clean package -DskipTests -q
 cp target/heritage-platform-0.0.1-SNAPSHOT.jar ~/app/
 sudo systemctl restart heritage-backend
 ```
+
+## 数据存储分布
+
+| 数据类型 | 存储位置 | 持久性 | EC2 销毁后 |
+|----------|---------|--------|-----------|
+| 用户认证（email、密码、token） | AWS Cognito | AWS 托管，自动持久化 | ✅ 不受影响 |
+| 上传文件 & 缩略图 | AWS S3 (`heritage-resources-dev`) | AWS 托管，独立于 EC2 | ✅ 不受影响 |
+| 业务数据（resources、categories、tags、comments、reviews、用户 profile、状态流转） | MySQL 8.0（EC2 本地磁盘） | 依赖 EC2 实例存活 | ❌ 数据丢失 |
+| 前端代码 | GitHub + Amplify 自动构建 | Git 版本控制 | ✅ 不受影响 |
+| 后端代码 | GitHub + EC2 `/home/ubuntu/app/` | Git 版本控制，JAR 可重新部署 | ✅ 不受影响 |
+| Terraform 状态 | `infra/terraform.tfstate`（本地） | 需手动备份 | ⚠️ 需保留 |
+
+### 风险说明
+
+当前 MySQL 运行在 EC2 本地，这意味着：
+- EC2 实例终止（terminate）→ 所有业务数据永久丢失
+- EC2 实例停止（stop）再启动 → 数据保留（EBS 卷不会被删除）
+- EBS 卷损坏 → 数据丢失
+
+### 数据库备份（手动）
+
+SSH 到 EC2 后执行：
+```bash
+# 导出完整数据库
+mysqldump -u root -p heritage_db > backup_$(date +%Y%m%d).sql
+
+# 上传到 S3 保存
+aws s3 cp backup_$(date +%Y%m%d).sql s3://heritage-resources-dev/backups/
+```
+
+### 数据库恢复（新 EC2 实例）
+
+```bash
+# 从 S3 下载备份
+aws s3 cp s3://heritage-resources-dev/backups/backup_YYYYMMDD.sql .
+
+# 导入到新 MySQL
+mysql -u root -p heritage_db < backup_YYYYMMDD.sql
+```
+
+### 迁移到 AWS RDS（生产环境推荐）
+
+如果需要将数据库从 EC2 本地迁移到 AWS RDS 托管 MySQL：
+
+1. **创建 RDS 实例**（Terraform 或控制台）：
+   - Engine: MySQL 8.0
+   - Instance: db.t3.micro（最小规格，约 $15/月）
+   - 开启自动备份（7 天保留）
+   - 多可用区可选（生产建议开启）
+
+2. **导出现有数据**：
+   ```bash
+   mysqldump -u root -p heritage_db > migration.sql
+   ```
+
+3. **导入到 RDS**：
+   ```bash
+   mysql -h your-rds-endpoint.rds.amazonaws.com -u admin -p heritage_db < migration.sql
+   ```
+
+4. **修改后端配置**（`application-prod.yml`）：
+   ```yaml
+   spring:
+     datasource:
+       url: jdbc:mysql://your-rds-endpoint.rds.amazonaws.com:3306/heritage_db
+       username: admin
+       password: ${DB_PASSWORD}
+   ```
+
+5. **重启后端服务**，验证数据完整性。
+
+迁移后 EC2 只运行 Spring Boot 应用，数据库由 RDS 独立管理，EC2 可以随时替换而不影响数据。
