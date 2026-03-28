@@ -1,6 +1,5 @@
 package com.heritage.platform.service;
 
-import com.heritage.platform.dto.CreateFileReferenceRequest;
 import com.heritage.platform.exception.AccessDeniedException;
 import com.heritage.platform.exception.ResourceNotFoundException;
 import com.heritage.platform.model.FileReference;

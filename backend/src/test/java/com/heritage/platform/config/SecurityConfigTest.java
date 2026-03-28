@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 SecurityConfigTest.StubFileController.class,
                 SecurityConfigTest.StubSearchController.class
         },
-        properties = "app.internal-api-key=dummy-test-key"
+        properties = "spring.main.allow-bean-definition-overriding=true"
 )
 @ActiveProfiles("test")
 @Import(SecurityConfig.class)

@@ -12,4 +12,3 @@ app:
   jwt:
     secret: test-secret-key-must-be-at-least-256-bits-long-for-hmac-sha256-algorithm!!
     expiration-ms: 3600000
-  internal-api-key: test-api-key

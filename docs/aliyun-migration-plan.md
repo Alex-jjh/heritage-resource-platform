@@ -1,4 +1,4 @@
-# 阿里云迁移计划
+# 阿里云迁移 — 完成报告
 
 ## 目标架构
 
@@ -9,18 +9,20 @@
 │                 阿里云 ECS (ecs.c9i.large)               │
 │                                                         │
 │  ┌─────────────────────────────────────────────────┐    │
-│  │  Nginx (port 80/443)                            │    │
-│  │  - 反向代理 → Spring Boot :8080                  │    │
-│  │  - 静态文件托管 → Next.js build output            │    │
-│  │  - HTTPS (自签证书 or Let's Encrypt if 有域名)    │    │
+│  │  Nginx (port 80)                                │    │
+│  │  - /api/*          → Spring Boot :8080          │    │
+│  │  - /swagger-ui/*   → Spring Boot :8080          │    │
+│  │  - /files/uploads/ → /opt/heritage/uploads/     │    │
+│  │  - /files/thumbnails/ → /opt/heritage/thumbnails│    │
+│  │  - /*              → Next.js :3000              │    │
 │  └──────────┬──────────────────┬───────────────────┘    │
 │             │                  │                         │
 │  ┌──────────▼──────────┐  ┌───▼───────────────────┐    │
-│  │  Spring Boot :8080   │  │  Next.js static files │    │
-│  │  - REST API          │  │  (nginx 直接托管)      │    │
+│  │  Spring Boot :8080   │  │  Next.js :3000        │    │
+│  │  - REST API          │  │  (standalone server)  │    │
 │  │  - 本地 JWT 认证      │  │                       │    │
 │  │  - 本地文件存储       │  └───────────────────────┘    │
-│  │  - 缩略图生成(本地)   │                               │
+│  │  - Thumbnailator     │                               │
 │  └──────────┬───────────┘                               │
 │             │                                           │
 │  ┌──────────▼──────────┐                                │
@@ -29,183 +31,138 @@
 │  └─────────────────────┘                                │
 │                                                         │
 │  /opt/heritage/uploads/      ← 用户上传文件              │
-│  /opt/heritage/thumbnails/   ← 生成的缩略图              │
+│  /opt/heritage/thumbnails/   ← 自动生成的缩略图          │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ## AWS → 阿里云 服务替换对照
 
-| AWS 服务 | 当前用途 | 阿里云方案 | 改动量 |
-|---------|---------|-----------|-------|
-| EC2 | Spring Boot + MySQL | ECS (ecs.c9i.large) | 仅部署脚本 |
-| Cognito | 用户认证 (JWT) | 自建认证 (bcrypt + 本地 JWT 签发) | 大 |
-| S3 | 文件存储 (pre-signed URLs) | ECS 本地磁盘 + Nginx 静态托管 | 中 |
-| Lambda | 缩略图生成 | Spring Boot 内置异步处理 | 中 |
-| Amplify | 前端 SSR 托管 | Next.js export → Nginx 静态托管 | 小 |
-| CloudFront | HTTPS 代理 | Nginx (同一台 ECS) | 小 |
-| Terraform | 基础设施管理 | 不需要 (单台 ECS 手动配置) | 删除 |
+| AWS 服务 | 原用途 | 替换方案 | 状态 |
+|---------|--------|---------|------|
+| EC2 | Spring Boot + MySQL | 阿里云 ECS | ✅ |
+| Cognito | 用户认证 (JWT) | 自建 bcrypt + JJWT | ✅ |
+| S3 | 文件存储 (pre-signed URLs) | 本地磁盘 + Nginx 静态托管 | ✅ |
+| Lambda | 缩略图生成 | Thumbnailator (Java 库，同进程) | ✅ |
+| Amplify | 前端 SSR 托管 | Next.js standalone + Nginx | ✅ |
+| CloudFront | HTTPS 代理 | Nginx 反向代理 | ✅ |
+| Terraform | 基础设施管理 | 手动配置 / ecs-setup.sh | ✅ |
 
-## 迁移步骤（按顺序）
+## 已完成的改动
 
-### Phase 1: 认证系统改造（最大改动）✅ 已完成
+### Phase 1: 认证系统 ✅
 
-去掉 AWS Cognito，改为自建认证：
+| 改动 | 文件 |
+|------|------|
+| 新建 JwtService | `service/JwtService.java` — HMAC-SHA256 签发/验证 |
+| 新建 JwtAuthFilter | `config/JwtAuthFilter.java` — Bearer token 过滤器 |
+| 重写 AuthService | bcrypt 密码 + 本地 JWT，去掉 Cognito SDK |
+| 重写 UserService | 去掉 Cognito 同步（updateCognitoRole 等） |
+| 统一 SecurityConfig | 去掉 Profile 区分，去掉 OAuth2 Resource Server |
+| User 实体 | 加 `passwordHash`，`cognitoSub` 改 nullable |
+| Flyway V2 | `password_hash` 列，`cognito_sub` nullable |
+| 所有 Service | `findByCognitoSub()` → `findByEmail()` |
+| AuthResponse | 简化为 `accessToken` + `expiresIn` |
+| 前端 auth-context | 只存 `accessToken` |
+| 删除 | AwsCognitoConfig, AwsClientConfig, LocalSecurityConfig, LocalAuthFilter, LocalAuthFilterTest |
+| 测试 | 9 个测试文件全部同步更新 |
 
-**后端改动：**
-1. ✅ `pom.xml` — 去掉 AWS Cognito SDK，加 `jjwt-api/impl/jackson` (0.12.6)
-2. ✅ `User` 实体 — 加 `passwordHash` 字段，`cognitoSub` 改为 nullable
-3. ✅ 新建 `JwtService` — HMAC-SHA256 签发/验证 JWT（email 为 subject，含 userId + role claims）
-4. ✅ 重写 `AuthService` — bcrypt 加密密码，本地 JWT 签发，去掉所有 Cognito 调用
-5. ✅ 重写 `SecurityConfig` — 统一配置（去掉 Profile 区分），JwtAuthFilter 替代 OAuth2 Resource Server
-6. ✅ 所有 Service 中 `findByCognitoSub()` → `findByEmail()`（ResourceService, AdminService, ReviewService, CommentService, FileService, UserService）
-7. ✅ Flyway V2 migration — `password_hash` 列，`cognito_sub` 改 nullable
-8. ✅ 删除 `AwsCognitoConfig`, `AwsClientConfig`, `LocalSecurityConfig`, `LocalAuthFilter`
-9. ✅ `AuthResponse` 简化为 `accessToken` + `expiresIn`
-10. ✅ 9 个测试文件全部同步更新
+### Phase 2+3: 文件存储 + 缩略图 ✅
 
-**前端改动：**
-11. ✅ `auth-context.tsx` — token 存储简化（只存 accessToken）
-12. ✅ `types/index.ts` — AuthResponse 类型简化
+| 改动 | 文件 |
+|------|------|
+| 重写 FileService | 本地磁盘存储 + Thumbnailator 缩略图 |
+| 重写 FileController | multipart upload 替代 pre-signed URL |
+| 重写 file-uploader.tsx | FormData 直传替代 S3 三步流程 |
+| pom.xml | 去掉 AWS SDK，加 thumbnailator 0.4.20 |
+| 删除 | AwsS3Config, ApiKeyAuthFilter, InternalController, S3ServiceException, ThumbnailCallbackRequest, UploadUrlRequest, UploadUrlResponse, CreateFileReferenceRequest |
+| 测试 | FileServiceTest 重写，SecurityConfigTest 更新 |
 
-### Phase 2: 文件存储改造 ✅ 已完成
+### Phase 4+5+6: 部署 + 配置 + CI/CD ✅
 
-去掉 AWS S3，改为本地磁盘存储：
+| 改动 | 文件 |
+|------|------|
+| next.config.ts | `output: "standalone"`，去掉 Amplify rewrites |
+| api-client.ts | 修复 token 读取（只读 accessToken） |
+| Nginx 配置 | `scripts/nginx-heritage.conf` |
+| ECS 部署脚本 | `scripts/ecs-setup.sh` |
+| CI/CD | `.github/workflows/deploy-backend.yml` 改为阿里云 ECS |
+| yml 配置 | 去掉所有 AWS/Cognito/S3 配置，加 storage + jwt 配置 |
 
-**后端改动：**
-1. 新建 `LocalFileService`（替代现有 `FileService`）
-   - 上传：直接接收 multipart file，存到 `/opt/heritage/uploads/`
-   - 下载：返回文件 URL（Nginx 静态托管）
-   - 删除：直接删本地文件
-2. 去掉 `AwsS3Config`、S3 相关代码
-3. `FileController` — 改为接收 multipart upload（不再用 pre-signed URL）
-4. `ResourceResponse` — `thumbnailUrl` 改为本地路径
+## 已删除的 AWS 相关文件
 
-**前端改动：**
-5. `file-uploader.tsx` — 改为标准 multipart form upload（不再用 pre-signed URL 直传 S3）
+```
+backend/src/main/java/.../config/AwsCognitoConfig.java      ← Cognito 配置
+backend/src/main/java/.../config/AwsClientConfig.java        ← Cognito 客户端 Bean
+backend/src/main/java/.../config/AwsS3Config.java            ← S3 客户端 Bean
+backend/src/main/java/.../config/ApiKeyAuthFilter.java       ← Lambda 内部认证
+backend/src/main/java/.../config/LocalSecurityConfig.java    ← 本地 Profile 安全配置
+backend/src/main/java/.../config/LocalAuthFilter.java        ← 本地 Mock 认证
+backend/src/main/java/.../controller/InternalController.java ← Lambda 回调端点
+backend/src/main/java/.../dto/ThumbnailCallbackRequest.java  ← Lambda 回调 DTO
+backend/src/main/java/.../dto/UploadUrlRequest.java          ← S3 pre-signed URL DTO
+backend/src/main/java/.../dto/UploadUrlResponse.java         ← S3 pre-signed URL DTO
+backend/src/main/java/.../dto/CreateFileReferenceRequest.java← S3 文件引用 DTO
+backend/src/main/java/.../exception/S3ServiceException.java  ← S3 异常
+backend/src/test/.../config/LocalAuthFilterTest.java         ← 已删除的 Filter 测试
+```
 
-### Phase 3: 缩略图生成 ✅ 已完成（合并到 Phase 2）
+## 部署步骤
 
-去掉 AWS Lambda，改为 Spring Boot 内置处理：
-
-1. 加 `thumbnailator` 依赖（Java 缩略图库）
-2. 在文件上传后同步或异步生成缩略图，存到 `/opt/heritage/thumbnails/`
-3. 去掉 `InternalController`（Lambda callback 端点）
-4. 去掉 `ApiKeyAuthFilter`（Lambda 认证用的）
-
-### Phase 4: 前端部署 ✅ 已完成
-
-Next.js 改为静态导出，Nginx 托管：
-
-1. `next.config.ts` — 加 `output: 'export'`（静态导出）
-2. 去掉 `rewrites` 配置（Nginx 处理代理）
-3. `npm run build` 生成 `out/` 目录
-4. Nginx 配置：静态文件 → `out/`，`/api/*` → proxy_pass localhost:8080
-
-### Phase 5: 服务器配置 ✅ 已完成
-
-ECS 上安装和配置：
+### 首次部署
 
 ```bash
-# 1. 安装依赖
-sudo apt update
-sudo apt install -y openjdk-21-jdk mysql-server nginx nodejs npm
+# 1. SSH 到阿里云 ECS
+ssh user@<ECS_IP>
 
-# 2. 配置 MySQL
-sudo mysql -e "CREATE DATABASE heritage_db CHARACTER SET utf8mb4;"
-sudo mysql -e "CREATE USER 'heritage'@'localhost' IDENTIFIED BY 'password';"
-sudo mysql -e "GRANT ALL ON heritage_db.* TO 'heritage'@'localhost';"
+# 2. 克隆代码
+git clone https://github.com/Alex-jjh/heritage-resource-platform.git
+cd heritage-resource-platform
+git checkout feature/aliyun-migration
 
-# 3. 创建文件存储目录
-sudo mkdir -p /opt/heritage/uploads /opt/heritage/thumbnails
-sudo chown -R ubuntu:ubuntu /opt/heritage
+# 3. 设置环境变量
+export DB_PASSWORD="your-mysql-password"
+export JWT_SECRET="your-production-jwt-secret-at-least-256-bits-long!!"
+export FRONTEND_ORIGIN="http://<ECS_IP>"
 
-# 4. 部署后端
-cd backend && mvn clean package -DskipTests
-cp target/heritage-platform-0.0.1-SNAPSHOT.jar /opt/heritage/
-
-# 5. 构建前端
-cd frontend && npm install && npm run build
-sudo cp -r out/* /var/www/heritage/
-
-# 6. 配置 Nginx（见下方配置）
-# 7. 配置 systemd service（同 AWS 版本）
+# 4. 运行部署脚本
+chmod +x scripts/ecs-setup.sh
+bash scripts/ecs-setup.sh
 ```
 
-**Nginx 配置：**
-```nginx
-server {
-    listen 80;
-    server_name _;
+### 后续更新
 
-    # 前端静态文件
-    root /var/www/heritage;
-    index index.html;
+```bash
+cd heritage-resource-platform && git pull
+cd backend && mvn clean package -DskipTests -q
+cp target/heritage-platform-0.0.1-SNAPSHOT.jar /opt/heritage/app/
+sudo systemctl restart heritage-backend
 
-    # API 代理
-    location /api/ {
-        proxy_pass http://localhost:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-
-    # Swagger UI
-    location /swagger-ui/ {
-        proxy_pass http://localhost:8080;
-    }
-    location /v3/api-docs {
-        proxy_pass http://localhost:8080;
-    }
-
-    # 上传文件静态托管
-    location /files/uploads/ {
-        alias /opt/heritage/uploads/;
-    }
-    location /files/thumbnails/ {
-        alias /opt/heritage/thumbnails/;
-    }
-
-    # Next.js SPA fallback
-    location / {
-        try_files $uri $uri.html $uri/ /index.html;
-    }
-}
+cd ../frontend && npm install && npm run build
+# 复制 standalone 输出到部署目录
+sudo systemctl restart heritage-frontend
 ```
 
-### Phase 6: CI/CD 调整 ✅ 已完成
+### GitHub Actions 自动部署
 
-GitHub Actions 改为部署到阿里云 ECS：
-- 改 SSH host/key 为阿里云 ECS 的
-- 前端 build 也加入 pipeline（不再依赖 Amplify）
+在 GitHub repo Settings → Secrets 中配置：
+- `ECS_HOST` — 阿里云 ECS 公网 IP
+- `ECS_USERNAME` — SSH 用户名
+- `ECS_SSH_KEY` — SSH 私钥
 
-## 可删除的文件/代码
+Push 到 `feature/aliyun-migration` 分支自动触发部署。
 
-| 文件/目录 | 原因 |
-|----------|------|
-| `infra/` (整个目录) | Terraform AWS 资源，不再需要 |
-| `lambda/` (整个目录) | Lambda 缩略图函数 |
-| `AwsS3Config.java` | S3 客户端配置 |
-| `AwsCognitoConfig.java` | Cognito 客户端配置 |
-| `AwsClientConfig.java` | AWS SDK 通用配置 |
-| `ApiKeyAuthFilter.java` | Lambda 内部 API 认证 |
-| `InternalController.java` | Lambda callback 端点 |
-| `pom.xml` 中 AWS SDK 依赖 | 不再需要 |
+## 保留的遗留命名
 
-## 预估工时
+以下字段名保留了 AWS 时代的命名（数据库列名不变，避免 migration 复杂度）：
 
-| Phase | 内容 | 预估时间 |
-|-------|------|---------|
-| Phase 1 | 认证系统改造 | 3-4 小时 |
-| Phase 2 | 文件存储改造 | 2-3 小时 |
-| Phase 3 | 缩略图生成 | 1 小时 |
-| Phase 4 | 前端部署改造 | 1 小时 |
-| Phase 5 | 服务器配置 | 1-2 小时 |
-| Phase 6 | CI/CD 调整 | 30 分钟 |
-| 总计 | | 约 1-2 天 |
+| 字段 | 位置 | 实际用途 |
+|------|------|---------|
+| `cognito_sub` | users 表 | 已 nullable，新用户不再使用 |
+| `s3_key` | file_references 表 | 存储本地文件路径（如 `resourceId/filename`） |
+| `thumbnail_s3_key` | resources 表 | 存储本地缩略图路径 |
 
 ## 注意事项
 
-- 数据迁移：需要从 AWS MySQL 导出数据，导入阿里云 MySQL
-- 用户密码：Cognito 的密码无法导出，迁移后用户需要重新注册（或提供"重置密码"功能）
-- 文件迁移：S3 上的文件需要下载后上传到 ECS 本地磁盘
-- Next.js static export 不支持 SSR 和 API routes，所有动态内容走后端 API
+- 用户密码：Cognito 密码无法导出，迁移后需重新注册
+- 文件迁移：S3 文件需手动下载到 `/opt/heritage/uploads/`
+- `infra/` 和 `lambda/` 目录保留在代码中（AWS 版本参考），不影响阿里云部署

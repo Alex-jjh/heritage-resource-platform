@@ -8,7 +8,6 @@ app:
   jwt:
     secret: local-dev-secret-key-must-be-at-least-256-bits-long-for-hmac-sha256!!
     expiration-ms: 3600000
-  internal-api-key: local-dev-key
   cors:
     allowed-origin: http://localhost:3000
   storage:
