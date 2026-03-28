@@ -111,7 +111,6 @@ class FileServiceTest {
         when(mockFile.getOriginalFilename()).thenReturn("photo.jpg");
         when(mockFile.getContentType()).thenReturn("text/plain");
         when(mockFile.getSize()).thenReturn(1024L);
-        when(mockFile.getInputStream()).thenReturn(new ByteArrayInputStream("test".getBytes()));
         doNothing().when(mockFile).transferTo(any(java.io.File.class));
 
         FileReference result = fileService.uploadFile(draftResource.getId(), mockFile, "contributor@example.com");
@@ -142,7 +141,6 @@ class FileServiceTest {
         when(userRepository.findByEmail("other@example.com")).thenReturn(Optional.of(otherUser));
 
         MultipartFile mockFile = mock(MultipartFile.class);
-        when(mockFile.getSize()).thenReturn(1024L);
 
         assertThatThrownBy(() -> fileService.uploadFile(draftResource.getId(), mockFile, "other@example.com"))
                 .isInstanceOf(AccessDeniedException.class);
@@ -156,7 +154,6 @@ class FileServiceTest {
         when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
 
         MultipartFile mockFile = mock(MultipartFile.class);
-        when(mockFile.getSize()).thenReturn(1024L);
 
         assertThatThrownBy(() -> fileService.uploadFile(draftResource.getId(), mockFile, "contributor@example.com"))
                 .isInstanceOf(IllegalStateException.class)

@@ -37,7 +37,7 @@ class ResourceServiceStatusTransitionPropertyTest {
         ResourceStatus.PENDING_REVIEW, Set.of(ResourceStatus.APPROVED, ResourceStatus.REJECTED),
         ResourceStatus.APPROVED, Set.of(ResourceStatus.ARCHIVED, ResourceStatus.DRAFT),
         ResourceStatus.REJECTED, Set.of(ResourceStatus.DRAFT),
-        ResourceStatus.ARCHIVED, Set.of()
+        ResourceStatus.ARCHIVED, Set.of(ResourceStatus.APPROVED)
     );
 
     @Mock private ResourceRepository resourceRepository;
