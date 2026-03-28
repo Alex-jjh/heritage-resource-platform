@@ -137,4 +137,82 @@ class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
         assertThrows(ResourceNotFoundException.class, () -> userService.grantContributorStatus(userId));
     }
+
+    // Changing role updates the role and clears the contributor-requested flag
+    @Test
+    void changeUserRole_validRole_updatesRole() {
+        UUID userId = UUID.randomUUID();
+        User user = createTestUser(userId, "viewer@example.com", UserRole.REGISTERED_VIEWER);
+        user.setContributorRequested(true);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        userService.changeUserRole(userId, "ADMINISTRATOR");
+
+        assertEquals(UserRole.ADMINISTRATOR, user.getRole());
+        assertFalse(user.isContributorRequested());
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void changeUserRole_userNotFound_throwsException() {
+        UUID userId = UUID.randomUUID();
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> userService.changeUserRole(userId, "CONTRIBUTOR"));
+    }
+
+    // valueOf throws IllegalArgumentException for unknown enum constants
+    @Test
+    void changeUserRole_invalidRoleName_throwsIllegalArgument() {
+        UUID userId = UUID.randomUUID();
+        User user = createTestUser(userId, "user@example.com", UserRole.REGISTERED_VIEWER);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> userService.changeUserRole(userId, "INVALID_ROLE"));
+    }
+
+    @Test
+    void deleteUser_existingUser_deletesFromRepository() {
+        UUID userId = UUID.randomUUID();
+        User user = createTestUser(userId, "user@example.com", UserRole.REGISTERED_VIEWER);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        userService.deleteUser(userId);
+
+        verify(userRepository).delete(user);
+    }
+
+    @Test
+    void deleteUser_userNotFound_throwsException() {
+        UUID userId = UUID.randomUUID();
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> userService.deleteUser(userId));
+    }
+
+    @Test
+    void getAllUsers_returnsAllUsers() {
+        User u1 = createTestUser(UUID.randomUUID(), "a@example.com", UserRole.REGISTERED_VIEWER);
+        User u2 = createTestUser(UUID.randomUUID(), "b@example.com", UserRole.CONTRIBUTOR);
+
+        when(userRepository.findAll()).thenReturn(List.of(u1, u2));
+
+        List<User> result = userService.getAllUsers();
+
+        assertEquals(2, result.size());
+        verify(userRepository).findAll();
+    }
+
+    @Test
+    void revokeContributorStatus_userNotFound_throwsException() {
+        UUID userId = UUID.randomUUID();
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> userService.revokeContributorStatus(userId));
+    }
 }

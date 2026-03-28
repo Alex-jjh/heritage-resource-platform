@@ -198,4 +198,48 @@ class AdminServiceTest {
 
         assertThat(result).isEmpty();
     }
+
+    // --- Restore tests ---
+
+    @Test
+    void restoreResource_archivedResource_changesStatusToApproved() {
+        Resource resource = createApprovedResource();
+        resource.setStatus(ResourceStatus.ARCHIVED);
+        resource.setArchivedAt(Instant.now());
+
+        Resource restoredResource = createApprovedResource();
+        restoredResource.setStatus(ResourceStatus.APPROVED);
+
+        when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
+        when(userRepository.findByEmail("admin@example.com")).thenReturn(Optional.of(admin));
+        when(resourceService.transitionStatus(resource.getId(), ResourceStatus.APPROVED, admin))
+                .thenReturn(restoredResource);
+
+        Resource result = adminService.restoreResource(resource.getId(), "admin@example.com");
+
+        assertThat(result.getStatus()).isEqualTo(ResourceStatus.APPROVED);
+        verify(resourceService).transitionStatus(resource.getId(), ResourceStatus.APPROVED, admin);
+    }
+
+    @Test
+    void restoreResource_nonArchivedResource_throwsInvalidTransition() {
+        Resource resource = createApprovedResource();
+        resource.setStatus(ResourceStatus.DRAFT);
+
+        when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
+
+        assertThatThrownBy(() -> adminService.restoreResource(resource.getId(), "admin@example.com"))
+                .isInstanceOf(InvalidStatusTransitionException.class)
+                .hasMessageContaining("DRAFT")
+                .hasMessageContaining("ARCHIVED");
+    }
+
+    @Test
+    void restoreResource_resourceNotFound_throwsNotFound() {
+        UUID id = UUID.randomUUID();
+        when(resourceRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> adminService.restoreResource(id, "admin@example.com"))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
 }
