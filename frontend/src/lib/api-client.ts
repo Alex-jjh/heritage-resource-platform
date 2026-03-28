@@ -14,10 +14,7 @@ export function setOnUnauthorized(callback: () => void) {
 
 function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
-  // Use idToken instead of accessToken because Cognito's access token
-  // does not include custom attributes (like custom:role) by default.
-  // The ID token contains all user attributes including custom:role.
-  return localStorage.getItem("idToken") || localStorage.getItem("accessToken");
+  return localStorage.getItem("accessToken");
 }
 
 async function request<T>(

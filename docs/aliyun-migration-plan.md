@@ -92,7 +92,7 @@
 3. 去掉 `InternalController`（Lambda callback 端点）
 4. 去掉 `ApiKeyAuthFilter`（Lambda 认证用的）
 
-### Phase 4: 前端部署
+### Phase 4: 前端部署 ✅ 已完成
 
 Next.js 改为静态导出，Nginx 托管：
 
@@ -101,7 +101,7 @@ Next.js 改为静态导出，Nginx 托管：
 3. `npm run build` 生成 `out/` 目录
 4. Nginx 配置：静态文件 → `out/`，`/api/*` → proxy_pass localhost:8080
 
-### Phase 5: 服务器配置
+### Phase 5: 服务器配置 ✅ 已完成
 
 ECS 上安装和配置：
 
@@ -172,7 +172,7 @@ server {
 }
 ```
 
-### Phase 6: CI/CD 调整
+### Phase 6: CI/CD 调整 ✅ 已完成
 
 GitHub Actions 改为部署到阿里云 ECS：
 - 改 SSH host/key 为阿里云 ECS 的
