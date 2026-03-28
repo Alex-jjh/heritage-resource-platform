@@ -2,27 +2,34 @@
 
 A community-driven web platform for discovering, sharing, and preserving cultural heritage resources — including images, stories, traditions, historical sites, and educational materials.
 
-**Live Demo:** https://main.d39jebtelw5xqu.amplifyapp.com
+**Live Demo:** http://116.62.231.99 (Alibaba Cloud ECS)
 
 ## Architecture
 
 ```
-┌─────────────────────┐     rewrites /api/*     ┌──────────────────────┐
-│   AWS Amplify        │ ──────────────────────► │   EC2 (t3.small)     │
-│   Next.js 16 (SSR)   │                         │   Spring Boot 3.4    │
-│   React 19           │                         │   Java 21 + MySQL 8  │
-│   Tailwind + shadcn  │                         │                      │
-└─────────────────────┘                         │   ┌──────────────┐   │
-                                                │   │ AWS Cognito   │   │
-                                                │   │ (JWT Auth)    │   │
-                                                │   ├──────────────┤   │
-                                                │   │ AWS S3        │   │
-                                                │   │ (File Storage)│   │
-                                                │   ├──────────────┤   │
-                                                │   │ AWS Lambda    │   │
-                                                │   │ (Thumbnails)  │   │
-                                                │   └──────────────┘   │
-                                                └──────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│              Alibaba Cloud ECS (ecs.c9i.large)           │
+│                                                         │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │  Nginx :80                                        │  │
+│  │  /api/*  → Spring Boot :8080                      │  │
+│  │  /files/* → local disk                            │  │
+│  │  /*      → Next.js :3000                          │  │
+│  └─────────────┬─────────────────┬───────────────────┘  │
+│                │                 │                       │
+│  ┌─────────────▼──────┐  ┌──────▼──────────────────┐   │
+│  │  Spring Boot :8080  │  │  Next.js :3000          │   │
+│  │  REST API           │  │  React 19 (standalone)  │   │
+│  │  Local JWT Auth     │  └─────────────────────────┘   │
+│  │  Local File Storage │                                │
+│  │  Thumbnailator      │                                │
+│  └─────────┬───────────┘                                │
+│            │                                            │
+│  ┌─────────▼───────────┐                                │
+│  │  MySQL 8.0           │                                │
+│  │  heritage_db         │                                │
+│  └─────────────────────┘                                │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ## Features
@@ -46,12 +53,12 @@ DRAFT → PENDING_REVIEW → APPROVED (published)
 
 ### Core Functionality
 - **Browse & Search** — Full-text search with category and tag filters, paginated results
-- **Resource Management** — Create resources with metadata, file attachments (via S3 pre-signed URLs), external links, and tags
+- **Resource Management** — Create resources with metadata, file attachments, external links, and tags
 - **Review System** — Reviewers can approve or reject with feedback; contributors can revise and resubmit
 - **Admin Panel** — User management (role changes, add/delete users), category and tag CRUD, archived resource management
-- **Authentication** — AWS Cognito with email/password, JWT-based API auth
-- **Auto Thumbnails** — Lambda automatically generates thumbnails when images are uploaded to S3
-- **API Documentation** — Interactive Swagger UI at `/swagger-ui.html` with OpenAPI 3.0 spec, JWT auth support
+- **Authentication** — Self-hosted JWT auth with bcrypt password hashing
+- **Auto Thumbnails** — Thumbnailator generates thumbnails on upload
+- **API Documentation** — Interactive Swagger UI at `/swagger-ui.html` with OpenAPI 3.0 spec
 - **Idle Timeout** — 30-minute inactivity auto-logout for security
 
 ## Tech Stack
@@ -59,14 +66,14 @@ DRAFT → PENDING_REVIEW → APPROVED (published)
 | Layer | Technology |
 |-------|-----------|
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS v4, shadcn/ui, TanStack Query |
-| Backend | Spring Boot 3.4, Java 21, Spring Security, Spring Data JPA, Flyway, SpringDoc OpenAPI |
+| Backend | Spring Boot 3.4, Java 21, Spring Security, Spring Data JPA, Flyway, JJWT, SpringDoc OpenAPI |
 | Database | MySQL 8.0 |
-| Auth | AWS Cognito (User Pool + JWT) |
-| Storage | AWS S3 (pre-signed URLs) |
-| Thumbnails | AWS Lambda (Node.js 20) |
-| Hosting | AWS Amplify (frontend SSR), EC2 (backend) |
-| IaC | Terraform |
-| CI/CD | GitHub Actions (backend), Amplify auto-deploy (frontend) |
+| Auth | Self-hosted (bcrypt + JJWT HMAC-SHA256) |
+| Storage | Local disk + Nginx static serving |
+| Thumbnails | Thumbnailator (Java, in-process) |
+| Hosting | Alibaba Cloud ECS (single server) |
+| Reverse Proxy | Nginx |
+| CI/CD | GitHub Actions (build + SCP + restart) |
 
 ## Project Structure
 
@@ -78,18 +85,16 @@ heritage-resource-platform/
 │   └── src/lib/       # API client, auth context
 ├── backend/           # Spring Boot application
 │   └── src/main/java/com/heritage/platform/
-│       ├── config/    # Security, CORS, AWS configs, OpenAPI
+│       ├── config/    # Security, CORS, JWT, OpenAPI
 │       ├── controller/# REST API endpoints
-│       ├── service/   # Business logic
+│       ├── service/   # Business logic + JwtService
 │       ├── repository/# JPA repositories
 │       ├── model/     # Entity classes
 │       └── dto/       # Request/Response DTOs
-├── infra/             # Terraform IaC
-│   ├── main.tf        # Cognito, S3, Lambda
-│   ├── ec2.tf         # EC2 instance, security group, IAM
-│   └── cloudfront.tf  # HTTPS proxy (pending verification)
-├── lambda/            # Lambda function source
 ├── scripts/           # Deployment and utility scripts
+│   ├── ecs-setup.sh   # Alibaba Cloud ECS setup
+│   └── nginx-heritage.conf
+├── docs/              # Architecture diagrams and docs
 └── .github/workflows/ # CI/CD pipeline
 ```
 
@@ -103,7 +108,7 @@ heritage-resource-platform/
    mvn spring-boot:run -Dspring-boot.run.profiles=local
    ```
 
-2. **Frontend** — Requires Node.js 18+:
+2. **Frontend** — Requires Node.js 20+:
    ```bash
    cd frontend
    npm install
@@ -112,7 +117,7 @@ heritage-resource-platform/
 
 ### Deployment
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for full AWS deployment instructions including Terraform setup, EC2 configuration, and Amplify hosting.
+See [docs/aliyun-migration-plan.md](docs/aliyun-migration-plan.md) for Alibaba Cloud ECS deployment guide.
 
 ### Sample Accounts
 
