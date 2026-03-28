@@ -20,6 +20,21 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for {@link TagService}.
+ *
+ * <p>Uses Mockito mocks for {@code TagRepository} and {@code ResourceRepository}.
+ * Covers CRUD operations on heritage resource tags.
+ *
+ * <p>Key scenarios covered:
+ * <ul>
+ *   <li>Create and update with unique-name enforcement</li>
+ *   <li>Duplicate-name rejection</li>
+ *   <li>Deletion guarded by associated-resource check</li>
+ *   <li>Not-found error handling for update and delete</li>
+ *   <li>Listing all tags</li>
+ * </ul>
+ */
 @ExtendWith(MockitoExtension.class)
 class TagServiceTest {
 
@@ -114,6 +129,7 @@ class TagServiceTest {
         verify(tagRepository).delete(tag);
     }
 
+    // Tags in use by resources cannot be deleted to preserve referential integrity
     @Test
     void deleteTag_withAssociatedResources_throwsAssociatedResourcesException() {
         UUID id = UUID.randomUUID();

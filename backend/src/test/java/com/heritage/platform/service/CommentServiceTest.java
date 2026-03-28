@@ -23,6 +23,21 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for {@link CommentService}.
+ *
+ * <p>Uses Mockito mocks for repository dependencies. Validates comment creation
+ * rules and paginated retrieval on heritage resources.
+ *
+ * <p>Key scenarios covered:
+ * <ul>
+ *   <li>Adding a comment to an approved resource</li>
+ *   <li>Rejection for non-approved statuses (DRAFT, PENDING_REVIEW, REJECTED, ARCHIVED)</li>
+ *   <li>Null/blank body validation</li>
+ *   <li>Resource-not-found and user-not-found error handling</li>
+ *   <li>Paginated comment retrieval in descending timestamp order</li>
+ * </ul>
+ */
 @ExtendWith(MockitoExtension.class)
 class CommentServiceTest {
 
@@ -183,6 +198,7 @@ class CommentServiceTest {
 
     // --- Get comments tests ---
 
+    // Comments should be returned newest-first for display in the UI
     @Test
     void getComments_returnsDescendingTimestampOrder() {
         Comment c1 = new Comment();

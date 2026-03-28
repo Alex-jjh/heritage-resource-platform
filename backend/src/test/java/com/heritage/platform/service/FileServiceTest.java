@@ -26,6 +26,21 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for {@link FileService}.
+ *
+ * <p>Uses Mockito mocks for repository dependencies and a JUnit {@code @TempDir}
+ * for local file-system storage. The upload directory and base URL are injected
+ * via {@code ReflectionTestUtils} to avoid Spring context loading.
+ *
+ * <p>Key scenarios covered:
+ * <ul>
+ *   <li>Successful file upload with metadata persistence</li>
+ *   <li>Upload guards: resource not found, non-owner access, non-DRAFT status, max size exceeded</li>
+ *   <li>Download and thumbnail URL generation</li>
+ *   <li>File reference deletion with ownership and resource-association checks</li>
+ * </ul>
+ */
 @ExtendWith(MockitoExtension.class)
 class FileServiceTest {
 
@@ -81,6 +96,7 @@ class FileServiceTest {
 
     // --- Upload tests ---
 
+    // Verifies that file metadata (name, type, size) is captured and linked to the resource
     @Test
     void uploadFile_validRequest_savesFileAndReference() throws Exception {
         when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
@@ -132,6 +148,7 @@ class FileServiceTest {
                 .isInstanceOf(AccessDeniedException.class);
     }
 
+    // Files can only be attached while the resource is still in DRAFT
     @Test
     void uploadFile_notDraftStatus_throwsIllegalState() {
         draftResource.setStatus(ResourceStatus.PENDING_REVIEW);
@@ -204,6 +221,7 @@ class FileServiceTest {
                 .hasMessageContaining("File reference not found");
     }
 
+    // Prevents cross-resource file reference manipulation via mismatched IDs
     @Test
     void deleteFileReference_fileRefOnDifferentResource_throwsNotFound() {
         Resource otherResource = new Resource();

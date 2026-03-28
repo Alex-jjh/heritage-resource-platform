@@ -19,6 +19,22 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for {@link ResourceService}.
+ *
+ * <p>Uses Mockito mocks for all repository dependencies. Tests cover the full
+ * resource lifecycle managed by contributors: creation, update, deletion,
+ * submission for review, and visibility rules.
+ *
+ * <p>Key scenarios covered:
+ * <ul>
+ *   <li>Resource creation with tags, external links, and default DRAFT status</li>
+ *   <li>Update and delete restricted to DRAFT status and resource owner</li>
+ *   <li>Submit-for-review validation (title, copyright required)</li>
+ *   <li>Visibility rules: approved resources visible to all, drafts only to owner/admin</li>
+ *   <li>Listing a contributor's own resources</li>
+ * </ul>
+ */
 @ExtendWith(MockitoExtension.class)
 class ResourceServiceTest {
 
@@ -197,6 +213,7 @@ class ResourceServiceTest {
 
     // --- Delete tests ---
 
+    // Only DRAFT resources can be permanently deleted (hard delete, not soft)
     @Test
     void deleteResource_draftByOwner_performsHardDelete() {
         Resource resource = createDraftResource();
@@ -288,6 +305,7 @@ class ResourceServiceTest {
         assertThat(result.getId()).isEqualTo(resource.getId());
     }
 
+    // Draft resources are private — only the owner and admins may view them
     @Test
     void getResourceById_draftResource_notVisibleToNonOwner() {
         Resource resource = createDraftResource();

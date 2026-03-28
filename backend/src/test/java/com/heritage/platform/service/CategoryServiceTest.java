@@ -20,6 +20,21 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for {@link CategoryService}.
+ *
+ * <p>Uses Mockito mocks for {@code CategoryRepository} and {@code ResourceRepository}.
+ * Covers CRUD operations on heritage resource categories.
+ *
+ * <p>Key scenarios covered:
+ * <ul>
+ *   <li>Create and update with unique-name enforcement</li>
+ *   <li>Duplicate-name rejection</li>
+ *   <li>Deletion guarded by associated-resource check</li>
+ *   <li>Not-found error handling for update and delete</li>
+ *   <li>Listing all categories</li>
+ * </ul>
+ */
 @ExtendWith(MockitoExtension.class)
 class CategoryServiceTest {
 
@@ -114,6 +129,7 @@ class CategoryServiceTest {
         verify(categoryRepository).delete(category);
     }
 
+    // Categories in use by resources cannot be deleted to preserve referential integrity
     @Test
     void deleteCategory_withAssociatedResources_throwsAssociatedResourcesException() {
         UUID id = UUID.randomUUID();

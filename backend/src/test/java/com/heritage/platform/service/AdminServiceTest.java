@@ -18,6 +18,20 @@ import java.util.*;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for {@link AdminService}.
+ *
+ * <p>Uses Mockito mocks for repository and service dependencies. Verifies
+ * administrator-only operations on heritage resources.
+ *
+ * <p>Key scenarios covered:
+ * <ul>
+ *   <li>Archiving an approved resource (status transition and timestamp)</li>
+ *   <li>Unpublishing an approved resource back to DRAFT with a reason</li>
+ *   <li>Guard clauses: non-approved status rejection, resource-not-found errors</li>
+ *   <li>Listing archived resources, including the empty-list edge case</li>
+ * </ul>
+ */
 @ExtendWith(MockitoExtension.class)
 class AdminServiceTest {
 
@@ -116,6 +130,7 @@ class AdminServiceTest {
 
     // --- Unpublish tests ---
 
+    // Unpublish reverts an approved resource to DRAFT, recording the admin's reason
     @Test
     void unpublishResource_approvedResource_changesStatusToDraft() {
         Resource resource = createApprovedResource();

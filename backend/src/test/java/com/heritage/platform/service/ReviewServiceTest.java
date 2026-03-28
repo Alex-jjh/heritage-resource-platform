@@ -20,6 +20,20 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for {@link ReviewService}.
+ *
+ * <p>Uses Mockito mocks for repository and service dependencies. Validates the
+ * reviewer workflow for approving and rejecting heritage resources.
+ *
+ * <p>Key scenarios covered:
+ * <ul>
+ *   <li>Review queue retrieval (populated and empty)</li>
+ *   <li>Approval: status transition, reviewer/feedback persistence, invalid-state rejection</li>
+ *   <li>Rejection: feedback storage, null/blank comment validation, invalid-state rejection</li>
+ *   <li>Resource-not-found error handling</li>
+ * </ul>
+ */
 @ExtendWith(MockitoExtension.class)
 class ReviewServiceTest {
 
@@ -118,6 +132,7 @@ class ReviewServiceTest {
         assertThat(result.getStatus()).isEqualTo(ResourceStatus.APPROVED);
     }
 
+    // Ensures the audit trail (ReviewFeedback) is persisted with correct reviewer and decision
     @Test
     void approveResource_recordsReviewerAndFeedback() {
         Resource resource = createPendingResource();
@@ -179,6 +194,7 @@ class ReviewServiceTest {
         assertThat(result.getStatus()).isEqualTo(ResourceStatus.REJECTED);
     }
 
+    // Verifies that rejection feedback text is persisted for the contributor to review
     @Test
     void rejectResource_storesFeedbackComments() {
         Resource resource = createPendingResource();

@@ -19,6 +19,21 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for {@link UserService}.
+ *
+ * <p>Uses Mockito mocks for {@code UserRepository}. Covers user profile
+ * management and the contributor-request lifecycle.
+ *
+ * <p>Key scenarios covered:
+ * <ul>
+ *   <li>Lookup by email (success and not-found)</li>
+ *   <li>Profile display-name update</li>
+ *   <li>Pending contributor request listing</li>
+ *   <li>Granting and revoking contributor status (role changes and flag resets)</li>
+ *   <li>User-not-found error handling</li>
+ * </ul>
+ */
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
@@ -83,6 +98,7 @@ class UserServiceTest {
         assertTrue(result.get(0).isContributorRequested());
     }
 
+    // Granting contributor status promotes the role and clears the pending request flag
     @Test
     void grantContributorStatus_updatesRoleToContributor() {
         UUID userId = UUID.randomUUID();
@@ -99,6 +115,7 @@ class UserServiceTest {
         verify(userRepository).save(any(User.class));
     }
 
+    // Revoking demotes back to REGISTERED_VIEWER and clears the request flag
     @Test
     void revokeContributorStatus_resetsToRegisteredViewer() {
         UUID userId = UUID.randomUUID();

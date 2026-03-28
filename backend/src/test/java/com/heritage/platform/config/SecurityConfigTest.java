@@ -19,9 +19,21 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Tests for SecurityConfig authorization rules.
- * Uses stub controllers to exercise the security filter chain rules
- * without requiring real service implementations.
+ * Integration tests for {@link SecurityConfig} authorization rules.
+ *
+ * <p>Uses Spring {@code @WebMvcTest} with lightweight stub controllers to exercise
+ * the security filter chain without loading real service implementations.
+ * {@code JwtService} is provided as a {@code @MockBean}.
+ *
+ * <p>Key scenarios covered:
+ * <ul>
+ *   <li>Public endpoints: register and login accessible without authentication</li>
+ *   <li>Unauthenticated requests return 401 for all protected paths</li>
+ *   <li>ADMINISTRATOR-only endpoints (archive, archived list) reject other roles with 403</li>
+ *   <li>REVIEWER-only endpoints (queue, approve, reject) reject non-reviewer/admin roles</li>
+ *   <li>CONTRIBUTOR-only endpoints (create, update, delete, submit, upload) reject viewers</li>
+ *   <li>General authenticated access (GET resource, search, list own resources)</li>
+ * </ul>
  */
 @WebMvcTest(
         controllers = {

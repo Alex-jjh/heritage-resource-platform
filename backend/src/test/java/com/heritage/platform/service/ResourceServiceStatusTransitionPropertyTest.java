@@ -15,6 +15,21 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Property-based tests for {@link ResourceService#transitionStatus} status transitions.
+ *
+ * <p>Uses jqwik with Mockito mocks to verify that the service layer correctly
+ * enforces the resource status state machine. Unlike {@code ResourceStatusPropertyTest}
+ * which tests the model enum directly, these tests exercise the full service method
+ * including repository interactions and audit-trail persistence.
+ *
+ * <p>Key properties verified:
+ * <ul>
+ *   <li>All valid (from, to) transitions succeed and persist a {@code StatusTransition} record</li>
+ *   <li>All invalid (from, to) transitions throw {@code InvalidStatusTransitionException}
+ *       and leave the resource status unchanged</li>
+ * </ul>
+ */
 class ResourceServiceStatusTransitionPropertyTest {
 
     private static final Map<ResourceStatus, Set<ResourceStatus>> ALLOWED_TRANSITIONS = Map.of(
@@ -67,6 +82,7 @@ class ResourceServiceStatusTransitionPropertyTest {
         return actor;
     }
 
+    // For every allowed (from, to) pair, the service should update status and persist an audit record
     @Property
     void validTransitionsSucceed(
             @ForAll("validTransitionPairs") Tuple.Tuple2<ResourceStatus, ResourceStatus> pair) {
@@ -89,6 +105,7 @@ class ResourceServiceStatusTransitionPropertyTest {
         verify(statusTransitionRepository).save(any(StatusTransition.class));
     }
 
+    // For every disallowed (from, to) pair, the service should throw and leave status unchanged
     @Property
     void invalidTransitionsAreRejected(
             @ForAll("invalidTransitionPairs") Tuple.Tuple2<ResourceStatus, ResourceStatus> pair) {

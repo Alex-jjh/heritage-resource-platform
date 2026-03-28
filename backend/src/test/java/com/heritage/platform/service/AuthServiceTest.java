@@ -24,6 +24,21 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for {@link AuthService}.
+ *
+ * <p>Uses Mockito mocks for {@code UserRepository} while wiring real
+ * {@code BCryptPasswordEncoder} and {@code JwtService} instances so that
+ * password hashing and token generation are exercised end-to-end.
+ *
+ * <p>Key scenarios covered:
+ * <ul>
+ *   <li>Successful registration with correct role assignment and password hashing</li>
+ *   <li>Duplicate-email rejection during registration</li>
+ *   <li>Login with valid credentials, invalid password, non-existent user, and null password hash</li>
+ *   <li>Logout no-op behaviour</li>
+ * </ul>
+ */
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
@@ -43,6 +58,7 @@ class AuthServiceTest {
         authService = new AuthService(userRepository, passwordEncoder, jwtService);
     }
 
+    // Verifies that new users default to REGISTERED_VIEWER and that the raw password is hashed
     @Test
     void register_createsUserWithRegisteredViewerRole() {
         RegisterRequest request = new RegisterRequest();
@@ -135,6 +151,7 @@ class AuthServiceTest {
         assertThrows(AuthenticationException.class, () -> authService.login(request));
     }
 
+    // Covers migrated users who don't yet have a local password set
     @Test
     void login_withNullPasswordHash_throwsAuthenticationException() {
         LoginRequest request = new LoginRequest();
@@ -152,6 +169,7 @@ class AuthServiceTest {
         assertThrows(AuthenticationException.class, () -> authService.login(request));
     }
 
+    // JWT-based auth has no server-side session to invalidate
     @Test
     void logout_isNoOp() {
         // Should not throw

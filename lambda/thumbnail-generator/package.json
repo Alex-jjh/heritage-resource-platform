@@ -1,9 +1,0 @@
-{
-  "name": "heritage-thumbnail-generator",
-  "version": "1.0.0",
-  "description": "Lambda function to generate thumbnails for uploaded heritage resource images",
-  "main": "index.mjs",
-  "dependencies": {
-    "sharp": "^0.33.2"
-  }
-}
