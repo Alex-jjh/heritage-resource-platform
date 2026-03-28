@@ -61,7 +61,7 @@ class ResourceServiceStatusTransitionPropertyTest {
     private User createActor() {
         User actor = new User();
         actor.setId(UUID.randomUUID());
-        actor.setCognitoSub("actor-sub");
+        actor.setEmail("actor@example.com");
         actor.setDisplayName("Actor");
         actor.setRole(UserRole.ADMINISTRATOR);
         return actor;

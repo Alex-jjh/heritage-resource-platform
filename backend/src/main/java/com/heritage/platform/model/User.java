@@ -12,11 +12,14 @@ public class User {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = true)
     private String cognitoSub;
 
     @Column(unique = true, nullable = false)
     private String email;
+
+    @Column(nullable = true)
+    private String passwordHash;
 
     @Column(nullable = false)
     private String displayName;
@@ -45,6 +48,8 @@ public class User {
     public void setId(UUID id) { this.id = id; }
     public String getCognitoSub() { return cognitoSub; }
     public void setCognitoSub(String cognitoSub) { this.cognitoSub = cognitoSub; }
+    public String getPasswordHash() { return passwordHash; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
     public String getDisplayName() { return displayName; }

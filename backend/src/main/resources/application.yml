@@ -12,3 +12,6 @@ spring:
 
 app:
   internal-api-key: ${INTERNAL_API_KEY:change-me-in-production}
+  jwt:
+    secret: ${JWT_SECRET:default-dev-secret-key-must-be-at-least-256-bits-long-for-hmac-sha256!!}
+    expiration-ms: ${JWT_EXPIRATION_MS:3600000}

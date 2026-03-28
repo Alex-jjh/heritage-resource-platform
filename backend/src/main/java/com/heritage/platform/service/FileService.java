@@ -52,11 +52,11 @@ public class FileService {
      * Generates a pre-signed PUT URL for uploading a file to S3.
      * Scoped to uploads/{resourceId}/{fileName} with 15-minute expiry.
      */
-    public String generateUploadUrl(UUID resourceId, String fileName, String contentType, String cognitoSub) {
+    public String generateUploadUrl(UUID resourceId, String fileName, String contentType, String email) {
         Resource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
 
-        User user = userRepository.findByCognitoSub(cognitoSub)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         validateOwnershipAndDraftStatus(resource, user);
@@ -109,11 +109,11 @@ public class FileService {
      * Creates a file reference on a resource after upload completes.
      */
     @Transactional
-    public FileReference createFileReference(UUID resourceId, CreateFileReferenceRequest request, String cognitoSub) {
+    public FileReference createFileReference(UUID resourceId, CreateFileReferenceRequest request, String email) {
         Resource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
 
-        User user = userRepository.findByCognitoSub(cognitoSub)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         validateOwnershipAndDraftStatus(resource, user);
@@ -132,11 +132,11 @@ public class FileService {
      * Deletes a file reference from a draft resource.
      */
     @Transactional
-    public void deleteFileReference(UUID resourceId, UUID fileRefId, String cognitoSub) {
+    public void deleteFileReference(UUID resourceId, UUID fileRefId, String email) {
         Resource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
 
-        User user = userRepository.findByCognitoSub(cognitoSub)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         validateOwnershipAndDraftStatus(resource, user);

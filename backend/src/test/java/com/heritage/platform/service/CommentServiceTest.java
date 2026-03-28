@@ -42,7 +42,7 @@ class CommentServiceTest {
 
         author = new User();
         author.setId(UUID.randomUUID());
-        author.setCognitoSub("author-sub");
+        author.setEmail("author@example.com");
         author.setDisplayName("Test Author");
         author.setRole(UserRole.REGISTERED_VIEWER);
 
@@ -68,14 +68,14 @@ class CommentServiceTest {
     @Test
     void addComment_toApprovedResource_succeeds() {
         when(resourceRepository.findById(approvedResource.getId())).thenReturn(Optional.of(approvedResource));
-        when(userRepository.findByCognitoSub("author-sub")).thenReturn(Optional.of(author));
+        when(userRepository.findByEmail("author@example.com")).thenReturn(Optional.of(author));
         when(commentRepository.save(any(Comment.class))).thenAnswer(inv -> {
             Comment c = inv.getArgument(0);
             c.setId(UUID.randomUUID());
             return c;
         });
 
-        Comment result = commentService.addComment(approvedResource.getId(), "author-sub", "Great resource!");
+        Comment result = commentService.addComment(approvedResource.getId(), "author@example.com", "Great resource!");
 
         assertThat(result).isNotNull();
         assertThat(result.getBody()).isEqualTo("Great resource!");
@@ -98,7 +98,7 @@ class CommentServiceTest {
         when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
 
         assertThatThrownBy(() ->
-                commentService.addComment(draftResource.getId(), "author-sub", "A comment"))
+                commentService.addComment(draftResource.getId(), "author@example.com", "A comment"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("approved");
     }
@@ -112,7 +112,7 @@ class CommentServiceTest {
         when(resourceRepository.findById(pendingResource.getId())).thenReturn(Optional.of(pendingResource));
 
         assertThatThrownBy(() ->
-                commentService.addComment(pendingResource.getId(), "author-sub", "A comment"))
+                commentService.addComment(pendingResource.getId(), "author@example.com", "A comment"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("approved");
     }
@@ -126,7 +126,7 @@ class CommentServiceTest {
         when(resourceRepository.findById(rejectedResource.getId())).thenReturn(Optional.of(rejectedResource));
 
         assertThatThrownBy(() ->
-                commentService.addComment(rejectedResource.getId(), "author-sub", "A comment"))
+                commentService.addComment(rejectedResource.getId(), "author@example.com", "A comment"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("approved");
     }
@@ -140,7 +140,7 @@ class CommentServiceTest {
         when(resourceRepository.findById(archivedResource.getId())).thenReturn(Optional.of(archivedResource));
 
         assertThatThrownBy(() ->
-                commentService.addComment(archivedResource.getId(), "author-sub", "A comment"))
+                commentService.addComment(archivedResource.getId(), "author@example.com", "A comment"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("approved");
     }
@@ -148,7 +148,7 @@ class CommentServiceTest {
     @Test
     void addComment_withNullBody_throwsIllegalArgument() {
         assertThatThrownBy(() ->
-                commentService.addComment(approvedResource.getId(), "author-sub", null))
+                commentService.addComment(approvedResource.getId(), "author@example.com", null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("empty");
     }
@@ -156,7 +156,7 @@ class CommentServiceTest {
     @Test
     void addComment_withBlankBody_throwsIllegalArgument() {
         assertThatThrownBy(() ->
-                commentService.addComment(approvedResource.getId(), "author-sub", "   "))
+                commentService.addComment(approvedResource.getId(), "author@example.com", "   "))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("empty");
     }
@@ -167,17 +167,17 @@ class CommentServiceTest {
         when(resourceRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
-                commentService.addComment(id, "author-sub", "A comment"))
+                commentService.addComment(id, "author@example.com", "A comment"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
     void addComment_userNotFound_throwsNotFound() {
         when(resourceRepository.findById(approvedResource.getId())).thenReturn(Optional.of(approvedResource));
-        when(userRepository.findByCognitoSub("unknown-sub")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("unknown@example.com")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
-                commentService.addComment(approvedResource.getId(), "unknown-sub", "A comment"))
+                commentService.addComment(approvedResource.getId(), "unknown@example.com", "A comment"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 

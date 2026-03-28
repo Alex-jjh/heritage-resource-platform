@@ -86,18 +86,4 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(503, "File storage service is temporarily unavailable. Please try again later."));
     }
 
-    @ExceptionHandler(software.amazon.awssdk.services.cognitoidentityprovider.model.InvalidPasswordException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidPassword(
-            software.amazon.awssdk.services.cognitoidentityprovider.model.InvalidPasswordException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(400, "Password must contain uppercase, lowercase letters and numbers (min 8 characters)."));
-    }
-
-    @ExceptionHandler(software.amazon.awssdk.services.cognitoidentityprovider.model.CognitoIdentityProviderException.class)
-    public ResponseEntity<ErrorResponse> handleCognitoException(
-            software.amazon.awssdk.services.cognitoidentityprovider.model.CognitoIdentityProviderException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(400, ex.awsErrorDetails().errorMessage()));
-    }
-
 }

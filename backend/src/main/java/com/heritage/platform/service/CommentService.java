@@ -35,7 +35,7 @@ public class CommentService {
      * Rejects comments on non-approved resources and empty comment bodies.
      */
     @Transactional
-    public Comment addComment(UUID resourceId, String cognitoSub, String body) {
+    public Comment addComment(UUID resourceId, String email, String body) {
         if (body == null || body.isBlank()) {
             throw new IllegalArgumentException("Comment body must not be empty");
         }
@@ -47,7 +47,7 @@ public class CommentService {
             throw new IllegalStateException("Comments can only be added to approved resources");
         }
 
-        User author = userRepository.findByCognitoSub(cognitoSub)
+        User author = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Comment comment = new Comment();

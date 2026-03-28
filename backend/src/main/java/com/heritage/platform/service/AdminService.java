@@ -34,7 +34,7 @@ public class AdminService {
      * Archives an approved resource. Only APPROVED resources can be archived.
      */
     @Transactional
-    public Resource archiveResource(UUID resourceId, String cognitoSub) {
+    public Resource archiveResource(UUID resourceId, String email) {
         Resource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
 
@@ -44,7 +44,7 @@ public class AdminService {
                             resource.getStatus()));
         }
 
-        User admin = userRepository.findByCognitoSub(cognitoSub)
+        User admin = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         return resourceService.transitionStatus(resourceId, ResourceStatus.ARCHIVED, admin);
@@ -55,7 +55,7 @@ public class AdminService {
      * Only APPROVED resources can be unpublished.
      */
     @Transactional
-    public Resource unpublishResource(UUID resourceId, String cognitoSub, String reason) {
+    public Resource unpublishResource(UUID resourceId, String email, String reason) {
         Resource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
 
@@ -65,7 +65,7 @@ public class AdminService {
                             resource.getStatus()));
         }
 
-        User admin = userRepository.findByCognitoSub(cognitoSub)
+        User admin = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         // Record the reason as review feedback
@@ -85,7 +85,7 @@ public class AdminService {
      * Restores an archived resource back to APPROVED status.
      */
     @Transactional
-    public Resource restoreResource(UUID resourceId, String cognitoSub) {
+    public Resource restoreResource(UUID resourceId, String email) {
         Resource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
 
@@ -95,7 +95,7 @@ public class AdminService {
                             resource.getStatus()));
         }
 
-        User admin = userRepository.findByCognitoSub(cognitoSub)
+        User admin = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         return resourceService.transitionStatus(resourceId, ResourceStatus.APPROVED, admin);

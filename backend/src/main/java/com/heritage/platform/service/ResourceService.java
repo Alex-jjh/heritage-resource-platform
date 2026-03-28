@@ -38,8 +38,8 @@ public class ResourceService {
      * Creates a new draft resource for the given contributor.
      */
     @Transactional
-    public Resource createResource(String cognitoSub, CreateResourceRequest request) {
-        User contributor = userRepository.findByCognitoSub(cognitoSub)
+    public Resource createResource(String email, CreateResourceRequest request) {
+        User contributor = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Category category = categoryRepository.findById(request.getCategoryId())
@@ -77,11 +77,11 @@ public class ResourceService {
      * Non-admin users can only see APPROVED resources (or their own).
      */
     @Transactional(readOnly = true)
-    public Resource getResourceById(UUID resourceId, String cognitoSub) {
+    public Resource getResourceById(UUID resourceId, String email) {
         Resource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
 
-        User user = userRepository.findByCognitoSub(cognitoSub)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         // Admins can see all resources
@@ -131,11 +131,11 @@ public class ResourceService {
      * Updates a draft resource. Only the owner can update, and only while in DRAFT status.
      */
     @Transactional
-    public Resource updateResource(UUID resourceId, String cognitoSub, UpdateResourceRequest request) {
+    public Resource updateResource(UUID resourceId, String email, UpdateResourceRequest request) {
         Resource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
 
-        User user = userRepository.findByCognitoSub(cognitoSub)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         validateOwnership(resource, user);
@@ -176,11 +176,11 @@ public class ResourceService {
      * Deletes a draft resource. Hard delete with cascade to file references and external links.
      */
     @Transactional
-    public void deleteResource(UUID resourceId, String cognitoSub) {
+    public void deleteResource(UUID resourceId, String email) {
         Resource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
 
-        User user = userRepository.findByCognitoSub(cognitoSub)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         validateOwnership(resource, user);
@@ -196,8 +196,8 @@ public class ResourceService {
      * Lists all resources owned by the given contributor.
      */
     @Transactional(readOnly = true)
-    public List<Resource> listContributorResources(String cognitoSub) {
-        User user = userRepository.findByCognitoSub(cognitoSub)
+    public List<Resource> listContributorResources(String email) {
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         List<Resource> resources = resourceRepository.findByContributorId(user.getId());
         // Force initialization of lazy associations within the transaction
@@ -243,11 +243,11 @@ public class ResourceService {
      * Submits a draft resource for review. Validates required metadata.
      */
     @Transactional
-    public Resource submitForReview(UUID resourceId, String cognitoSub) {
+    public Resource submitForReview(UUID resourceId, String email) {
         Resource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
 
-        User user = userRepository.findByCognitoSub(cognitoSub)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         validateOwnership(resource, user);
@@ -260,11 +260,11 @@ public class ResourceService {
      * Moves a rejected resource back to draft for revision.
      */
     @Transactional
-    public Resource revise(UUID resourceId, String cognitoSub) {
+    public Resource revise(UUID resourceId, String email) {
         Resource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
 
-        User user = userRepository.findByCognitoSub(cognitoSub)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         validateOwnership(resource, user);

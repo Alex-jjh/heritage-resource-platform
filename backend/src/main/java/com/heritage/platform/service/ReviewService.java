@@ -51,13 +51,13 @@ public class ReviewService {
      * Approves a resource. Only PENDING_REVIEW resources can be approved.
      */
     @Transactional
-    public Resource approveResource(UUID resourceId, String cognitoSub) {
+    public Resource approveResource(UUID resourceId, String email) {
         Resource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
 
         validatePendingReviewStatus(resource);
 
-        User reviewer = userRepository.findByCognitoSub(cognitoSub)
+        User reviewer = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         ReviewFeedback feedback = new ReviewFeedback();
@@ -75,7 +75,7 @@ public class ReviewService {
      * Only PENDING_REVIEW resources can be rejected.
      */
     @Transactional
-    public Resource rejectResource(UUID resourceId, String cognitoSub, String comments) {
+    public Resource rejectResource(UUID resourceId, String email, String comments) {
         if (comments == null || comments.isBlank()) {
             throw new IllegalArgumentException("Feedback comments are required when rejecting a resource");
         }
@@ -85,7 +85,7 @@ public class ReviewService {
 
         validatePendingReviewStatus(resource);
 
-        User reviewer = userRepository.findByCognitoSub(cognitoSub)
+        User reviewer = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         ReviewFeedback feedback = new ReviewFeedback();

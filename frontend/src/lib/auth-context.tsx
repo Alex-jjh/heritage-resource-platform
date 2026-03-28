@@ -29,14 +29,10 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 function storeTokens(tokens: AuthResponse) {
   localStorage.setItem("accessToken", tokens.accessToken);
-  localStorage.setItem("idToken", tokens.idToken);
-  localStorage.setItem("refreshToken", tokens.refreshToken);
 }
 
 function clearTokens() {
   localStorage.removeItem("accessToken");
-  localStorage.removeItem("idToken");
-  localStorage.removeItem("refreshToken");
 }
 
 function hasStoredToken(): boolean {

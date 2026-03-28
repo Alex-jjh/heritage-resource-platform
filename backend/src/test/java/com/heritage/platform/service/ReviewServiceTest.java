@@ -41,13 +41,13 @@ class ReviewServiceTest {
 
         reviewer = new User();
         reviewer.setId(UUID.randomUUID());
-        reviewer.setCognitoSub("reviewer-sub");
+        reviewer.setEmail("reviewer@example.com");
         reviewer.setDisplayName("Reviewer");
         reviewer.setRole(UserRole.REVIEWER);
 
         contributor = new User();
         contributor.setId(UUID.randomUUID());
-        contributor.setCognitoSub("contributor-sub");
+        contributor.setEmail("contributor@example.com");
         contributor.setDisplayName("Contributor");
         contributor.setRole(UserRole.CONTRIBUTOR);
 
@@ -108,12 +108,12 @@ class ReviewServiceTest {
         approvedResource.setApprovedAt(Instant.now());
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
-        when(userRepository.findByCognitoSub("reviewer-sub")).thenReturn(Optional.of(reviewer));
+        when(userRepository.findByEmail("reviewer@example.com")).thenReturn(Optional.of(reviewer));
         when(reviewFeedbackRepository.save(any(ReviewFeedback.class))).thenAnswer(inv -> inv.getArgument(0));
         when(resourceService.transitionStatus(resource.getId(), ResourceStatus.APPROVED, reviewer))
                 .thenReturn(approvedResource);
 
-        Resource result = reviewService.approveResource(resource.getId(), "reviewer-sub");
+        Resource result = reviewService.approveResource(resource.getId(), "reviewer@example.com");
 
         assertThat(result.getStatus()).isEqualTo(ResourceStatus.APPROVED);
     }
@@ -123,11 +123,11 @@ class ReviewServiceTest {
         Resource resource = createPendingResource();
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
-        when(userRepository.findByCognitoSub("reviewer-sub")).thenReturn(Optional.of(reviewer));
+        when(userRepository.findByEmail("reviewer@example.com")).thenReturn(Optional.of(reviewer));
         when(reviewFeedbackRepository.save(any(ReviewFeedback.class))).thenAnswer(inv -> inv.getArgument(0));
         when(resourceService.transitionStatus(any(), any(), any())).thenReturn(resource);
 
-        reviewService.approveResource(resource.getId(), "reviewer-sub");
+        reviewService.approveResource(resource.getId(), "reviewer@example.com");
 
         ArgumentCaptor<ReviewFeedback> captor = ArgumentCaptor.forClass(ReviewFeedback.class);
         verify(reviewFeedbackRepository).save(captor.capture());
@@ -145,7 +145,7 @@ class ReviewServiceTest {
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
 
         assertThatThrownBy(() ->
-                reviewService.approveResource(resource.getId(), "reviewer-sub"))
+                reviewService.approveResource(resource.getId(), "reviewer@example.com"))
                 .isInstanceOf(InvalidStatusTransitionException.class)
                 .hasMessageContaining("DRAFT")
                 .hasMessageContaining("PENDING_REVIEW");
@@ -156,7 +156,7 @@ class ReviewServiceTest {
         UUID id = UUID.randomUUID();
         when(resourceRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> reviewService.approveResource(id, "reviewer-sub"))
+        assertThatThrownBy(() -> reviewService.approveResource(id, "reviewer@example.com"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -169,12 +169,12 @@ class ReviewServiceTest {
         rejectedResource.setStatus(ResourceStatus.REJECTED);
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
-        when(userRepository.findByCognitoSub("reviewer-sub")).thenReturn(Optional.of(reviewer));
+        when(userRepository.findByEmail("reviewer@example.com")).thenReturn(Optional.of(reviewer));
         when(reviewFeedbackRepository.save(any(ReviewFeedback.class))).thenAnswer(inv -> inv.getArgument(0));
         when(resourceService.transitionStatus(resource.getId(), ResourceStatus.REJECTED, reviewer))
                 .thenReturn(rejectedResource);
 
-        Resource result = reviewService.rejectResource(resource.getId(), "reviewer-sub", "Needs more detail");
+        Resource result = reviewService.rejectResource(resource.getId(), "reviewer@example.com", "Needs more detail");
 
         assertThat(result.getStatus()).isEqualTo(ResourceStatus.REJECTED);
     }
@@ -184,11 +184,11 @@ class ReviewServiceTest {
         Resource resource = createPendingResource();
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
-        when(userRepository.findByCognitoSub("reviewer-sub")).thenReturn(Optional.of(reviewer));
+        when(userRepository.findByEmail("reviewer@example.com")).thenReturn(Optional.of(reviewer));
         when(reviewFeedbackRepository.save(any(ReviewFeedback.class))).thenAnswer(inv -> inv.getArgument(0));
         when(resourceService.transitionStatus(any(), any(), any())).thenReturn(resource);
 
-        reviewService.rejectResource(resource.getId(), "reviewer-sub", "Please add more context");
+        reviewService.rejectResource(resource.getId(), "reviewer@example.com", "Please add more context");
 
         ArgumentCaptor<ReviewFeedback> captor = ArgumentCaptor.forClass(ReviewFeedback.class);
         verify(reviewFeedbackRepository).save(captor.capture());
@@ -201,7 +201,7 @@ class ReviewServiceTest {
     @Test
     void rejectResource_withNullComments_throwsIllegalArgument() {
         assertThatThrownBy(() ->
-                reviewService.rejectResource(UUID.randomUUID(), "reviewer-sub", null))
+                reviewService.rejectResource(UUID.randomUUID(), "reviewer@example.com", null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Feedback comments are required");
     }
@@ -209,7 +209,7 @@ class ReviewServiceTest {
     @Test
     void rejectResource_withBlankComments_throwsIllegalArgument() {
         assertThatThrownBy(() ->
-                reviewService.rejectResource(UUID.randomUUID(), "reviewer-sub", "   "))
+                reviewService.rejectResource(UUID.randomUUID(), "reviewer@example.com", "   "))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Feedback comments are required");
     }
@@ -222,7 +222,7 @@ class ReviewServiceTest {
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
 
         assertThatThrownBy(() ->
-                reviewService.rejectResource(resource.getId(), "reviewer-sub", "Some feedback"))
+                reviewService.rejectResource(resource.getId(), "reviewer@example.com", "Some feedback"))
                 .isInstanceOf(InvalidStatusTransitionException.class)
                 .hasMessageContaining("APPROVED")
                 .hasMessageContaining("PENDING_REVIEW");

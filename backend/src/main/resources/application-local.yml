@@ -9,10 +9,11 @@ aws:
     endpoint: http://localhost:4566
     bucket: heritage-resources-local
     region: us-east-1
-  cognito:
-    user-pool-id: local-pool
-    client-id: local-client
-    region: us-east-1
 
-security:
-  auth-mode: mock
+app:
+  jwt:
+    secret: local-dev-secret-key-must-be-at-least-256-bits-long-for-hmac-sha256!!
+    expiration-ms: 3600000
+  internal-api-key: local-dev-key
+  cors:
+    allowed-origin: http://localhost:3000

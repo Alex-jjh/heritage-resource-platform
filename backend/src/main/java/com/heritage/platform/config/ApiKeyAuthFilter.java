@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * Authenticates requests to /api/internal/** using an API key in the X-Api-Key header.
  * Grants the SYSTEM role when the key matches, allowing Lambda callbacks to reach
- * internal endpoints without a Cognito JWT.
+ * internal endpoints without a JWT.
  */
 public class ApiKeyAuthFilter extends OncePerRequestFilter {
 

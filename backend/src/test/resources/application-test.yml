@@ -7,12 +7,9 @@ spring:
       ddl-auto: none
   flyway:
     enabled: false
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: https://cognito-idp.us-east-1.amazonaws.com/test-pool
-          jwk-set-uri: https://cognito-idp.us-east-1.amazonaws.com/test-pool/.well-known/jwks.json
 
 app:
+  jwt:
+    secret: test-secret-key-must-be-at-least-256-bits-long-for-hmac-sha256-algorithm!!
+    expiration-ms: 3600000
   internal-api-key: test-api-key

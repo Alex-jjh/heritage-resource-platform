@@ -22,7 +22,6 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 import java.net.URI;
-import java.net.URL;
 import java.time.Instant;
 import java.util.*;
 
@@ -52,13 +51,13 @@ class FileServiceTest {
 
         contributor = new User();
         contributor.setId(UUID.randomUUID());
-        contributor.setCognitoSub("contributor-sub");
+        contributor.setEmail("contributor@example.com");
         contributor.setDisplayName("Contributor");
         contributor.setRole(UserRole.CONTRIBUTOR);
 
         otherUser = new User();
         otherUser.setId(UUID.randomUUID());
-        otherUser.setCognitoSub("other-sub");
+        otherUser.setEmail("other@example.com");
         otherUser.setDisplayName("Other");
         otherUser.setRole(UserRole.CONTRIBUTOR);
 
@@ -84,14 +83,14 @@ class FileServiceTest {
     @Test
     void generateUploadUrl_validRequest_returnsPresignedUrl() throws Exception {
         when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
-        when(userRepository.findByCognitoSub("contributor-sub")).thenReturn(Optional.of(contributor));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
         when(s3Config.getBucket()).thenReturn("heritage-resources-local");
 
         PresignedPutObjectRequest presigned = mock(PresignedPutObjectRequest.class);
         when(presigned.url()).thenReturn(URI.create("https://s3.amazonaws.com/heritage-resources-local/uploads/test").toURL());
         when(s3Presigner.presignPutObject(any(PutObjectPresignRequest.class))).thenReturn(presigned);
 
-        String url = fileService.generateUploadUrl(draftResource.getId(), "photo.jpg", "image/jpeg", "contributor-sub");
+        String url = fileService.generateUploadUrl(draftResource.getId(), "photo.jpg", "image/jpeg", "contributor@example.com");
 
         assertThat(url).contains("s3.amazonaws.com");
         verify(s3Presigner).presignPutObject(any(PutObjectPresignRequest.class));
@@ -108,16 +107,16 @@ class FileServiceTest {
         UUID id = UUID.randomUUID();
         when(resourceRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> fileService.generateUploadUrl(id, "file.jpg", null, "contributor-sub"))
+        assertThatThrownBy(() -> fileService.generateUploadUrl(id, "file.jpg", null, "contributor@example.com"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
     void generateUploadUrl_notOwner_throwsAccessDenied() {
         when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
-        when(userRepository.findByCognitoSub("other-sub")).thenReturn(Optional.of(otherUser));
+        when(userRepository.findByEmail("other@example.com")).thenReturn(Optional.of(otherUser));
 
-        assertThatThrownBy(() -> fileService.generateUploadUrl(draftResource.getId(), "file.jpg", null, "other-sub"))
+        assertThatThrownBy(() -> fileService.generateUploadUrl(draftResource.getId(), "file.jpg", null, "other@example.com"))
                 .isInstanceOf(AccessDeniedException.class);
     }
 
@@ -125,9 +124,9 @@ class FileServiceTest {
     void generateUploadUrl_notDraftStatus_throwsIllegalState() {
         draftResource.setStatus(ResourceStatus.PENDING_REVIEW);
         when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
-        when(userRepository.findByCognitoSub("contributor-sub")).thenReturn(Optional.of(contributor));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
 
-        assertThatThrownBy(() -> fileService.generateUploadUrl(draftResource.getId(), "file.jpg", null, "contributor-sub"))
+        assertThatThrownBy(() -> fileService.generateUploadUrl(draftResource.getId(), "file.jpg", null, "contributor@example.com"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("DRAFT");
     }
@@ -135,12 +134,12 @@ class FileServiceTest {
     @Test
     void generateUploadUrl_s3Failure_throwsS3ServiceException() {
         when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
-        when(userRepository.findByCognitoSub("contributor-sub")).thenReturn(Optional.of(contributor));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
         when(s3Config.getBucket()).thenReturn("heritage-resources-local");
         when(s3Presigner.presignPutObject(any(PutObjectPresignRequest.class)))
                 .thenThrow(new RuntimeException("S3 connection refused"));
 
-        assertThatThrownBy(() -> fileService.generateUploadUrl(draftResource.getId(), "file.jpg", null, "contributor-sub"))
+        assertThatThrownBy(() -> fileService.generateUploadUrl(draftResource.getId(), "file.jpg", null, "contributor@example.com"))
                 .isInstanceOf(S3ServiceException.class)
                 .hasMessageContaining("Failed to generate upload URL");
     }
@@ -177,7 +176,7 @@ class FileServiceTest {
     @Test
     void createFileReference_validRequest_savesReference() {
         when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
-        when(userRepository.findByCognitoSub("contributor-sub")).thenReturn(Optional.of(contributor));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
         when(fileReferenceRepository.save(any(FileReference.class))).thenAnswer(inv -> {
             FileReference fr = inv.getArgument(0);
             fr.setId(UUID.randomUUID());
@@ -190,7 +189,7 @@ class FileServiceTest {
         request.setContentType("image/jpeg");
         request.setFileSize(1024L);
 
-        FileReference result = fileService.createFileReference(draftResource.getId(), request, "contributor-sub");
+        FileReference result = fileService.createFileReference(draftResource.getId(), request, "contributor@example.com");
 
         assertThat(result.getS3Key()).isEqualTo(request.getS3Key());
         assertThat(result.getOriginalFileName()).isEqualTo("photo.jpg");
@@ -205,13 +204,13 @@ class FileServiceTest {
     @Test
     void createFileReference_notOwner_throwsAccessDenied() {
         when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
-        when(userRepository.findByCognitoSub("other-sub")).thenReturn(Optional.of(otherUser));
+        when(userRepository.findByEmail("other@example.com")).thenReturn(Optional.of(otherUser));
 
         CreateFileReferenceRequest request = new CreateFileReferenceRequest();
         request.setS3Key("uploads/test/photo.jpg");
         request.setOriginalFileName("photo.jpg");
 
-        assertThatThrownBy(() -> fileService.createFileReference(draftResource.getId(), request, "other-sub"))
+        assertThatThrownBy(() -> fileService.createFileReference(draftResource.getId(), request, "other@example.com"))
                 .isInstanceOf(AccessDeniedException.class);
     }
 
@@ -219,13 +218,13 @@ class FileServiceTest {
     void createFileReference_notDraft_throwsIllegalState() {
         draftResource.setStatus(ResourceStatus.APPROVED);
         when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
-        when(userRepository.findByCognitoSub("contributor-sub")).thenReturn(Optional.of(contributor));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
 
         CreateFileReferenceRequest request = new CreateFileReferenceRequest();
         request.setS3Key("uploads/test/photo.jpg");
         request.setOriginalFileName("photo.jpg");
 
-        assertThatThrownBy(() -> fileService.createFileReference(draftResource.getId(), request, "contributor-sub"))
+        assertThatThrownBy(() -> fileService.createFileReference(draftResource.getId(), request, "contributor@example.com"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("DRAFT");
     }
@@ -241,10 +240,10 @@ class FileServiceTest {
         fileRef.setOriginalFileName("photo.jpg");
 
         when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
-        when(userRepository.findByCognitoSub("contributor-sub")).thenReturn(Optional.of(contributor));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
         when(fileReferenceRepository.findById(fileRef.getId())).thenReturn(Optional.of(fileRef));
 
-        fileService.deleteFileReference(draftResource.getId(), fileRef.getId(), "contributor-sub");
+        fileService.deleteFileReference(draftResource.getId(), fileRef.getId(), "contributor@example.com");
 
         verify(fileReferenceRepository).delete(fileRef);
     }
@@ -253,10 +252,10 @@ class FileServiceTest {
     void deleteFileReference_fileRefNotFound_throwsNotFound() {
         UUID fileRefId = UUID.randomUUID();
         when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
-        when(userRepository.findByCognitoSub("contributor-sub")).thenReturn(Optional.of(contributor));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
         when(fileReferenceRepository.findById(fileRefId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> fileService.deleteFileReference(draftResource.getId(), fileRefId, "contributor-sub"))
+        assertThatThrownBy(() -> fileService.deleteFileReference(draftResource.getId(), fileRefId, "contributor@example.com"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("File reference not found");
     }
@@ -271,10 +270,10 @@ class FileServiceTest {
         fileRef.setResource(otherResource);
 
         when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
-        when(userRepository.findByCognitoSub("contributor-sub")).thenReturn(Optional.of(contributor));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
         when(fileReferenceRepository.findById(fileRef.getId())).thenReturn(Optional.of(fileRef));
 
-        assertThatThrownBy(() -> fileService.deleteFileReference(draftResource.getId(), fileRef.getId(), "contributor-sub"))
+        assertThatThrownBy(() -> fileService.deleteFileReference(draftResource.getId(), fileRef.getId(), "contributor@example.com"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("File reference not found on this resource");
     }
@@ -282,9 +281,9 @@ class FileServiceTest {
     @Test
     void deleteFileReference_notOwner_throwsAccessDenied() {
         when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
-        when(userRepository.findByCognitoSub("other-sub")).thenReturn(Optional.of(otherUser));
+        when(userRepository.findByEmail("other@example.com")).thenReturn(Optional.of(otherUser));
 
-        assertThatThrownBy(() -> fileService.deleteFileReference(draftResource.getId(), UUID.randomUUID(), "other-sub"))
+        assertThatThrownBy(() -> fileService.deleteFileReference(draftResource.getId(), UUID.randomUUID(), "other@example.com"))
                 .isInstanceOf(AccessDeniedException.class);
     }
 

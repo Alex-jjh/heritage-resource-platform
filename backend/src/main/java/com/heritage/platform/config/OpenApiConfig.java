@@ -22,6 +22,6 @@ public class OpenApiConfig {
                         .type(SecurityScheme.Type.HTTP)
                         .scheme("bearer")
                         .bearerFormat("JWT")
-                        .description("AWS Cognito JWT token"));
+                        .description("JWT access token"));
     }
 }

@@ -39,12 +39,14 @@ class AdminServiceTest {
         admin = new User();
         admin.setId(UUID.randomUUID());
         admin.setCognitoSub("admin-sub");
+        admin.setEmail("admin@example.com");
         admin.setDisplayName("Admin");
         admin.setRole(UserRole.ADMINISTRATOR);
 
         contributor = new User();
         contributor.setId(UUID.randomUUID());
         contributor.setCognitoSub("contributor-sub");
+        contributor.setEmail("contributor@example.com");
         contributor.setDisplayName("Contributor");
         contributor.setRole(UserRole.CONTRIBUTOR);
 
@@ -79,11 +81,11 @@ class AdminServiceTest {
         archivedResource.setArchivedAt(Instant.now());
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
-        when(userRepository.findByCognitoSub("admin-sub")).thenReturn(Optional.of(admin));
+        when(userRepository.findByEmail("admin@example.com")).thenReturn(Optional.of(admin));
         when(resourceService.transitionStatus(resource.getId(), ResourceStatus.ARCHIVED, admin))
                 .thenReturn(archivedResource);
 
-        Resource result = adminService.archiveResource(resource.getId(), "admin-sub");
+        Resource result = adminService.archiveResource(resource.getId(), "admin@example.com");
 
         assertThat(result.getStatus()).isEqualTo(ResourceStatus.ARCHIVED);
         assertThat(result.getArchivedAt()).isNotNull();
@@ -97,7 +99,7 @@ class AdminServiceTest {
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
 
-        assertThatThrownBy(() -> adminService.archiveResource(resource.getId(), "admin-sub"))
+        assertThatThrownBy(() -> adminService.archiveResource(resource.getId(), "admin@example.com"))
                 .isInstanceOf(InvalidStatusTransitionException.class)
                 .hasMessageContaining("DRAFT")
                 .hasMessageContaining("APPROVED");
@@ -108,7 +110,7 @@ class AdminServiceTest {
         UUID id = UUID.randomUUID();
         when(resourceRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> adminService.archiveResource(id, "admin-sub"))
+        assertThatThrownBy(() -> adminService.archiveResource(id, "admin@example.com"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -121,11 +123,11 @@ class AdminServiceTest {
         draftResource.setStatus(ResourceStatus.DRAFT);
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
-        when(userRepository.findByCognitoSub("admin-sub")).thenReturn(Optional.of(admin));
+        when(userRepository.findByEmail("admin@example.com")).thenReturn(Optional.of(admin));
         when(resourceService.transitionStatus(resource.getId(), ResourceStatus.DRAFT, admin))
                 .thenReturn(draftResource);
 
-        Resource result = adminService.unpublishResource(resource.getId(), "admin-sub", "Violates guidelines");
+        Resource result = adminService.unpublishResource(resource.getId(), "admin@example.com", "Violates guidelines");
 
         assertThat(result.getStatus()).isEqualTo(ResourceStatus.DRAFT);
         verify(resourceService).transitionStatus(resource.getId(), ResourceStatus.DRAFT, admin);
@@ -138,7 +140,7 @@ class AdminServiceTest {
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
 
-        assertThatThrownBy(() -> adminService.unpublishResource(resource.getId(), "admin-sub", "reason"))
+        assertThatThrownBy(() -> adminService.unpublishResource(resource.getId(), "admin@example.com", "reason"))
                 .isInstanceOf(InvalidStatusTransitionException.class)
                 .hasMessageContaining("PENDING_REVIEW")
                 .hasMessageContaining("APPROVED");
@@ -149,7 +151,7 @@ class AdminServiceTest {
         UUID id = UUID.randomUUID();
         when(resourceRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> adminService.unpublishResource(id, "admin-sub", "reason"))
+        assertThatThrownBy(() -> adminService.unpublishResource(id, "admin@example.com", "reason"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
