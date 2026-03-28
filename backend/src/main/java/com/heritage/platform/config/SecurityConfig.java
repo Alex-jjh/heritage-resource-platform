@@ -1,7 +1,6 @@
 package com.heritage.platform.config;
 
 import com.heritage.platform.service.JwtService;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -18,14 +17,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 /**
  * Unified security configuration using local JWT authentication.
- * Replaces both the old Cognito-based SecurityConfig and LocalSecurityConfig.
  */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-
-    @Value("${app.internal-api-key}")
-    private String internalApiKey;
 
     private final JwtService jwtService;
 
@@ -56,12 +51,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/resources/**").hasRole("CONTRIBUTOR")
                 .requestMatchers("/api/resources/*/submit").hasRole("CONTRIBUTOR")
                 .requestMatchers("/api/resources/*/revise").hasRole("CONTRIBUTOR")
-                .requestMatchers("/api/files/upload-url").hasRole("CONTRIBUTOR")
                 .requestMatchers("/api/files/**").hasRole("CONTRIBUTOR")
-                .requestMatchers("/api/internal/**").hasRole("SYSTEM")
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(new ApiKeyAuthFilter(internalApiKey), UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(new JwtAuthFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));

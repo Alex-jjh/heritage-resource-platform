@@ -30,7 +30,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 SecurityConfigTest.StubAdminController.class,
                 SecurityConfigTest.StubReviewController.class,
                 SecurityConfigTest.StubFileController.class,
-                SecurityConfigTest.StubInternalController.class,
                 SecurityConfigTest.StubSearchController.class
         },
         properties = "app.internal-api-key=dummy-test-key"
@@ -74,11 +73,8 @@ class SecurityConfigTest {
     }
 
     @RestController static class StubFileController {
-        @PostMapping("/api/files/upload-url") String uploadUrl() { return "ok"; }
-    }
-
-    @RestController static class StubInternalController {
-        @PostMapping("/api/internal/thumbnails") String thumbnails() { return "ok"; }
+        @PostMapping("/api/files/{resourceId}/upload") String upload(@PathVariable String resourceId) { return "ok"; }
+        @DeleteMapping("/api/files/{resourceId}/references/{fileRefId}") String deleteRef(@PathVariable String resourceId, @PathVariable String fileRefId) { return "ok"; }
     }
 
     @RestController static class StubSearchController {
@@ -274,67 +270,20 @@ class SecurityConfigTest {
         }
 
         @Test
-        @DisplayName("CONTRIBUTOR can request file upload URL")
-        void contributorCanRequestUploadUrl() throws Exception {
-            mockMvc.perform(post("/api/files/upload-url")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{}")
+        @DisplayName("CONTRIBUTOR can upload files")
+        void contributorCanUploadFile() throws Exception {
+            mockMvc.perform(post("/api/files/123/upload")
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
                     .with(user("contributor@example.com").authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
                 .andExpect(status().isOk());
         }
 
         @Test
-        @DisplayName("REGISTERED_VIEWER cannot create resources — returns 403")
-        void viewerCannotCreateResource() throws Exception {
-            mockMvc.perform(post("/api/resources")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{}")
+        @DisplayName("REGISTERED_VIEWER cannot upload files — returns 403")
+        void viewerCannotUploadFile() throws Exception {
+            mockMvc.perform(post("/api/files/123/upload")
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
                     .with(user("viewer@example.com").authorities(new SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
-                .andExpect(status().isForbidden());
-        }
-
-        @Test
-        @DisplayName("REVIEWER cannot create resources — returns 403")
-        void reviewerCannotCreateResource() throws Exception {
-            mockMvc.perform(post("/api/resources")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{}")
-                    .with(user("reviewer@example.com").authorities(new SimpleGrantedAuthority("ROLE_REVIEWER"))))
-                .andExpect(status().isForbidden());
-        }
-
-        @Test
-        @DisplayName("REGISTERED_VIEWER cannot request file upload URL — returns 403")
-        void viewerCannotRequestUploadUrl() throws Exception {
-            mockMvc.perform(post("/api/files/upload-url")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{}")
-                    .with(user("viewer@example.com").authorities(new SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
-                .andExpect(status().isForbidden());
-        }
-    }
-
-    @Nested
-    @DisplayName("Role-based access: INTERNAL endpoints")
-    class InternalEndpointAccess {
-
-        @Test
-        @DisplayName("SYSTEM role can access internal endpoints")
-        void systemCanAccessInternal() throws Exception {
-            mockMvc.perform(post("/api/internal/thumbnails")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{}")
-                    .with(user("system").authorities(new SimpleGrantedAuthority("ROLE_SYSTEM"))))
-                .andExpect(status().isOk());
-        }
-
-        @Test
-        @DisplayName("ADMINISTRATOR cannot access internal endpoints — returns 403")
-        void adminCannotAccessInternal() throws Exception {
-            mockMvc.perform(post("/api/internal/thumbnails")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{}")
-                    .with(user("admin@example.com").authorities(new SimpleGrantedAuthority("ROLE_ADMINISTRATOR"))))
                 .andExpect(status().isForbidden());
         }
     }

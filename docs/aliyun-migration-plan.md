@@ -47,24 +47,27 @@
 
 ## 迁移步骤（按顺序）
 
-### Phase 1: 认证系统改造（最大改动）
+### Phase 1: 认证系统改造（最大改动）✅ 已完成
 
 去掉 AWS Cognito，改为自建认证：
 
 **后端改动：**
-1. `pom.xml` — 去掉 AWS SDK 依赖，加 `jjwt` (JWT 库) 和 `spring-boot-starter-security`
-2. `User` 实体 — 加 `passwordHash` 字段（bcrypt），去掉 `cognitoSub` 依赖
-3. 新建 `JwtService` — 本地签发/验证 JWT token（替代 Cognito）
-4. 重写 `AuthService` — register 改为本地创建用户 + bcrypt 加密密码，login 改为验证密码 + 签发 JWT
-5. 重写 `SecurityConfig` — 去掉 OAuth2 Resource Server，改为自定义 JWT Filter
-6. 所有 Service 中的 `cognitoSub` 参数 — 改为从本地 JWT 中提取用户 ID
-7. Flyway migration — 加 `password_hash` 列，去掉 `cognito_sub` 的 NOT NULL 约束
+1. ✅ `pom.xml` — 去掉 AWS Cognito SDK，加 `jjwt-api/impl/jackson` (0.12.6)
+2. ✅ `User` 实体 — 加 `passwordHash` 字段，`cognitoSub` 改为 nullable
+3. ✅ 新建 `JwtService` — HMAC-SHA256 签发/验证 JWT（email 为 subject，含 userId + role claims）
+4. ✅ 重写 `AuthService` — bcrypt 加密密码，本地 JWT 签发，去掉所有 Cognito 调用
+5. ✅ 重写 `SecurityConfig` — 统一配置（去掉 Profile 区分），JwtAuthFilter 替代 OAuth2 Resource Server
+6. ✅ 所有 Service 中 `findByCognitoSub()` → `findByEmail()`（ResourceService, AdminService, ReviewService, CommentService, FileService, UserService）
+7. ✅ Flyway V2 migration — `password_hash` 列，`cognito_sub` 改 nullable
+8. ✅ 删除 `AwsCognitoConfig`, `AwsClientConfig`, `LocalSecurityConfig`, `LocalAuthFilter`
+9. ✅ `AuthResponse` 简化为 `accessToken` + `expiresIn`
+10. ✅ 9 个测试文件全部同步更新
 
 **前端改动：**
-8. `auth-context.tsx` — 去掉 Cognito 相关逻辑，token 存储方式不变（localStorage）
-9. `api-client.ts` — 不需要改（已经是 Bearer token 方式）
+11. ✅ `auth-context.tsx` — token 存储简化（只存 accessToken）
+12. ✅ `types/index.ts` — AuthResponse 类型简化
 
-### Phase 2: 文件存储改造
+### Phase 2: 文件存储改造 ✅ 已完成
 
 去掉 AWS S3，改为本地磁盘存储：
 
@@ -80,7 +83,7 @@
 **前端改动：**
 5. `file-uploader.tsx` — 改为标准 multipart form upload（不再用 pre-signed URL 直传 S3）
 
-### Phase 3: 缩略图生成
+### Phase 3: 缩略图生成 ✅ 已完成（合并到 Phase 2）
 
 去掉 AWS Lambda，改为 Spring Boot 内置处理：
 

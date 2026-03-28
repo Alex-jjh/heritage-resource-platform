@@ -1,7 +1,6 @@
 package com.heritage.platform.exception;
 
 import com.heritage.platform.dto.ErrorResponse;
-import com.heritage.platform.exception.S3ServiceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -77,13 +76,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(400, ex.getMessage()));
-    }
-
-    @ExceptionHandler(S3ServiceException.class)
-    public ResponseEntity<ErrorResponse> handleS3Service(S3ServiceException ex) {
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                .header("Retry-After", "30")
-                .body(new ErrorResponse(503, "File storage service is temporarily unavailable. Please try again later."));
     }
 
 }

@@ -4,12 +4,6 @@ spring:
     username: root
     password: rootpass
 
-aws:
-  s3:
-    endpoint: http://localhost:4566
-    bucket: heritage-resources-local
-    region: us-east-1
-
 app:
   jwt:
     secret: local-dev-secret-key-must-be-at-least-256-bits-long-for-hmac-sha256!!
@@ -17,3 +11,7 @@ app:
   internal-api-key: local-dev-key
   cors:
     allowed-origin: http://localhost:3000
+  storage:
+    upload-dir: ./uploads
+    thumbnail-dir: ./thumbnails
+    base-url: http://localhost:8080

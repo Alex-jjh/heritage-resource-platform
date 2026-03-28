@@ -1,10 +1,7 @@
 package com.heritage.platform.service;
 
-import com.heritage.platform.config.AwsS3Config;
-import com.heritage.platform.dto.CreateFileReferenceRequest;
 import com.heritage.platform.exception.AccessDeniedException;
 import com.heritage.platform.exception.ResourceNotFoundException;
-import com.heritage.platform.exception.S3ServiceException;
 import com.heritage.platform.model.*;
 import com.heritage.platform.repository.FileReferenceRepository;
 import com.heritage.platform.repository.ResourceRepository;
@@ -12,16 +9,16 @@ import com.heritage.platform.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.net.URI;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.*;
 
@@ -32,8 +29,6 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class FileServiceTest {
 
-    @Mock private S3Presigner s3Presigner;
-    @Mock private AwsS3Config s3Config;
     @Mock private ResourceRepository resourceRepository;
     @Mock private FileReferenceRepository fileReferenceRepository;
     @Mock private UserRepository userRepository;
@@ -45,9 +40,15 @@ class FileServiceTest {
     private Resource draftResource;
     private Category category;
 
+    @TempDir
+    Path tempDir;
+
     @BeforeEach
     void setUp() {
-        fileService = new FileService(s3Presigner, s3Config, resourceRepository, fileReferenceRepository, userRepository);
+        fileService = new FileService(resourceRepository, fileReferenceRepository, userRepository);
+        ReflectionTestUtils.setField(fileService, "uploadDir", tempDir.resolve("uploads").toString());
+        ReflectionTestUtils.setField(fileService, "thumbnailDir", tempDir.resolve("thumbnails").toString());
+        ReflectionTestUtils.setField(fileService, "storageBaseUrl", "http://localhost:8080");
 
         contributor = new User();
         contributor.setId(UUID.randomUUID());
@@ -78,103 +79,10 @@ class FileServiceTest {
         draftResource.setCreatedAt(Instant.now());
     }
 
-    // --- Upload URL generation tests ---
+    // --- Upload tests ---
 
     @Test
-    void generateUploadUrl_validRequest_returnsPresignedUrl() throws Exception {
-        when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
-        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
-        when(s3Config.getBucket()).thenReturn("heritage-resources-local");
-
-        PresignedPutObjectRequest presigned = mock(PresignedPutObjectRequest.class);
-        when(presigned.url()).thenReturn(URI.create("https://s3.amazonaws.com/heritage-resources-local/uploads/test").toURL());
-        when(s3Presigner.presignPutObject(any(PutObjectPresignRequest.class))).thenReturn(presigned);
-
-        String url = fileService.generateUploadUrl(draftResource.getId(), "photo.jpg", "image/jpeg", "contributor@example.com");
-
-        assertThat(url).contains("s3.amazonaws.com");
-        verify(s3Presigner).presignPutObject(any(PutObjectPresignRequest.class));
-    }
-
-    @Test
-    void generateUploadUrl_correctS3KeyPattern() {
-        String key = fileService.buildUploadKey(draftResource.getId(), "photo.jpg");
-        assertThat(key).isEqualTo("uploads/" + draftResource.getId() + "/photo.jpg");
-    }
-
-    @Test
-    void generateUploadUrl_resourceNotFound_throwsNotFound() {
-        UUID id = UUID.randomUUID();
-        when(resourceRepository.findById(id)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> fileService.generateUploadUrl(id, "file.jpg", null, "contributor@example.com"))
-                .isInstanceOf(ResourceNotFoundException.class);
-    }
-
-    @Test
-    void generateUploadUrl_notOwner_throwsAccessDenied() {
-        when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
-        when(userRepository.findByEmail("other@example.com")).thenReturn(Optional.of(otherUser));
-
-        assertThatThrownBy(() -> fileService.generateUploadUrl(draftResource.getId(), "file.jpg", null, "other@example.com"))
-                .isInstanceOf(AccessDeniedException.class);
-    }
-
-    @Test
-    void generateUploadUrl_notDraftStatus_throwsIllegalState() {
-        draftResource.setStatus(ResourceStatus.PENDING_REVIEW);
-        when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
-        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
-
-        assertThatThrownBy(() -> fileService.generateUploadUrl(draftResource.getId(), "file.jpg", null, "contributor@example.com"))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("DRAFT");
-    }
-
-    @Test
-    void generateUploadUrl_s3Failure_throwsS3ServiceException() {
-        when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
-        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
-        when(s3Config.getBucket()).thenReturn("heritage-resources-local");
-        when(s3Presigner.presignPutObject(any(PutObjectPresignRequest.class)))
-                .thenThrow(new RuntimeException("S3 connection refused"));
-
-        assertThatThrownBy(() -> fileService.generateUploadUrl(draftResource.getId(), "file.jpg", null, "contributor@example.com"))
-                .isInstanceOf(S3ServiceException.class)
-                .hasMessageContaining("Failed to generate upload URL");
-    }
-
-    // --- Download URL generation tests ---
-
-    @Test
-    void generateDownloadUrl_returnsPresignedGetUrl() throws Exception {
-        when(s3Config.getBucket()).thenReturn("heritage-resources-local");
-
-        PresignedGetObjectRequest presigned = mock(PresignedGetObjectRequest.class);
-        when(presigned.url()).thenReturn(URI.create("https://s3.amazonaws.com/heritage-resources-local/uploads/test").toURL());
-        when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presigned);
-
-        String url = fileService.generateDownloadUrl("uploads/resource-id/photo.jpg");
-
-        assertThat(url).contains("s3.amazonaws.com");
-        verify(s3Presigner).presignGetObject(any(GetObjectPresignRequest.class));
-    }
-
-    @Test
-    void generateDownloadUrl_s3Failure_throwsS3ServiceException() {
-        when(s3Config.getBucket()).thenReturn("heritage-resources-local");
-        when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class)))
-                .thenThrow(new RuntimeException("S3 connection refused"));
-
-        assertThatThrownBy(() -> fileService.generateDownloadUrl("uploads/resource-id/photo.jpg"))
-                .isInstanceOf(S3ServiceException.class)
-                .hasMessageContaining("Failed to generate download URL");
-    }
-
-    // --- File reference creation tests ---
-
-    @Test
-    void createFileReference_validRequest_savesReference() {
+    void uploadFile_validRequest_savesFileAndReference() throws Exception {
         when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
         when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
         when(fileReferenceRepository.save(any(FileReference.class))).thenAnswer(inv -> {
@@ -183,17 +91,17 @@ class FileServiceTest {
             return fr;
         });
 
-        CreateFileReferenceRequest request = new CreateFileReferenceRequest();
-        request.setS3Key("uploads/" + draftResource.getId() + "/photo.jpg");
-        request.setOriginalFileName("photo.jpg");
-        request.setContentType("image/jpeg");
-        request.setFileSize(1024L);
+        MultipartFile mockFile = mock(MultipartFile.class);
+        when(mockFile.getOriginalFilename()).thenReturn("photo.jpg");
+        when(mockFile.getContentType()).thenReturn("text/plain");
+        when(mockFile.getSize()).thenReturn(1024L);
+        when(mockFile.getInputStream()).thenReturn(new ByteArrayInputStream("test".getBytes()));
+        doNothing().when(mockFile).transferTo(any(java.io.File.class));
 
-        FileReference result = fileService.createFileReference(draftResource.getId(), request, "contributor@example.com");
+        FileReference result = fileService.uploadFile(draftResource.getId(), mockFile, "contributor@example.com");
 
-        assertThat(result.getS3Key()).isEqualTo(request.getS3Key());
         assertThat(result.getOriginalFileName()).isEqualTo("photo.jpg");
-        assertThat(result.getContentType()).isEqualTo("image/jpeg");
+        assertThat(result.getContentType()).isEqualTo("text/plain");
         assertThat(result.getFileSize()).isEqualTo(1024L);
 
         ArgumentCaptor<FileReference> captor = ArgumentCaptor.forClass(FileReference.class);
@@ -202,31 +110,67 @@ class FileServiceTest {
     }
 
     @Test
-    void createFileReference_notOwner_throwsAccessDenied() {
+    void uploadFile_resourceNotFound_throwsNotFound() {
+        UUID id = UUID.randomUUID();
+        when(resourceRepository.findById(id)).thenReturn(Optional.empty());
+
+        MultipartFile mockFile = mock(MultipartFile.class);
+
+        assertThatThrownBy(() -> fileService.uploadFile(id, mockFile, "contributor@example.com"))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void uploadFile_notOwner_throwsAccessDenied() {
         when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
         when(userRepository.findByEmail("other@example.com")).thenReturn(Optional.of(otherUser));
 
-        CreateFileReferenceRequest request = new CreateFileReferenceRequest();
-        request.setS3Key("uploads/test/photo.jpg");
-        request.setOriginalFileName("photo.jpg");
+        MultipartFile mockFile = mock(MultipartFile.class);
+        when(mockFile.getSize()).thenReturn(1024L);
 
-        assertThatThrownBy(() -> fileService.createFileReference(draftResource.getId(), request, "other@example.com"))
+        assertThatThrownBy(() -> fileService.uploadFile(draftResource.getId(), mockFile, "other@example.com"))
                 .isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
-    void createFileReference_notDraft_throwsIllegalState() {
-        draftResource.setStatus(ResourceStatus.APPROVED);
+    void uploadFile_notDraftStatus_throwsIllegalState() {
+        draftResource.setStatus(ResourceStatus.PENDING_REVIEW);
         when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
         when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
 
-        CreateFileReferenceRequest request = new CreateFileReferenceRequest();
-        request.setS3Key("uploads/test/photo.jpg");
-        request.setOriginalFileName("photo.jpg");
+        MultipartFile mockFile = mock(MultipartFile.class);
+        when(mockFile.getSize()).thenReturn(1024L);
 
-        assertThatThrownBy(() -> fileService.createFileReference(draftResource.getId(), request, "contributor@example.com"))
+        assertThatThrownBy(() -> fileService.uploadFile(draftResource.getId(), mockFile, "contributor@example.com"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("DRAFT");
+    }
+
+    @Test
+    void uploadFile_exceedsMaxSize_throwsIllegalArgument() {
+        when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
+
+        MultipartFile mockFile = mock(MultipartFile.class);
+        when(mockFile.getSize()).thenReturn(51L * 1024 * 1024);
+
+        assertThatThrownBy(() -> fileService.uploadFile(draftResource.getId(), mockFile, "contributor@example.com"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("50MB");
+    }
+
+    // --- Download URL tests ---
+
+    @Test
+    void generateDownloadUrl_returnsLocalUrl() {
+        String url = fileService.generateDownloadUrl("resource-id/photo.jpg");
+        assertThat(url).isEqualTo("http://localhost:8080/files/uploads/resource-id/photo.jpg");
+    }
+
+    @Test
+    void generateThumbnailUrl_returnsLocalUrl() {
+        String url = fileService.generateThumbnailUrl("resource-id/photo.jpg");
+        assertThat(url).isEqualTo("http://localhost:8080/files/thumbnails/resource-id/photo.jpg");
     }
 
     // --- File reference deletion tests ---
@@ -236,7 +180,7 @@ class FileServiceTest {
         FileReference fileRef = new FileReference();
         fileRef.setId(UUID.randomUUID());
         fileRef.setResource(draftResource);
-        fileRef.setS3Key("uploads/" + draftResource.getId() + "/photo.jpg");
+        fileRef.setS3Key(draftResource.getId() + "/photo.jpg");
         fileRef.setOriginalFileName("photo.jpg");
 
         when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
@@ -285,22 +229,5 @@ class FileServiceTest {
 
         assertThatThrownBy(() -> fileService.deleteFileReference(draftResource.getId(), UUID.randomUUID(), "other@example.com"))
                 .isInstanceOf(AccessDeniedException.class);
-    }
-
-    // --- Constants tests ---
-
-    @Test
-    void uploadExpiryIs15Minutes() {
-        assertThat(fileService.getUploadExpiryMinutes()).isEqualTo(15);
-    }
-
-    @Test
-    void downloadExpiryIs60Minutes() {
-        assertThat(fileService.getDownloadExpiryMinutes()).isEqualTo(60);
-    }
-
-    @Test
-    void maxFileSizeIs50MB() {
-        assertThat(fileService.getMaxFileSizeBytes()).isEqualTo(50L * 1024 * 1024);
     }
 }
