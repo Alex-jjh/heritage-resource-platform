@@ -215,7 +215,7 @@ function ResourceListItem({
 
 export default function ContributePage() {
   return (
-    <ProtectedRoute requiredRoles={["CONTRIBUTOR"]}>
+    <ProtectedRoute requiredRoles={["CONTRIBUTOR", "REVIEWER", "ADMINISTRATOR"]}>
       <ContributeDashboardContent />
     </ProtectedRoute>
   );

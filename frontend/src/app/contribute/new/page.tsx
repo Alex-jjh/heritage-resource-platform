@@ -62,7 +62,7 @@ function CreateResourceContent() {
 
 export default function CreateResourcePage() {
   return (
-    <ProtectedRoute requiredRoles={["CONTRIBUTOR"]}>
+    <ProtectedRoute requiredRoles={["CONTRIBUTOR", "REVIEWER", "ADMINISTRATOR"]}>
       <CreateResourceContent />
     </ProtectedRoute>
   );
