@@ -23,6 +23,7 @@ interface AuthContextValue {
     displayName: string
   ) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -121,6 +122,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [clearSession]);
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const profile = await apiClient.get<User>("/api/users/me");
+      setUser(profile);
+    } catch {
+      // ignore — user state stays as-is
+    }
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -129,8 +139,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login,
       register,
       logout,
+      refreshUser,
     }),
-    [user, isLoading, login, register, logout]
+    [user, isLoading, login, register, logout, refreshUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

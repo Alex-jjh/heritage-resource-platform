@@ -29,6 +29,12 @@ public class UserController {
         return ResponseEntity.ok(UserProfileResponse.fromUser(user));
     }
 
+    @PostMapping("/me/request-contributor")
+    public ResponseEntity<MessageResponse> requestContributor(Principal principal) {
+        userService.requestContributorStatus(principal.getName());
+        return ResponseEntity.ok(new MessageResponse("Contributor application submitted"));
+    }
+
     @PutMapping("/me")
     public ResponseEntity<UserProfileResponse> updateProfile(
             Principal principal,

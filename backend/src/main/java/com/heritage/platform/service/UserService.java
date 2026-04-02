@@ -29,6 +29,23 @@ public class UserService {
     }
 
     /**
+     * Allows a REGISTERED_VIEWER to request contributor status.
+     * The request is stored and visible to administrators for approval.
+     */
+    @Transactional
+    public void requestContributorStatus(String email) {
+        User user = getUserByEmail(email);
+        if (user.getRole() != UserRole.REGISTERED_VIEWER) {
+            throw new IllegalStateException("Only registered viewers can request contributor status");
+        }
+        if (user.isContributorRequested()) {
+            throw new IllegalStateException("Contributor status has already been requested");
+        }
+        user.setContributorRequested(true);
+        userRepository.save(user);
+    }
+
+    /**
      * Updates the current user's profile.
      */
     @Transactional
