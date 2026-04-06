@@ -63,13 +63,17 @@ jobs:
           target: /opt/heritage/app/frontend/
           strip_components: 1
 
-      - name: Restart services
+      - name: Assemble frontend and restart services
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.ECS_HOST }}
           username: ${{ secrets.ECS_USERNAME }}
           key: ${{ secrets.ECS_SSH_KEY }}
           script: |
+            # Copy static assets into standalone directory where Next.js expects them
+            cp -r /opt/heritage/app/frontend/.next/static /opt/heritage/app/frontend/.next/standalone/.next/static
+            cp -r /opt/heritage/app/frontend/public /opt/heritage/app/frontend/.next/standalone/public
+            
             sudo systemctl restart heritage-backend
             sleep 10
             sudo systemctl restart heritage-frontend
