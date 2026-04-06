@@ -3,6 +3,9 @@ spring:
     url: jdbc:mysql://localhost:3306/heritage
     username: root
     password: rootpass
+  jpa:
+    hibernate:
+      ddl-auto: update
 
 app:
   jwt:
