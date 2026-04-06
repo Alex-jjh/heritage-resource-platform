@@ -7,6 +7,7 @@ on:
     paths:
       - 'backend/**'
       - 'frontend/**'
+      - 'scripts/**'
       - '.github/workflows/deploy-backend.yml'
   workflow_dispatch:
 
@@ -63,6 +64,16 @@ jobs:
           target: /opt/heritage/app/frontend/
           strip_components: 1
 
+      - name: Deploy Nginx config to ECS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.ECS_HOST }}
+          username: ${{ secrets.ECS_USERNAME }}
+          key: ${{ secrets.ECS_SSH_KEY }}
+          source: scripts/nginx-heritage.conf
+          target: /tmp/
+          strip_components: 1
+
       - name: Assemble frontend and restart services
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -70,6 +81,10 @@ jobs:
           username: ${{ secrets.ECS_USERNAME }}
           key: ${{ secrets.ECS_SSH_KEY }}
           script: |
+            # Update Nginx config
+            sudo cp /tmp/nginx-heritage.conf /etc/nginx/sites-available/heritage
+            sudo ln -sf /etc/nginx/sites-available/heritage /etc/nginx/sites-enabled/heritage
+            
             # Copy static assets into standalone directory where Next.js expects them
             cp -r /opt/heritage/app/frontend/.next/static /opt/heritage/app/frontend/.next/standalone/.next/static
             cp -r /opt/heritage/app/frontend/public /opt/heritage/app/frontend/.next/standalone/public
@@ -77,5 +92,6 @@ jobs:
             sudo systemctl restart heritage-backend
             sleep 10
             sudo systemctl restart heritage-frontend
+            sudo nginx -t && sudo nginx -s reload
             sudo systemctl is-active heritage-backend
             sudo systemctl is-active heritage-frontend
