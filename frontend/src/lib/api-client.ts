@@ -28,10 +28,15 @@ async function request<T>(
     ...(customHeaders as Record<string, string>),
   };
 
+  // Track whether this request actually carried a token so we can
+  // distinguish "token was sent but rejected" (→ clear session) from
+  // "no token was sent" (→ expected 401, don't nuke the session).
+  let sentWithToken = false;
   if (!skipAuth) {
     const token = getAccessToken();
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
+      sentWithToken = true;
     }
   }
 
@@ -42,7 +47,13 @@ async function request<T>(
   });
 
   if (response.status === 401) {
-    onUnauthorized?.();
+    // Only clear the session when the request actually carried a token
+    // that the server rejected.  A 401 on a request that never had a
+    // token (e.g. fired before login stored it) is expected and must
+    // not wipe a valid session that was established in the meantime.
+    if (sentWithToken) {
+      onUnauthorized?.();
+    }
     throw new ApiError("Unauthorized", 401);
   }
 

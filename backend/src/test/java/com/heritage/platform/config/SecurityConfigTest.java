@@ -137,10 +137,10 @@ class SecurityConfigTest {
         }
 
         @Test
-        @DisplayName("GET /api/search/resources without token returns 401")
+        @DisplayName("GET /api/search/resources without token is now public — returns 200")
         void searchWithoutToken() throws Exception {
             mockMvc.perform(get("/api/search/resources"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isOk());
         }
 
         @Test
@@ -313,10 +313,9 @@ class SecurityConfigTest {
         }
 
         @Test
-        @DisplayName("Any authenticated user can search resources")
-        void authenticatedUserCanSearch() throws Exception {
-            mockMvc.perform(get("/api/search/resources")
-                    .with(user("viewer@example.com").authorities(new SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
+        @DisplayName("Any user (even unauthenticated) can search resources")
+        void anyUserCanSearch() throws Exception {
+            mockMvc.perform(get("/api/search/resources"))
                 .andExpect(status().isOk());
         }
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
 import { ProtectedRoute } from "@/components/protected-route";
 import { PageContainer } from "@/components/page-container";
 import { SearchBar } from "@/components/search-bar";
@@ -14,6 +15,7 @@ import type { Category, Tag, ResourceResponse, Page } from "@/types";
 const DEFAULT_PAGE_SIZE = 20;
 
 function BrowseContent() {
+  const { isAuthenticated } = useAuth();
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [tagId, setTagId] = useState("");
@@ -30,11 +32,13 @@ function BrowseContent() {
   const categoriesQuery = useQuery({
     queryKey: ["categories"],
     queryFn: () => apiClient.get<Category[]>("/api/categories"),
+    enabled: isAuthenticated,
   });
 
   const tagsQuery = useQuery({
     queryKey: ["tags"],
     queryFn: () => apiClient.get<Tag[]>("/api/tags"),
+    enabled: isAuthenticated,
   });
 
   const resourcesQuery = useQuery({
@@ -50,6 +54,7 @@ function BrowseContent() {
         `/api/search/resources?${params.toString()}`
       );
     },
+    enabled: isAuthenticated,
   });
 
   function handleSearch() {
