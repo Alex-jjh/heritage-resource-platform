@@ -18,7 +18,7 @@ public class FileController {
 
     private final FileService fileService;
     
-    // 100MB in bytes
+    // 100MB limit in bytes
     private static final long MAX_FILE_SIZE = 100L * 1024 * 1024;
 
     public FileController(FileService fileService) {
@@ -34,7 +34,7 @@ public class FileController {
             @Valid @RequestBody UploadUrlRequest request) {
         // Check file size limit (100MB)
         if (request.getFileSize() > MAX_FILE_SIZE) {
-            throw new com.heritage.platform.exception.FileSizeLimitExceededException("文件大小超过 100MB");
+            throw new com.heritage.platform.exception.FileSizeLimitExceededException("File size exceeds 100MB");
         }
         
         String url = fileService.generateUploadUrl(
