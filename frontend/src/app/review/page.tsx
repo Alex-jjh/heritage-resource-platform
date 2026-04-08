@@ -19,7 +19,18 @@ function ReviewQueueContent() {
 
   return (
     <main><PageContainer>
-      <h1 className="font-serif text-3xl font-bold mb-6">Review Queue</h1>
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="font-serif text-3xl font-bold">Review Queue</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Review pending submissions and manage publication decisions.
+          </p>
+        </div>
+
+        <Link href="/review/history">
+          <Button variant="outline">Review History</Button>
+        </Link>
+      </div>
 
       {queueQuery.isLoading ? (
         <div className="space-y-3">
