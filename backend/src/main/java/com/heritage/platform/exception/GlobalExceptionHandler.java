@@ -78,4 +78,10 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(400, ex.getMessage()));
     }
 
+    @ExceptionHandler(org.hibernate.LazyInitializationException.class)
+    public ResponseEntity<ErrorResponse> handleLazyInitialization(org.hibernate.LazyInitializationException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse(500, "Internal server error"));
+    }
+
 }
