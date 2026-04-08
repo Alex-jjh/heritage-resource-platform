@@ -1,6 +1,7 @@
 package com.heritage.platform.controller;
 
 import com.heritage.platform.dto.FileReferenceResponse;
+import com.heritage.platform.exception.FileSizeLimitExceededException;
 import com.heritage.platform.model.FileReference;
 import com.heritage.platform.service.FileService;
 import org.springframework.http.HttpStatus;
@@ -17,6 +18,9 @@ import java.util.UUID;
 public class FileController {
 
     private final FileService fileService;
+    
+    // 100MB limit in bytes
+    private static final long MAX_FILE_SIZE = 100L * 1024 * 1024;
 
     public FileController(FileService fileService) {
         this.fileService = fileService;
@@ -30,6 +34,11 @@ public class FileController {
             @PathVariable UUID resourceId,
             @RequestParam("file") MultipartFile file,
             Principal principal) throws IOException {
+        // Check file size limit (100MB)
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new FileSizeLimitExceededException("File size exceeds 100MB");
+        }
+        
         FileReference fileRef = fileService.uploadFile(resourceId, file, principal.getName());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(FileReferenceResponse.fromEntity(fileRef));
