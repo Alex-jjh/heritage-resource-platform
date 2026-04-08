@@ -1,6 +1,7 @@
 package com.heritage.platform.controller;
 
 import com.heritage.platform.dto.*;
+import com.heritage.platform.exception.FileSizeLimitExceededException;
 import com.heritage.platform.model.FileReference;
 import com.heritage.platform.service.FileService;
 import jakarta.validation.Valid;
@@ -16,6 +17,9 @@ import java.util.UUID;
 public class FileController {
 
     private final FileService fileService;
+    
+    // 100MB in bytes
+    private static final long MAX_FILE_SIZE = 100L * 1024 * 1024;
 
     public FileController(FileService fileService) {
         this.fileService = fileService;
@@ -28,6 +32,11 @@ public class FileController {
     public ResponseEntity<UploadUrlResponse> generateUploadUrl(
             Principal principal,
             @Valid @RequestBody UploadUrlRequest request) {
+        // Check file size limit (100MB)
+        if (request.getFileSize() > MAX_FILE_SIZE) {
+            throw new com.heritage.platform.exception.FileSizeLimitExceededException("文件大小超过 100MB");
+        }
+        
         String url = fileService.generateUploadUrl(
                 request.getResourceId(),
                 request.getFileName(),
