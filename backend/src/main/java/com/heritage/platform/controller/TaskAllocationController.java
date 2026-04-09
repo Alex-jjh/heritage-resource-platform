@@ -7,7 +7,7 @@ import com.heritage.platform.service.TaskAllocationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -24,7 +24,6 @@ public class TaskAllocationController {
      * Get next task from pool and lock it for current reviewer
      */
     @PostMapping("/next")
-    @PreAuthorize("hasRole('REVIEWER')")
     public ResponseEntity<ResourceResponse> getNextTask(Principal principal) {
         UUID reviewerId = UUID.fromString(principal.getName());
         Resource resource = taskAllocationService.getNextTask(reviewerId);
@@ -40,7 +39,6 @@ public class TaskAllocationController {
      * Release a task back to the pool
      */
     @PostMapping("/{resourceId}/release")
-    @PreAuthorize("hasRole('REVIEWER')")
     public ResponseEntity<Void> releaseTask(
             @PathVariable UUID resourceId,
             Principal principal) {

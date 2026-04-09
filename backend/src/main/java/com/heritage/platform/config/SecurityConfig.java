@@ -54,6 +54,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/tags/**").hasRole("ADMINISTRATOR")
                 .requestMatchers(HttpMethod.DELETE, "/api/tags/**").hasRole("ADMINISTRATOR")
                 .requestMatchers("/api/reviews/**").hasAnyRole("REVIEWER", "ADMINISTRATOR")
+                .requestMatchers("/api/tasks/**").hasAnyAuthority("ROLE_REVIEWER", "ROLE_ADMINISTRATOR")
                 .requestMatchers(HttpMethod.POST, "/api/resources").hasAnyRole("CONTRIBUTOR", "REVIEWER", "ADMINISTRATOR")
                 .requestMatchers(HttpMethod.PUT, "/api/resources/**").hasAnyRole("CONTRIBUTOR", "REVIEWER", "ADMINISTRATOR")
                 .requestMatchers(HttpMethod.DELETE, "/api/resources/**").hasAnyRole("CONTRIBUTOR", "REVIEWER", "ADMINISTRATOR")
