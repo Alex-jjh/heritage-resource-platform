@@ -36,6 +36,8 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                .requestMatchers("/api/tasks/health").permitAll()
+                .requestMatchers("/api/tasks/**").hasAnyRole("REVIEWER", "ADMINISTRATOR")
                 .requestMatchers("/api/search/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/tags").permitAll()
@@ -54,7 +56,6 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/tags/**").hasRole("ADMINISTRATOR")
                 .requestMatchers(HttpMethod.DELETE, "/api/tags/**").hasRole("ADMINISTRATOR")
                 .requestMatchers("/api/reviews/**").hasAnyRole("REVIEWER", "ADMINISTRATOR")
-                .requestMatchers("/api/tasks/**").hasAnyAuthority("ROLE_REVIEWER", "ROLE_ADMINISTRATOR")
                 .requestMatchers(HttpMethod.POST, "/api/resources").hasAnyRole("CONTRIBUTOR", "REVIEWER", "ADMINISTRATOR")
                 .requestMatchers(HttpMethod.PUT, "/api/resources/**").hasAnyRole("CONTRIBUTOR", "REVIEWER", "ADMINISTRATOR")
                 .requestMatchers(HttpMethod.DELETE, "/api/resources/**").hasAnyRole("CONTRIBUTOR", "REVIEWER", "ADMINISTRATOR")

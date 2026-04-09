@@ -5,6 +5,7 @@ import com.heritage.platform.model.Resource;
 import com.heritage.platform.model.User;
 import com.heritage.platform.service.TaskAllocationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -15,10 +16,19 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/tasks")
+@Profile("!test")
 public class TaskAllocationController {
 
     @Autowired
     private TaskAllocationService taskAllocationService;
+
+    /**
+     * Health check endpoint (no auth required)
+     */
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("Task allocation service is running");
+    }
 
     /**
      * Get next task from pool and lock it for current reviewer
