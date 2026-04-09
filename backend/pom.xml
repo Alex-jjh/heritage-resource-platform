@@ -109,11 +109,13 @@
             <scope>test</scope>
         </dependency>
         
-        <!-- Redis for task pool and distributed locking -->
+        <!-- Redis for task pool and distributed locking (disabled for now) -->
+        <!--
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
+        -->
     </dependencies>
 
     <build>

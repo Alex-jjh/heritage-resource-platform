@@ -5,48 +5,27 @@ import com.heritage.platform.model.ResourceStatus;
 import com.heritage.platform.model.User;
 import com.heritage.platform.repository.ResourceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 @Service
 public class TaskAllocationService {
 
-    private static final String TASK_POOL_KEY = "task:pool";
-    private static final String TASK_LOCK_PREFIX = "task:lock:";
     private static final long LOCK_TIMEOUT_MINUTES = 30;
 
     @Autowired
     private ResourceRepository resourceRepository;
-
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
 
     /**
      * Get next task from pool and lock it for the reviewer
      */
     @Transactional
     public Resource getNextTask(UUID reviewerId) {
-        // Try to get task from Redis sorted set (priority-based)
-        Object taskId = redisTemplate.opsForZSet().popMin(TASK_POOL_KEY);
-        
-        if (taskId == null) {
-            // Fallback: query database for pending tasks
-            return getNextTaskFromDatabase(reviewerId);
-        }
-
-        UUID resourceId = UUID.fromString(taskId.toString());
-        return lockTask(resourceId, reviewerId);
-    }
-
-    /**
-     * Fallback method to get task directly from database
-     */
-    private Resource getNextTaskFromDatabase(UUID reviewerId) {
         // Find the highest priority pending task that is not locked
         Resource resource = resourceRepository
             .findFirstByStatusAndLockedByIsNullOrderByReviewPriorityDescCreatedAtAsc(
@@ -74,17 +53,13 @@ public class TaskAllocationService {
         }
 
         // Update resource status
+        User reviewer = new User();
+        reviewer.setId(reviewerId);
         resource.setStatus(ResourceStatus.IN_REVIEW);
-        resource.setLockedBy(new User() {{ setId(reviewerId); }});
+        resource.setLockedBy(reviewer);
         resource.setLockedAt(Instant.now());
-        resourceRepository.save(resource);
-
-        // Create Redis lock with TTL
-        String lockKey = TASK_LOCK_PREFIX + resourceId;
-        redisTemplate.opsForValue().set(lockKey, reviewerId.toString(), 
-            LOCK_TIMEOUT_MINUTES, TimeUnit.MINUTES);
-
-        return resource;
+        
+        return resourceRepository.save(resource);
     }
 
     /**
@@ -100,33 +75,34 @@ public class TaskAllocationService {
         resource.setLockedAt(null);
         resource.setStatus(ResourceStatus.PENDING_REVIEW);
         resourceRepository.save(resource);
-
-        // Remove Redis lock
-        String lockKey = TASK_LOCK_PREFIX + resourceId;
-        redisTemplate.delete(lockKey);
-
-        // Add back to task pool
-        redisTemplate.opsForZSet().add(TASK_POOL_KEY, resourceId.toString(), 
-            calculatePriorityScore(resource));
     }
 
     /**
-     * Add a new task to the pool
+     * Get tasks assigned to a reviewer
      */
-    public void addTaskToPool(UUID resourceId, int priority) {
-        double score = System.currentTimeMillis() - (priority * 1000000L);
-        redisTemplate.opsForZSet().add(TASK_POOL_KEY, resourceId.toString(), score);
+    @Transactional(readOnly = true)
+    public List<Resource> getAssignedTasks(UUID reviewerId) {
+        return resourceRepository.findByStatusAndLockedById(ResourceStatus.IN_REVIEW, reviewerId);
     }
 
     /**
-     * Calculate priority score for Redis sorted set
-     * Higher priority = lower score (processed first)
+     * Release expired locks (called by scheduled task)
+     * Returns number of released tasks
      */
-    private double calculatePriorityScore(Resource resource) {
-        long baseTime = resource.getCreatedAt() != null ? 
-            resource.getCreatedAt().toEpochMilli() : System.currentTimeMillis();
-        int priority = resource.getReviewPriority() != null ? 
-            resource.getReviewPriority() : 0;
-        return baseTime - (priority * 1000000L);
+    @Transactional
+    public int releaseExpiredLocks() {
+        Instant cutoffTime = Instant.now().minus(LOCK_TIMEOUT_MINUTES, ChronoUnit.MINUTES);
+        
+        List<Resource> expiredTasks = resourceRepository
+            .findByStatusAndLockedAtBefore(ResourceStatus.IN_REVIEW, cutoffTime);
+        
+        for (Resource resource : expiredTasks) {
+            resource.setLockedBy(null);
+            resource.setLockedAt(null);
+            resource.setStatus(ResourceStatus.PENDING_REVIEW);
+            resourceRepository.save(resource);
+        }
+        
+        return expiredTasks.size();
     }
 }

@@ -97,4 +97,6 @@ public interface ResourceRepository extends JpaRepository<Resource, UUID> {
     List<Resource> findByStatusAndLockedById(ResourceStatus status, UUID lockedById);
     
     List<Resource> findByStatusAndLockedByIsNull(ResourceStatus status);
+    
+    List<Resource> findByStatusAndLockedAtBefore(ResourceStatus status, Instant lockedAt);
 }
