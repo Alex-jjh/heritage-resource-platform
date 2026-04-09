@@ -21,12 +21,47 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+const PREDEFINED_FEEDBACK_OPTIONS = [
+  {
+    key: "copyright",
+    label: "Copyright issue",
+    content:
+      "Copyright issue: The copyright declaration is incomplete or unclear. Please clarify ownership, permission, or licensing before resubmitting.",
+  },
+  {
+    key: "fact-error",
+    label: "Fact error",
+    content:
+      "Fact error: The current description contains inaccurate or unsupported factual information. Please verify and correct the content.",
+  },
+  {
+    key: "insufficient-description",
+    label: "Insufficient description",
+    content:
+      "Insufficient description: The submission does not provide enough cultural, historical, or contextual detail. Please add more information.",
+  },
+  {
+    key: "wrong-category",
+    label: "wrong category / tags",
+    content:
+      "Wrong category / tags: The selected category or tags do not accurately match this resource. Please revise the metadata.",
+  },
+  {
+    key: "insufficient-evidence",
+    label: "Insufficient evidence",
+    content:
+      "Insufficient evidence: The attached files or external links do not sufficiently support the authenticity or relevance of this resource.",
+  },
+];
+
 function ReviewDetailContent({ id }: { id: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [feedback, setFeedback] = useState("");
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  const [isRejectFormOpen, setIsRejectFormOpen] = useState(false);
+  const [rejectDraft, setRejectDraft] = useState("");
 
   const resourceQuery = useQuery({
     queryKey: ["resource", id],
@@ -53,7 +88,9 @@ function ReviewDetailContent({ id }: { id: string }) {
     mutationFn: (comments: string) =>
       apiClient.post<ResourceResponse>(`/api/reviews/${id}/reject`, { comments }),
     onSuccess: () => {
-      queryClient.removeQueries({ queryKey: ["resource", id] });
+      setIsRejectFormOpen(false);
+      setRejectDraft("");
+      setFeedbackError(null);
       queryClient.invalidateQueries({ queryKey: ["review-queue"] });
       router.push("/review");
     },
@@ -62,14 +99,52 @@ function ReviewDetailContent({ id }: { id: string }) {
     },
   });
 
-  function handleReject() {
+  function openRejectForm() {
+    setActionError(null);
+    setFeedbackError(null);
+    setIsRejectFormOpen(true);
+  }
+
+  function closeRejectForm() {
+    if (rejectMutation.isPending) return;
+    setIsRejectFormOpen(false);
+    setFeedbackError(null);
+    setRejectDraft("");
+  }
+
+  function applyPredefinedFeedback(content: string) {
     setFeedbackError(null);
     setActionError(null);
-    if (!feedback.trim()) {
-      setFeedbackError("Feedback is required when rejecting a resource.");
+
+    setRejectDraft((current) => {
+      const trimmed = current.trim();
+
+      if (!trimmed) {
+        return content;
+      }
+
+      if (trimmed.includes(content)) {
+        return trimmed
+          .replace(`\n\n${content}`, "")
+          .replace(`${content}\n\n`, "")
+          .replace(content, "")
+          .trim();
+      }
+
+      return `${trimmed}\n\n${content}`;
+    });
+  }
+
+  function submitReject() {
+    setFeedbackError(null);
+    setActionError(null);
+
+    if (!rejectDraft.trim()) {
+      setFeedbackError("Feedback required");
       return;
     }
-    rejectMutation.mutate(feedback.trim());
+
+    rejectMutation.mutate(rejectDraft.trim());
   }
 
   function handleApprove() {
@@ -227,27 +302,110 @@ function ReviewDetailContent({ id }: { id: string }) {
 
                 <Separator />
 
-                <div className="space-y-2">
-                  <label htmlFor="reject-feedback" className="text-sm font-medium">
-                    Rejection Feedback
-                  </label>
-                  <Textarea
-                    id="reject-feedback"
-                    placeholder="Explain why this resource is being rejected…"
-                    value={feedback}
-                    onChange={(e) => {
-                      setFeedback(e.target.value);
-                      if (feedbackError) setFeedbackError(null);
-                    }}
-                    rows={4}
-                  />
-                  {feedbackError && (
-                    <p role="alert" className="text-sm text-destructive">{feedbackError}</p>
-                  )}
-                  <Button variant="destructive" className="w-full" onClick={handleReject} disabled={isActing}>
+                <div className="space-y-3">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="w-full"
+                    onClick={openRejectForm}
+                    disabled={isActing}
+                  >
                     <XCircle className="mr-1.5 size-4" />
-                    {rejectMutation.isPending ? "Rejecting…" : "Reject"}
+                    Reject
                   </Button>
+
+                  {isRejectFormOpen && (
+                    <div className="space-y-4 rounded-lg border border-destructive/20 bg-destructive/5 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-semibold">Mandatory Feedback</h3>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Provide a rejection reason before submitting this review decision.
+                          </p>
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={closeRejectForm}
+                          disabled={rejectMutation.isPending}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Quick reply tags
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {PREDEFINED_FEEDBACK_OPTIONS.map((option) => {
+                            const active = rejectDraft.includes(option.content);
+
+                            return (
+                              <Button
+                                key={option.key}
+                                type="button"
+                                variant={active ? "default" : "outline"}
+                                size="sm"
+                                className="h-auto whitespace-normal px-3 py-1.5 text-left"
+                                onClick={() => applyPredefinedFeedback(option.content)}
+                                disabled={rejectMutation.isPending}
+                              >
+                                {option.label}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="reject-feedback" className="text-sm font-medium">
+                          Feedback
+                        </label>
+                        <Textarea
+                          id="reject-feedback"
+                          placeholder="Enter rejection feedback..."
+                          value={rejectDraft}
+                          onChange={(e) => {
+                            setRejectDraft(e.target.value);
+                            if (feedbackError) setFeedbackError(null);
+                          }}
+                          rows={6}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Preset text can be edited, and you can add your own explanation.
+                        </p>
+                      </div>
+
+                      {feedbackError && (
+                        <p role="alert" className="text-sm text-destructive">
+                          {feedbackError}
+                        </p>
+                      )}
+
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={closeRejectForm}
+                          disabled={rejectMutation.isPending}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          onClick={submitReject}
+                          disabled={rejectMutation.isPending}
+                        >
+                          <XCircle className="mr-1.5 size-4" />
+                          {rejectMutation.isPending ? "Submitting..." : "Submit Rejection"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             )}
