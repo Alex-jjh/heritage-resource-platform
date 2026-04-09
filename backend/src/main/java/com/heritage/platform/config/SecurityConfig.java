@@ -39,6 +39,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Public authentication endpoints
                 .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                .requestMatchers("/api/tasks/health").permitAll()
+                .requestMatchers("/api/tasks/**").hasAnyRole("REVIEWER", "ADMINISTRATOR")
                 // Public discovery endpoints
                 .requestMatchers("/api/search/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
@@ -70,7 +72,6 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/tags/**").hasRole("ADMINISTRATOR")
                 // Review workflow
                 .requestMatchers("/api/reviews/**").hasAnyRole("REVIEWER", "ADMINISTRATOR")
-                .requestMatchers("/api/tasks/**").hasAnyRole("REVIEWER", "ADMINISTRATOR")
                 // Resource authoring and contributor workflow
                 .requestMatchers(HttpMethod.POST, "/api/resources").hasAnyRole("CONTRIBUTOR", "REVIEWER", "ADMINISTRATOR")
                 .requestMatchers(HttpMethod.PUT, "/api/resources/**").hasAnyRole("CONTRIBUTOR", "REVIEWER", "ADMINISTRATOR")
