@@ -105,4 +105,11 @@ public class ReviewService {
                             resource.getStatus()));
         }
     }
+
+    @Transactional(readOnly = true)
+    public List<ReviewFeedback> searchReviewHistory(UUID reviewerId, String decision) {
+        return reviewFeedbackRepository.searchReviewHistory(reviewerId, decision);
+    }
+
+
 }
