@@ -47,4 +47,19 @@ public class ReviewController {
         Resource resource = reviewService.rejectResource(resourceId, principal.getName(), request.getComments());
         return ResponseEntity.ok(ResourceResponse.fromEntity(resource));
     }
+
+    @org.springframework.web.bind.annotation.GetMapping("/history")
+    public org.springframework.http.ResponseEntity<java.util.List<com.heritage.platform.dto.ReviewHistoryResponse>> getReviewHistory(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) java.util.UUID reviewerId,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String decision) {
+            
+        java.util.List<com.heritage.platform.model.ReviewFeedback> rawData = reviewService.searchReviewHistory(reviewerId, decision);
+        
+        java.util.List<com.heritage.platform.dto.ReviewHistoryResponse> packagedData = rawData.stream()
+                .map(com.heritage.platform.dto.ReviewHistoryResponse::fromEntity)
+                .toList();
+                
+        return org.springframework.http.ResponseEntity.ok(packagedData);
+    }
+
 }
