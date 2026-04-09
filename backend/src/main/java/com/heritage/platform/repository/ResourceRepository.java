@@ -90,4 +90,11 @@ public interface ResourceRepository extends JpaRepository<Resource, UUID> {
         @Param("categoryId") UUID categoryId,
         @Param("tagId") UUID tagId,
         Pageable pageable);
+
+    // Task allocation queries
+    Resource findFirstByStatusAndLockedByIsNullOrderByReviewPriorityDescCreatedAtAsc(ResourceStatus status);
+    
+    List<Resource> findByStatusAndLockedById(ResourceStatus status, UUID lockedById);
+    
+    List<Resource> findByStatusAndLockedByIsNull(ResourceStatus status);
 }
