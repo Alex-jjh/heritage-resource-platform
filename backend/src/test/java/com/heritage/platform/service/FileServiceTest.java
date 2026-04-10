@@ -154,6 +154,41 @@ class FileServiceTest {
                 .hasMessageContaining("50MB");
     }
 
+    @Test
+    void uploadFile_exceedsMaxCount_throwsIllegalState() {
+        when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
+        when(fileReferenceRepository.countByResourceId(draftResource.getId())).thenReturn(10);
+
+        MultipartFile mockFile = mock(MultipartFile.class);
+        when(mockFile.getSize()).thenReturn(1024L);
+
+        assertThatThrownBy(() -> fileService.uploadFile(draftResource.getId(), mockFile, "contributor@example.com"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("10");
+    }
+
+    @Test
+    void uploadFile_atNinthFile_succeeds() throws Exception {
+        when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
+        when(fileReferenceRepository.countByResourceId(draftResource.getId())).thenReturn(9);
+        when(fileReferenceRepository.save(any(FileReference.class))).thenAnswer(inv -> {
+            FileReference fr = inv.getArgument(0);
+            fr.setId(UUID.randomUUID());
+            return fr;
+        });
+
+        MultipartFile mockFile = mock(MultipartFile.class);
+        when(mockFile.getOriginalFilename()).thenReturn("ninth.jpg");
+        when(mockFile.getContentType()).thenReturn("text/plain");
+        when(mockFile.getSize()).thenReturn(1024L);
+        doNothing().when(mockFile).transferTo(any(java.io.File.class));
+
+        FileReference result = fileService.uploadFile(draftResource.getId(), mockFile, "contributor@example.com");
+        assertThat(result.getOriginalFileName()).isEqualTo("ninth.jpg");
+    }
+
     // --- Download URL tests (unchanged) ---
 
     @Test

@@ -26,6 +26,7 @@ import java.util.UUID;
 public class FileService {
 
     private static final long MAX_FILE_SIZE_BYTES = 50L * 1024 * 1024; // 50 MB (unchanged)
+    private static final int MAX_FILES_PER_RESOURCE = 10;
     private static final int THUMBNAIL_WIDTH = 400;
     private static final int THUMBNAIL_HEIGHT = 300;
     private static final Set<String> IMAGE_CONTENT_TYPES = Set.of(
@@ -66,6 +67,11 @@ public class FileService {
 
         if (file.getSize() > MAX_FILE_SIZE_BYTES) {
             throw new IllegalArgumentException("File size exceeds maximum of 50MB");
+        }
+
+        int currentCount = fileReferenceRepository.countByResourceId(resourceId);
+        if (currentCount >= MAX_FILES_PER_RESOURCE) {
+            throw new IllegalStateException("Upload limit reached: a resource cannot have more than 10 media files");
         }
 
         // Save file to disk
