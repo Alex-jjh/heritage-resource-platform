@@ -1,6 +1,7 @@
 package com.heritage.platform.controller;
 
 import com.heritage.platform.dto.FileReferenceResponse;
+import com.heritage.platform.dto.MessageResponse;
 import com.heritage.platform.model.FileReference;
 import com.heritage.platform.service.FileService;
 import org.springframework.http.HttpStatus;
@@ -45,5 +46,17 @@ public class FileController {
             Principal principal) {
         fileService.deleteFileReference(resourceId, fileRefId, principal.getName());
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Set a file as the cover image for the resource.
+     */
+    @PutMapping("/{resourceId}/references/{fileRefId}/cover")
+    public ResponseEntity<MessageResponse> setCover(
+            @PathVariable UUID resourceId,
+            @PathVariable UUID fileRefId,
+            Principal principal) {
+        fileService.setCover(resourceId, fileRefId, principal.getName());
+        return ResponseEntity.ok(new MessageResponse("Cover image updated"));
     }
 }
