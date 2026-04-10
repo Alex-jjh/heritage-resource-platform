@@ -43,7 +43,7 @@ public class ReviewController {
         return ResponseEntity.ok(ResourceResponse.fromEntity(resource));
     }
 
-    // 这里处理 AC 1 & 2：reject 逻辑，它会调用 Service 里的强制校验
+    // This section handles AC 1 & 2: reject logic, which will invoke the mandatory validation in the Service.
     @PostMapping("/{resourceId}/reject")
     public ResponseEntity<ResourceResponse> reject(
             @PathVariable UUID resourceId,
@@ -54,9 +54,8 @@ public class ReviewController {
         return ResponseEntity.ok(ResourceResponse.fromEntity(resource));
     }
 
-    // --- 下面是新加的接口：AC 3 专用，供 Zekai 拿快捷标签 ---
     @GetMapping("/predefined-feedback")
-    public ResponseEntity<List<String>> getPredefinedFeedback() {
+    public ResponseEntity<List<com.heritage.platform.dto.PredefinedFeedbackResponse>> getPredefinedFeedback() {
         return ResponseEntity.ok(predefinedFeedbackService.getPredefinedFeedbacks());
     }
 
