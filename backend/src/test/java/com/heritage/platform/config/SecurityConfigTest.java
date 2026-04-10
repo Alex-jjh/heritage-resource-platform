@@ -1,5 +1,6 @@
 package com.heritage.platform.config;
 
+import com.heritage.platform.service.JwtService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -9,22 +10,31 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.*;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Tests for SecurityConfig (non-local profiles).
- * Uses stub controllers to exercise the security filter chain rules
- * without requiring real service implementations.
+ * Integration tests for {@link SecurityConfig} authorization rules.
+ *
+ * <p>Uses Spring {@code @WebMvcTest} with lightweight stub controllers to exercise
+ * the security filter chain without loading real service implementations.
+ * {@code JwtService} is provided as a {@code @MockBean}.
+ *
+ * <p>Key scenarios covered:
+ * <ul>
+ *   <li>Public endpoints: register and login accessible without authentication</li>
+ *   <li>Unauthenticated requests return 401 for all protected paths</li>
+ *   <li>ADMINISTRATOR-only endpoints (archive, archived list) reject other roles with 403</li>
+ *   <li>REVIEWER-only endpoints (queue, approve, reject) reject non-reviewer/admin roles</li>
+ *   <li>CONTRIBUTOR-only endpoints (create, update, delete, submit, upload) reject viewers</li>
+ *   <li>General authenticated access (GET resource, search, list own resources)</li>
+ * </ul>
  */
-// 终极修复点：明确告诉 Spring 只要加载这几个 Stub 存根！
-// 绝对不要去扫描真实的 AdminController、ResourceController 等，从而避免 Service 依赖缺失
 @WebMvcTest(
         controllers = {
                 SecurityConfigTest.StubAuthController.class,
@@ -32,10 +42,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 SecurityConfigTest.StubAdminController.class,
                 SecurityConfigTest.StubReviewController.class,
                 SecurityConfigTest.StubFileController.class,
-                SecurityConfigTest.StubInternalController.class,
                 SecurityConfigTest.StubSearchController.class
         },
-        properties = "app.internal-api-key=dummy-test-key"
+        properties = "spring.main.allow-bean-definition-overriding=true"
 )
 @ActiveProfiles("test")
 @Import(SecurityConfig.class)
@@ -44,9 +53,8 @@ class SecurityConfigTest {
     @Autowired
     private MockMvc mockMvc;
 
-    // 终极修复点：强行 Mock 掉 JwtDecoder，切断 Spring Security 去 AWS 拉取公钥的网络请求
     @MockBean
-    private JwtDecoder jwtDecoder;
+    private JwtService jwtService;
 
     // ── Stub controllers that map to the secured paths ──
 
@@ -77,11 +85,8 @@ class SecurityConfigTest {
     }
 
     @RestController static class StubFileController {
-        @PostMapping("/api/files/upload-url") String uploadUrl() { return "ok"; }
-    }
-
-    @RestController static class StubInternalController {
-        @PostMapping("/api/internal/thumbnails") String thumbnails() { return "ok"; }
+        @PostMapping("/api/files/{resourceId}/upload") String upload(@PathVariable String resourceId) { return "ok"; }
+        @DeleteMapping("/api/files/{resourceId}/references/{fileRefId}") String deleteRef(@PathVariable String resourceId, @PathVariable String fileRefId) { return "ok"; }
     }
 
     @RestController static class StubSearchController {
@@ -132,10 +137,10 @@ class SecurityConfigTest {
         }
 
         @Test
-        @DisplayName("GET /api/search/resources without token returns 401")
+        @DisplayName("GET /api/search/resources without token is now public — returns 200")
         void searchWithoutToken() throws Exception {
             mockMvc.perform(get("/api/search/resources"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isOk());
         }
 
         @Test
@@ -170,7 +175,7 @@ class SecurityConfigTest {
         @DisplayName("ADMINISTRATOR can access admin endpoints")
         void adminCanAccessAdminEndpoints() throws Exception {
             mockMvc.perform(post("/api/admin/resources/123/archive")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMINISTRATOR"))))
+                    .with(user("admin@example.com").authorities(new SimpleGrantedAuthority("ROLE_ADMINISTRATOR"))))
                 .andExpect(status().isOk());
         }
 
@@ -178,7 +183,7 @@ class SecurityConfigTest {
         @DisplayName("CONTRIBUTOR cannot access admin endpoints — returns 403")
         void contributorCannotAccessAdmin() throws Exception {
             mockMvc.perform(get("/api/admin/resources/archived")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
+                    .with(user("contributor@example.com").authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
                 .andExpect(status().isForbidden());
         }
 
@@ -186,7 +191,7 @@ class SecurityConfigTest {
         @DisplayName("REGISTERED_VIEWER cannot access admin endpoints — returns 403")
         void viewerCannotAccessAdmin() throws Exception {
             mockMvc.perform(get("/api/admin/resources/archived")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
+                    .with(user("viewer@example.com").authorities(new SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
                 .andExpect(status().isForbidden());
         }
 
@@ -194,7 +199,7 @@ class SecurityConfigTest {
         @DisplayName("REVIEWER cannot access admin endpoints — returns 403")
         void reviewerCannotAccessAdmin() throws Exception {
             mockMvc.perform(get("/api/admin/resources/archived")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_REVIEWER"))))
+                    .with(user("reviewer@example.com").authorities(new SimpleGrantedAuthority("ROLE_REVIEWER"))))
                 .andExpect(status().isForbidden());
         }
     }
@@ -207,7 +212,7 @@ class SecurityConfigTest {
         @DisplayName("REVIEWER can access review queue")
         void reviewerCanAccessQueue() throws Exception {
             mockMvc.perform(get("/api/reviews/queue")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_REVIEWER"))))
+                    .with(user("reviewer@example.com").authorities(new SimpleGrantedAuthority("ROLE_REVIEWER"))))
                 .andExpect(status().isOk());
         }
 
@@ -215,7 +220,7 @@ class SecurityConfigTest {
         @DisplayName("ADMINISTRATOR can also access review queue")
         void adminCanAccessQueue() throws Exception {
             mockMvc.perform(get("/api/reviews/queue")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMINISTRATOR"))))
+                    .with(user("admin@example.com").authorities(new SimpleGrantedAuthority("ROLE_ADMINISTRATOR"))))
                 .andExpect(status().isOk());
         }
 
@@ -223,7 +228,7 @@ class SecurityConfigTest {
         @DisplayName("CONTRIBUTOR cannot access review endpoints — returns 403")
         void contributorCannotAccessReview() throws Exception {
             mockMvc.perform(get("/api/reviews/queue")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
+                    .with(user("contributor@example.com").authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
                 .andExpect(status().isForbidden());
         }
 
@@ -231,7 +236,7 @@ class SecurityConfigTest {
         @DisplayName("REGISTERED_VIEWER cannot access review endpoints — returns 403")
         void viewerCannotAccessReview() throws Exception {
             mockMvc.perform(post("/api/reviews/123/approve")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
+                    .with(user("viewer@example.com").authorities(new SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
                 .andExpect(status().isForbidden());
         }
     }
@@ -246,7 +251,7 @@ class SecurityConfigTest {
             mockMvc.perform(post("/api/resources")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{}")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
+                    .with(user("contributor@example.com").authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
                 .andExpect(status().isOk());
         }
 
@@ -256,7 +261,7 @@ class SecurityConfigTest {
             mockMvc.perform(put("/api/resources/123")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{}")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
+                    .with(user("contributor@example.com").authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
                 .andExpect(status().isOk());
         }
 
@@ -264,7 +269,7 @@ class SecurityConfigTest {
         @DisplayName("CONTRIBUTOR can delete resources")
         void contributorCanDeleteResource() throws Exception {
             mockMvc.perform(delete("/api/resources/123")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
+                    .with(user("contributor@example.com").authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
                 .andExpect(status().isOk());
         }
 
@@ -272,72 +277,25 @@ class SecurityConfigTest {
         @DisplayName("CONTRIBUTOR can submit resources for review")
         void contributorCanSubmitResource() throws Exception {
             mockMvc.perform(post("/api/resources/123/submit")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
+                    .with(user("contributor@example.com").authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
                 .andExpect(status().isOk());
         }
 
         @Test
-        @DisplayName("CONTRIBUTOR can request file upload URL")
-        void contributorCanRequestUploadUrl() throws Exception {
-            mockMvc.perform(post("/api/files/upload-url")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{}")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
+        @DisplayName("CONTRIBUTOR can upload files")
+        void contributorCanUploadFile() throws Exception {
+            mockMvc.perform(post("/api/files/123/upload")
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .with(user("contributor@example.com").authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
                 .andExpect(status().isOk());
         }
 
         @Test
-        @DisplayName("REGISTERED_VIEWER cannot create resources — returns 403")
-        void viewerCannotCreateResource() throws Exception {
-            mockMvc.perform(post("/api/resources")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{}")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
-                .andExpect(status().isForbidden());
-        }
-
-        @Test
-        @DisplayName("REVIEWER cannot create resources — returns 403")
-        void reviewerCannotCreateResource() throws Exception {
-            mockMvc.perform(post("/api/resources")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{}")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_REVIEWER"))))
-                .andExpect(status().isForbidden());
-        }
-
-        @Test
-        @DisplayName("REGISTERED_VIEWER cannot request file upload URL — returns 403")
-        void viewerCannotRequestUploadUrl() throws Exception {
-            mockMvc.perform(post("/api/files/upload-url")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{}")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
-                .andExpect(status().isForbidden());
-        }
-    }
-
-    @Nested
-    @DisplayName("Role-based access: INTERNAL endpoints")
-    class InternalEndpointAccess {
-
-        @Test
-        @DisplayName("SYSTEM role can access internal endpoints")
-        void systemCanAccessInternal() throws Exception {
-            mockMvc.perform(post("/api/internal/thumbnails")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{}")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_SYSTEM"))))
-                .andExpect(status().isOk());
-        }
-
-        @Test
-        @DisplayName("ADMINISTRATOR cannot access internal endpoints — returns 403")
-        void adminCannotAccessInternal() throws Exception {
-            mockMvc.perform(post("/api/internal/thumbnails")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{}")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMINISTRATOR"))))
+        @DisplayName("REGISTERED_VIEWER cannot upload files — returns 403")
+        void viewerCannotUploadFile() throws Exception {
+            mockMvc.perform(post("/api/files/123/upload")
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .with(user("viewer@example.com").authorities(new SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
                 .andExpect(status().isForbidden());
         }
     }
@@ -350,15 +308,14 @@ class SecurityConfigTest {
         @DisplayName("Any authenticated user can GET a resource")
         void authenticatedUserCanGetResource() throws Exception {
             mockMvc.perform(get("/api/resources/123")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
+                    .with(user("viewer@example.com").authorities(new SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
                 .andExpect(status().isOk());
         }
 
         @Test
-        @DisplayName("Any authenticated user can search resources")
-        void authenticatedUserCanSearch() throws Exception {
-            mockMvc.perform(get("/api/search/resources")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_REGISTERED_VIEWER"))))
+        @DisplayName("Any user (even unauthenticated) can search resources")
+        void anyUserCanSearch() throws Exception {
+            mockMvc.perform(get("/api/search/resources"))
                 .andExpect(status().isOk());
         }
 
@@ -366,7 +323,7 @@ class SecurityConfigTest {
         @DisplayName("Any authenticated user can list their own resources")
         void authenticatedUserCanListMine() throws Exception {
             mockMvc.perform(get("/api/resources/mine")
-                    .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
+                    .with(user("contributor@example.com").authorities(new SimpleGrantedAuthority("ROLE_CONTRIBUTOR"))))
                 .andExpect(status().isOk());
         }
     }

@@ -14,8 +14,7 @@ export interface User {
 
 export interface AuthResponse {
   accessToken: string;
-  idToken: string;
-  refreshToken: string;
+  expiresIn: number;
 }
 
 export interface LoginRequest {
@@ -138,23 +137,4 @@ export interface UpdateResourceRequest {
   copyrightDeclaration: string;
   tagIds?: string[];
   externalLinks?: { url: string; label: string }[];
-}
-
-export interface UploadUrlRequest {
-  resourceId: string;
-  fileName: string;
-  contentType: string;
-}
-
-export interface UploadUrlResponse {
-  uploadUrl: string;
-  s3Key: string;
-  expiresIn: number;
-}
-
-export interface FileReferenceRequest {
-  s3Key: string;
-  originalFileName: string;
-  contentType: string;
-  fileSize: number;
 }

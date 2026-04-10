@@ -19,6 +19,22 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for {@link SearchService}.
+ *
+ * <p>Uses Mockito mocks for {@code ResourceRepository}. Validates the search
+ * and filtering logic that powers the public resource discovery API.
+ *
+ * <p>Key scenarios covered:
+ * <ul>
+ *   <li>Text search matching title, description, and tags</li>
+ *   <li>Category and tag filter isolation</li>
+ *   <li>Combined filters with AND logic (text+category, text+tag, category+tag, all three)</li>
+ *   <li>Pagination defaults, invalid page-size fallback, and custom page parameters</li>
+ *   <li>Archived-resource exclusion (only APPROVED status queried)</li>
+ *   <li>Blank query treated as no-query</li>
+ * </ul>
+ */
 @ExtendWith(MockitoExtension.class)
 class SearchServiceTest {
 
@@ -225,6 +241,7 @@ class SearchServiceTest {
         assertThat(captured.getPageNumber()).isEqualTo(0);
     }
 
+    // A zero or negative page size should fall back to the default of 20
     @Test
     void searchResources_invalidPageSize_defaultsTo20() {
         Page<Resource> page = new PageImpl<>(List.of());
@@ -256,6 +273,7 @@ class SearchServiceTest {
 
     // --- Archived resources exclusion ---
 
+    // Public search must never surface ARCHIVED, DRAFT, or other non-APPROVED resources
     @Test
     void searchResources_alwaysQueriesApprovedStatus_excludingArchived() {
         Page<Resource> page = new PageImpl<>(List.of());
@@ -287,6 +305,7 @@ class SearchServiceTest {
         verify(resourceRepository).findByStatus(eq(ResourceStatus.APPROVED), any(Pageable.class));
     }
 
+    // Whitespace-only input should be treated the same as null (no text filter)
     @Test
     void searchResources_blankQuery_treatedAsNoQuery() {
         Page<Resource> page = new PageImpl<>(List.of());

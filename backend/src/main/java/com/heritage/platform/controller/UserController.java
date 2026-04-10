@@ -7,7 +7,6 @@ import com.heritage.platform.model.User;
 import com.heritage.platform.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -26,8 +25,14 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getProfile(Principal principal) {
-        User user = userService.getUserByCognitoSub(principal.getName());
+        User user = userService.getUserByEmail(principal.getName());
         return ResponseEntity.ok(UserProfileResponse.fromUser(user));
+    }
+
+    @PostMapping("/me/request-contributor")
+    public ResponseEntity<MessageResponse> requestContributor(Principal principal) {
+        userService.requestContributorStatus(principal.getName());
+        return ResponseEntity.ok(new MessageResponse("Contributor application submitted"));
     }
 
     @PutMapping("/me")

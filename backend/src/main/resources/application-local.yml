@@ -2,17 +2,23 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/heritage
     username: root
-    password: rootpass
+    password: 123456
+  jpa:
+    hibernate:
+      ddl-auto: update
+  # Redis config (disabled for now)
+  # data:
+  #   redis:
+  #     host: localhost
+  #     port: 6379
 
-aws:
-  s3:
-    endpoint: http://localhost:4566
-    bucket: heritage-resources-local
-    region: us-east-1
-  cognito:
-    user-pool-id: local-pool
-    client-id: local-client
-    region: us-east-1
-
-security:
-  auth-mode: mock
+app:
+  jwt:
+    secret: local-dev-secret-key-must-be-at-least-256-bits-long-for-hmac-sha256!!
+    expiration-ms: 3600000
+  cors:
+    allowed-origin: http://localhost:3000
+  storage:
+    upload-dir: ./uploads
+    thumbnail-dir: ./thumbnails
+    base-url: http://localhost:8080

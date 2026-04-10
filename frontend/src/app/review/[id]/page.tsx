@@ -37,8 +37,11 @@ function ReviewDetailContent({ id }: { id: string }) {
     mutationFn: () =>
       apiClient.post<ResourceResponse>(`/api/reviews/${id}/approve`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["resource", id] });
+      // Remove (don't invalidate) the resource query to avoid a background
+      // refetch that could race with navigation and trigger a stale 401.
+      queryClient.removeQueries({ queryKey: ["resource", id] });
       queryClient.invalidateQueries({ queryKey: ["review-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["featured-resources"] });
       router.push("/review");
     },
     onError: (err) => {
@@ -50,7 +53,7 @@ function ReviewDetailContent({ id }: { id: string }) {
     mutationFn: (comments: string) =>
       apiClient.post<ResourceResponse>(`/api/reviews/${id}/reject`, { comments }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["resource", id] });
+      queryClient.removeQueries({ queryKey: ["resource", id] });
       queryClient.invalidateQueries({ queryKey: ["review-queue"] });
       router.push("/review");
     },

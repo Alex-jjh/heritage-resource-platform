@@ -1,17 +1,20 @@
-name: Deploy Backend to EC2
+name: Deploy to Alibaba Cloud ECS
+# First deployment trigger
 
 on:
   push:
-    branches: [main]
+    branches: [feature/aliyun-migration]
     paths:
       - 'backend/**'
+      - 'frontend/**'
+      - 'scripts/**'
       - '.github/workflows/deploy-backend.yml'
-  workflow_dispatch: # Allow manual trigger
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
@@ -24,27 +27,71 @@ jobs:
           java-version: 21
           cache: maven
 
-      - name: Build JAR
+      - name: Build backend JAR
         working-directory: backend
         run: mvn clean package -DskipTests -q
 
-      - name: Deploy JAR to EC2
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy backend to ECS
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
+          host: ${{ secrets.ECS_HOST }}
+          username: ${{ secrets.ECS_USERNAME }}
+          key: ${{ secrets.ECS_SSH_KEY }}
           source: backend/target/heritage-platform-0.0.1-SNAPSHOT.jar
-          target: /home/ubuntu/app/
+          target: /opt/heritage/app/
           strip_components: 2
 
-      - name: Restart backend service
+      - name: Deploy frontend to ECS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.ECS_HOST }}
+          username: ${{ secrets.ECS_USERNAME }}
+          key: ${{ secrets.ECS_SSH_KEY }}
+          source: frontend/.next/standalone/,frontend/.next/static/,frontend/public/
+          target: /opt/heritage/app/frontend/
+          strip_components: 1
+
+      - name: Deploy Nginx config to ECS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.ECS_HOST }}
+          username: ${{ secrets.ECS_USERNAME }}
+          key: ${{ secrets.ECS_SSH_KEY }}
+          source: scripts/nginx-heritage.conf
+          target: /tmp/
+          strip_components: 1
+
+      - name: Assemble frontend and restart services
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
+          host: ${{ secrets.ECS_HOST }}
+          username: ${{ secrets.ECS_USERNAME }}
+          key: ${{ secrets.ECS_SSH_KEY }}
           script: |
+            # Update Nginx config
+            sudo cp /tmp/nginx-heritage.conf /etc/nginx/sites-available/heritage
+            sudo ln -sf /etc/nginx/sites-available/heritage /etc/nginx/sites-enabled/heritage
+            
+            # Copy static assets into standalone directory where Next.js expects them
+            cp -r /opt/heritage/app/frontend/.next/static /opt/heritage/app/frontend/.next/standalone/.next/static
+            cp -r /opt/heritage/app/frontend/public /opt/heritage/app/frontend/.next/standalone/public
+            
             sudo systemctl restart heritage-backend
             sleep 10
+            sudo systemctl restart heritage-frontend
+            sudo nginx -t && sudo nginx -s reload
             sudo systemctl is-active heritage-backend
+            sudo systemctl is-active heritage-frontend

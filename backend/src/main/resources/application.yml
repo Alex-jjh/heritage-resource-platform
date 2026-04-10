@@ -1,14 +1,22 @@
 spring:
+  profiles:
+    active: local
   application:
     name: heritage-platform
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     open-in-view: false
   jackson:
     default-property-inclusion: non_null
   flyway:
     enabled: true
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 55MB
 
 app:
-  internal-api-key: ${INTERNAL_API_KEY:change-me-in-production}
+  jwt:
+    secret: ${JWT_SECRET:default-dev-secret-key-must-be-at-least-256-bits-long-for-hmac-sha256!!}
+    expiration-ms: ${JWT_EXPIRATION_MS:3600000}

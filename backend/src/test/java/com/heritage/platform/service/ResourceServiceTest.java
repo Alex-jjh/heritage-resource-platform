@@ -19,6 +19,22 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for {@link ResourceService}.
+ *
+ * <p>Uses Mockito mocks for all repository dependencies. Tests cover the full
+ * resource lifecycle managed by contributors: creation, update, deletion,
+ * submission for review, and visibility rules.
+ *
+ * <p>Key scenarios covered:
+ * <ul>
+ *   <li>Resource creation with tags, external links, and default DRAFT status</li>
+ *   <li>Update and delete restricted to DRAFT status and resource owner</li>
+ *   <li>Submit-for-review validation (title, copyright required)</li>
+ *   <li>Visibility rules: approved resources visible to all, drafts only to owner/admin</li>
+ *   <li>Listing a contributor's own resources</li>
+ * </ul>
+ */
 @ExtendWith(MockitoExtension.class)
 class ResourceServiceTest {
 
@@ -42,13 +58,13 @@ class ResourceServiceTest {
 
         contributor = new User();
         contributor.setId(UUID.randomUUID());
-        contributor.setCognitoSub("contributor-sub");
+        contributor.setEmail("contributor@example.com");
         contributor.setDisplayName("Contributor");
         contributor.setRole(UserRole.CONTRIBUTOR);
 
         otherUser = new User();
         otherUser.setId(UUID.randomUUID());
-        otherUser.setCognitoSub("other-sub");
+        otherUser.setEmail("other@example.com");
         otherUser.setDisplayName("Other");
         otherUser.setRole(UserRole.CONTRIBUTOR);
 
@@ -85,7 +101,7 @@ class ResourceServiceTest {
 
     @Test
     void createResource_withValidData_setsStatusToDraft() {
-        when(userRepository.findByCognitoSub("contributor-sub")).thenReturn(Optional.of(contributor));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
         when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
         when(resourceRepository.save(any(Resource.class))).thenAnswer(inv -> {
             Resource r = inv.getArgument(0);
@@ -93,7 +109,7 @@ class ResourceServiceTest {
             return r;
         });
 
-        Resource result = resourceService.createResource("contributor-sub", validCreateRequest());
+        Resource result = resourceService.createResource("contributor@example.com", validCreateRequest());
 
         assertThat(result.getStatus()).isEqualTo(ResourceStatus.DRAFT);
         assertThat(result.getTitle()).isEqualTo("Heritage Site");
@@ -113,12 +129,12 @@ class ResourceServiceTest {
         CreateResourceRequest req = validCreateRequest();
         req.setTagIds(Set.of(tag1.getId(), tag2.getId()));
 
-        when(userRepository.findByCognitoSub("contributor-sub")).thenReturn(Optional.of(contributor));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
         when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
         when(tagRepository.findAllById(req.getTagIds())).thenReturn(List.of(tag1, tag2));
         when(resourceRepository.save(any(Resource.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Resource result = resourceService.createResource("contributor-sub", req);
+        Resource result = resourceService.createResource("contributor@example.com", req);
 
         assertThat(result.getTags()).hasSize(2);
     }
@@ -129,11 +145,11 @@ class ResourceServiceTest {
         req.setExternalLinks(List.of(
                 new CreateResourceRequest.ExternalLinkDto("https://example.com", "Example")));
 
-        when(userRepository.findByCognitoSub("contributor-sub")).thenReturn(Optional.of(contributor));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
         when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
         when(resourceRepository.save(any(Resource.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Resource result = resourceService.createResource("contributor-sub", req);
+        Resource result = resourceService.createResource("contributor@example.com", req);
 
         assertThat(result.getExternalLinks()).hasSize(1);
         assertThat(result.getExternalLinks().get(0).getUrl()).isEqualTo("https://example.com");
@@ -150,11 +166,11 @@ class ResourceServiceTest {
         req.setCopyrightDeclaration("CC BY 4.0");
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
-        when(userRepository.findByCognitoSub("contributor-sub")).thenReturn(Optional.of(contributor));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
         when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
         when(resourceRepository.save(any(Resource.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Resource result = resourceService.updateResource(resource.getId(), "contributor-sub", req);
+        Resource result = resourceService.updateResource(resource.getId(), "contributor@example.com", req);
 
         assertThat(result.getTitle()).isEqualTo("Updated Title");
     }
@@ -165,7 +181,7 @@ class ResourceServiceTest {
         resource.setStatus(ResourceStatus.PENDING_REVIEW);
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
-        when(userRepository.findByCognitoSub("contributor-sub")).thenReturn(Optional.of(contributor));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
 
         UpdateResourceRequest req = new UpdateResourceRequest();
         req.setTitle("Updated");
@@ -173,7 +189,7 @@ class ResourceServiceTest {
         req.setCopyrightDeclaration("CC BY 4.0");
 
         assertThatThrownBy(() ->
-                resourceService.updateResource(resource.getId(), "contributor-sub", req))
+                resourceService.updateResource(resource.getId(), "contributor@example.com", req))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("DRAFT");
     }
@@ -183,7 +199,7 @@ class ResourceServiceTest {
         Resource resource = createDraftResource();
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
-        when(userRepository.findByCognitoSub("other-sub")).thenReturn(Optional.of(otherUser));
+        when(userRepository.findByEmail("other@example.com")).thenReturn(Optional.of(otherUser));
 
         UpdateResourceRequest req = new UpdateResourceRequest();
         req.setTitle("Updated");
@@ -191,20 +207,21 @@ class ResourceServiceTest {
         req.setCopyrightDeclaration("CC BY 4.0");
 
         assertThatThrownBy(() ->
-                resourceService.updateResource(resource.getId(), "other-sub", req))
+                resourceService.updateResource(resource.getId(), "other@example.com", req))
                 .isInstanceOf(AccessDeniedException.class);
     }
 
     // --- Delete tests ---
 
+    // Only DRAFT resources can be permanently deleted (hard delete, not soft)
     @Test
     void deleteResource_draftByOwner_performsHardDelete() {
         Resource resource = createDraftResource();
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
-        when(userRepository.findByCognitoSub("contributor-sub")).thenReturn(Optional.of(contributor));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
 
-        resourceService.deleteResource(resource.getId(), "contributor-sub");
+        resourceService.deleteResource(resource.getId(), "contributor@example.com");
 
         verify(resourceRepository).delete(resource);
     }
@@ -215,10 +232,10 @@ class ResourceServiceTest {
         resource.setStatus(ResourceStatus.APPROVED);
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
-        when(userRepository.findByCognitoSub("contributor-sub")).thenReturn(Optional.of(contributor));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
 
         assertThatThrownBy(() ->
-                resourceService.deleteResource(resource.getId(), "contributor-sub"))
+                resourceService.deleteResource(resource.getId(), "contributor@example.com"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("DRAFT");
     }
@@ -230,12 +247,12 @@ class ResourceServiceTest {
         Resource resource = createDraftResource();
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
-        when(userRepository.findByCognitoSub("contributor-sub")).thenReturn(Optional.of(contributor));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
         when(resourceRepository.save(any(Resource.class))).thenAnswer(inv -> inv.getArgument(0));
         when(statusTransitionRepository.save(any(StatusTransition.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
 
-        Resource result = resourceService.submitForReview(resource.getId(), "contributor-sub");
+        Resource result = resourceService.submitForReview(resource.getId(), "contributor@example.com");
 
         assertThat(result.getStatus()).isEqualTo(ResourceStatus.PENDING_REVIEW);
     }
@@ -246,10 +263,10 @@ class ResourceServiceTest {
         resource.setTitle(null);
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
-        when(userRepository.findByCognitoSub("contributor-sub")).thenReturn(Optional.of(contributor));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
 
         assertThatThrownBy(() ->
-                resourceService.submitForReview(resource.getId(), "contributor-sub"))
+                resourceService.submitForReview(resource.getId(), "contributor@example.com"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("title");
     }
@@ -260,10 +277,10 @@ class ResourceServiceTest {
         resource.setCopyrightDeclaration(null);
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
-        when(userRepository.findByCognitoSub("contributor-sub")).thenReturn(Optional.of(contributor));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
 
         assertThatThrownBy(() ->
-                resourceService.submitForReview(resource.getId(), "contributor-sub"))
+                resourceService.submitForReview(resource.getId(), "contributor@example.com"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("copyrightDeclaration");
     }
@@ -277,31 +294,32 @@ class ResourceServiceTest {
 
         User viewer = new User();
         viewer.setId(UUID.randomUUID());
-        viewer.setCognitoSub("viewer-sub");
+        viewer.setEmail("viewer@example.com");
         viewer.setRole(UserRole.REGISTERED_VIEWER);
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
-        when(userRepository.findByCognitoSub("viewer-sub")).thenReturn(Optional.of(viewer));
+        when(userRepository.findByEmail("viewer@example.com")).thenReturn(Optional.of(viewer));
 
-        Resource result = resourceService.getResourceById(resource.getId(), "viewer-sub");
+        Resource result = resourceService.getResourceById(resource.getId(), "viewer@example.com");
 
         assertThat(result.getId()).isEqualTo(resource.getId());
     }
 
+    // Draft resources are private — only the owner and admins may view them
     @Test
     void getResourceById_draftResource_notVisibleToNonOwner() {
         Resource resource = createDraftResource();
 
         User viewer = new User();
         viewer.setId(UUID.randomUUID());
-        viewer.setCognitoSub("viewer-sub");
+        viewer.setEmail("viewer@example.com");
         viewer.setRole(UserRole.REGISTERED_VIEWER);
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
-        when(userRepository.findByCognitoSub("viewer-sub")).thenReturn(Optional.of(viewer));
+        when(userRepository.findByEmail("viewer@example.com")).thenReturn(Optional.of(viewer));
 
         assertThatThrownBy(() ->
-                resourceService.getResourceById(resource.getId(), "viewer-sub"))
+                resourceService.getResourceById(resource.getId(), "viewer@example.com"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -311,13 +329,13 @@ class ResourceServiceTest {
 
         User admin = new User();
         admin.setId(UUID.randomUUID());
-        admin.setCognitoSub("admin-sub");
+        admin.setEmail("admin@example.com");
         admin.setRole(UserRole.ADMINISTRATOR);
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
-        when(userRepository.findByCognitoSub("admin-sub")).thenReturn(Optional.of(admin));
+        when(userRepository.findByEmail("admin@example.com")).thenReturn(Optional.of(admin));
 
-        Resource result = resourceService.getResourceById(resource.getId(), "admin-sub");
+        Resource result = resourceService.getResourceById(resource.getId(), "admin@example.com");
 
         assertThat(result.getId()).isEqualTo(resource.getId());
     }
@@ -328,10 +346,10 @@ class ResourceServiceTest {
     void listContributorResources_returnsOwnResources() {
         List<Resource> resources = List.of(createDraftResource());
 
-        when(userRepository.findByCognitoSub("contributor-sub")).thenReturn(Optional.of(contributor));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
         when(resourceRepository.findByContributorId(contributor.getId())).thenReturn(resources);
 
-        List<Resource> result = resourceService.listContributorResources("contributor-sub");
+        List<Resource> result = resourceService.listContributorResources("contributor@example.com");
 
         assertThat(result).hasSize(1);
     }

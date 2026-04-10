@@ -3,17 +3,14 @@ spring:
     url: jdbc:mysql://${RDS_ENDPOINT}:3306/heritage
     username: ${RDS_USERNAME}
     password: ${RDS_PASSWORD}
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: https://cognito-idp.${AWS_REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}
 
-aws:
-  cognito:
-    user-pool-id: ${COGNITO_USER_POOL_ID}
-    client-id: ${COGNITO_CLIENT_ID}
-    region: ${AWS_REGION}
-  s3:
-    bucket: heritage-resources-dev
-    region: ${AWS_REGION}
+app:
+  jwt:
+    secret: ${JWT_SECRET:default-secret-change-in-production-must-be-at-least-256-bits-long!!}
+    expiration-ms: 3600000
+  cors:
+    allowed-origin: ${FRONTEND_ORIGIN:http://localhost:3000}
+  storage:
+    upload-dir: /opt/heritage/uploads
+    thumbnail-dir: /opt/heritage/thumbnails
+    base-url: ${STORAGE_BASE_URL:}

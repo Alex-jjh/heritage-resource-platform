@@ -133,7 +133,7 @@ export default function EditResourcePage({
 }) {
   const { id } = use(params);
   return (
-    <ProtectedRoute requiredRoles={["CONTRIBUTOR"]}>
+    <ProtectedRoute requiredRoles={["CONTRIBUTOR", "REVIEWER", "ADMINISTRATOR"]}>
       <EditResourceContent id={id} />
     </ProtectedRoute>
   );

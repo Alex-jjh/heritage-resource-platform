@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { AuthResponse, User } from "@/types";
 import { apiClient, setOnUnauthorized } from "@/lib/api-client";
 
@@ -23,20 +24,17 @@ interface AuthContextValue {
     displayName: string
   ) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 function storeTokens(tokens: AuthResponse) {
   localStorage.setItem("accessToken", tokens.accessToken);
-  localStorage.setItem("idToken", tokens.idToken);
-  localStorage.setItem("refreshToken", tokens.refreshToken);
 }
 
 function clearTokens() {
   localStorage.removeItem("accessToken");
-  localStorage.removeItem("idToken");
-  localStorage.removeItem("refreshToken");
 }
 
 function hasStoredToken(): boolean {
@@ -46,11 +44,23 @@ function hasStoredToken(): boolean {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  // Guard: ignore 401-triggered clearSession while a login is in progress
+  const isLoggingIn = useRef(false);
 
   const clearSession = useCallback(() => {
+    // Don't clear session if we're in the middle of logging in —
+    // a stale 401 from a previous session's in-flight request must not
+    // wipe out the freshly stored token.
+    if (isLoggingIn.current) return;
+
     clearTokens();
     setUser(null);
-  }, []);
+    // Purge all cached query data so the next user doesn't see stale results
+    queryClient.cancelQueries();
+    queryClient.clear();
+  }, [queryClient]);
 
   // Wire up the 401 handler so any API call that gets a 401 clears the session
   useEffect(() => {
@@ -97,14 +107,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, clearSession]);
 
   const login = useCallback(async (email: string, password: string) => {
-    const tokens = await apiClient.post<AuthResponse>("/api/auth/login", {
-      email,
-      password,
-    }, { skipAuth: true });
-    storeTokens(tokens);
-    const profile = await apiClient.get<User>("/api/users/me");
-    setUser(profile);
-  }, []);
+    // Cancel any in-flight queries from the previous session so their
+    // potential 401 responses don't trigger onUnauthorized and wipe
+    // the token we're about to store.
+    queryClient.cancelQueries();
+    queryClient.clear();
+
+    isLoggingIn.current = true;
+    try {
+      const tokens = await apiClient.post<AuthResponse>("/api/auth/login", {
+        email,
+        password,
+      }, { skipAuth: true });
+      storeTokens(tokens);
+      const profile = await apiClient.get<User>("/api/users/me");
+      setUser(profile);
+    } finally {
+      isLoggingIn.current = false;
+    }
+  }, [queryClient]);
 
   const register = useCallback(
     async (email: string, password: string, displayName: string) => {
@@ -125,6 +146,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [clearSession]);
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const profile = await apiClient.get<User>("/api/users/me");
+      setUser(profile);
+    } catch {
+      // ignore — user state stays as-is
+    }
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -133,8 +163,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login,
       register,
       logout,
+      refreshUser,
     }),
-    [user, isLoading, login, register, logout]
+    [user, isLoading, login, register, logout, refreshUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

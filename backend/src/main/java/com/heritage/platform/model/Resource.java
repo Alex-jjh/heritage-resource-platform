@@ -35,6 +35,15 @@ public class Resource {
     @Column(nullable = false)
     private ResourceStatus status;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "locked_by")
+    private User lockedBy;
+
+    private Instant lockedAt;
+
+    @Column(nullable = false)
+    private Integer reviewPriority = 0;
+
     @ManyToMany
     @JoinTable(name = "resource_tags",
         joinColumns = @JoinColumn(name = "resource_id"),
@@ -111,4 +120,10 @@ public class Resource {
     public void setApprovedAt(Instant approvedAt) { this.approvedAt = approvedAt; }
     public Instant getArchivedAt() { return archivedAt; }
     public void setArchivedAt(Instant archivedAt) { this.archivedAt = archivedAt; }
+    public User getLockedBy() { return lockedBy; }
+    public void setLockedBy(User lockedBy) { this.lockedBy = lockedBy; }
+    public Instant getLockedAt() { return lockedAt; }
+    public void setLockedAt(Instant lockedAt) { this.lockedAt = lockedAt; }
+    public Integer getReviewPriority() { return reviewPriority; }
+    public void setReviewPriority(Integer reviewPriority) { this.reviewPriority = reviewPriority; }
 }

@@ -25,6 +25,7 @@ public class ResourceResponse {
     private UUID contributorId;
     private String thumbnailS3Key;
     private String thumbnailUrl;
+    private List<ReviewFeedbackDto> reviewFeedbacks;
     private Instant createdAt;
     private Instant updatedAt;
     private Instant approvedAt;
@@ -59,6 +60,9 @@ public class ResourceResponse {
         if (resource.getThumbnailS3Key() != null && thumbnailUrlGenerator != null) {
             resp.thumbnailUrl = thumbnailUrlGenerator.apply(resource.getThumbnailS3Key());
         }
+        resp.reviewFeedbacks = resource.getReviewFeedbacks() != null
+                ? resource.getReviewFeedbacks().stream().map(ReviewFeedbackDto::fromEntity).toList()
+                : List.of();
         resp.createdAt = resource.getCreatedAt();
         resp.updatedAt = resource.getUpdatedAt();
         resp.approvedAt = resource.getApprovedAt();
@@ -97,6 +101,9 @@ public class ResourceResponse {
         if (resource.getThumbnailS3Key() != null && downloadUrlGenerator != null) {
             resp.thumbnailUrl = downloadUrlGenerator.apply(resource.getThumbnailS3Key());
         }
+        resp.reviewFeedbacks = resource.getReviewFeedbacks() != null
+                ? resource.getReviewFeedbacks().stream().map(ReviewFeedbackDto::fromEntity).toList()
+                : List.of();
         resp.createdAt = resource.getCreatedAt();
         resp.updatedAt = resource.getUpdatedAt();
         resp.approvedAt = resource.getApprovedAt();
@@ -121,6 +128,7 @@ public class ResourceResponse {
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public Instant getApprovedAt() { return approvedAt; }
+    public List<ReviewFeedbackDto> getReviewFeedbacks() { return reviewFeedbacks; }
 
     public static class FileReferenceDto {
         private UUID id;
@@ -170,5 +178,32 @@ public class ResourceResponse {
         public UUID getId() { return id; }
         public String getUrl() { return url; }
         public String getLabel() { return label; }
+    }
+
+    public static class ReviewFeedbackDto {
+        private UUID id;
+        private UUID resourceId;
+        private UUID reviewerId;
+        private String comments;
+        private String decision;
+        private Instant createdAt;
+
+        public static ReviewFeedbackDto fromEntity(ReviewFeedback rf) {
+            ReviewFeedbackDto dto = new ReviewFeedbackDto();
+            dto.id = rf.getId();
+            dto.resourceId = rf.getResource().getId();
+            dto.reviewerId = rf.getReviewer().getId();
+            dto.comments = rf.getComments();
+            dto.decision = rf.getDecision();
+            dto.createdAt = rf.getCreatedAt();
+            return dto;
+        }
+
+        public UUID getId() { return id; }
+        public UUID getResourceId() { return resourceId; }
+        public UUID getReviewerId() { return reviewerId; }
+        public String getComments() { return comments; }
+        public String getDecision() { return decision; }
+        public Instant getCreatedAt() { return createdAt; }
     }
 }

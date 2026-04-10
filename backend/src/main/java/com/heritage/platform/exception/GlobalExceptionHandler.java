@@ -1,7 +1,6 @@
 package com.heritage.platform.exception;
 
 import com.heritage.platform.dto.ErrorResponse;
-import com.heritage.platform.exception.S3ServiceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -85,25 +84,10 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(400, ex.getMessage()));
     }
 
-    @ExceptionHandler(S3ServiceException.class)
-    public ResponseEntity<ErrorResponse> handleS3Service(S3ServiceException ex) {
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                .header("Retry-After", "30")
-                .body(new ErrorResponse(503, "File storage service is temporarily unavailable. Please try again later."));
-    }
-
-    @ExceptionHandler(software.amazon.awssdk.services.cognitoidentityprovider.model.InvalidPasswordException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidPassword(
-            software.amazon.awssdk.services.cognitoidentityprovider.model.InvalidPasswordException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(400, "Password must contain uppercase, lowercase letters and numbers (min 8 characters)."));
-    }
-
-    @ExceptionHandler(software.amazon.awssdk.services.cognitoidentityprovider.model.CognitoIdentityProviderException.class)
-    public ResponseEntity<ErrorResponse> handleCognitoException(
-            software.amazon.awssdk.services.cognitoidentityprovider.model.CognitoIdentityProviderException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(400, ex.awsErrorDetails().errorMessage()));
+    @ExceptionHandler(org.hibernate.LazyInitializationException.class)
+    public ResponseEntity<ErrorResponse> handleLazyInitialization(org.hibernate.LazyInitializationException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse(500, "Internal server error"));
     }
 
 }

@@ -1,7 +1,6 @@
 package com.heritage.platform.controller;
 
 import com.heritage.platform.dto.*;
-import com.heritage.platform.model.User;
 import com.heritage.platform.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -32,10 +31,8 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<MessageResponse> logout(@RequestHeader("Authorization") String authHeader) {
-        // Strip "Bearer " prefix
-        String accessToken = authHeader.replace("Bearer ", "");
-        authService.logout(accessToken);
+    public ResponseEntity<MessageResponse> logout() {
+        // Stateless JWT — client just discards the token
         return ResponseEntity.ok(new MessageResponse("Logged out successfully"));
     }
 }

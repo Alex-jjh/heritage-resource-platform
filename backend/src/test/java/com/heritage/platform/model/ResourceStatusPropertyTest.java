@@ -7,6 +7,18 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Property-based tests for the {@link ResourceStatus} state machine.
+ *
+ * <p>Uses jqwik to exhaustively verify the {@code canTransitionTo} method
+ * against the canonical allowed-transitions map from the design document.
+ *
+ * <p>Key properties verified:
+ * <ul>
+ *   <li>Every valid (from, to) pair is accepted by {@code canTransitionTo}</li>
+ *   <li>Every invalid (from, to) pair is rejected by {@code canTransitionTo}</li>
+ * </ul>
+ */
 class ResourceStatusPropertyTest {
 
     // The canonical allowed transitions from the design document
@@ -15,7 +27,7 @@ class ResourceStatusPropertyTest {
         ResourceStatus.PENDING_REVIEW, Set.of(ResourceStatus.APPROVED, ResourceStatus.REJECTED),
         ResourceStatus.APPROVED, Set.of(ResourceStatus.ARCHIVED, ResourceStatus.DRAFT),
         ResourceStatus.REJECTED, Set.of(ResourceStatus.DRAFT),
-        ResourceStatus.ARCHIVED, Set.of()
+        ResourceStatus.ARCHIVED, Set.of(ResourceStatus.APPROVED)
     );
 
     @Property

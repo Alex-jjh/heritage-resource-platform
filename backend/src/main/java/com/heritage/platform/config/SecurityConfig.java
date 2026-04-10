@@ -1,37 +1,32 @@
 package com.heritage.platform.config;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.heritage.platform.service.JwtService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtDecoders;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
- * Security configuration for dev/prod profiles.
- * Validates JWTs issued by AWS Cognito and maps the custom:role claim
- * to Spring Security granted authorities with the ROLE_ prefix.
+ * Unified security configuration using local JWT authentication.
  */
 @Configuration
 @EnableWebSecurity
-@Profile("!local")
 public class SecurityConfig {
 
-    @Value("${app.internal-api-key}")
-    private String internalApiKey;
+    private final JwtService jwtService;
 
-    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
-    private String issuerUri;
+    public SecurityConfig(JwtService jwtService) {
+        this.jwtService = jwtService;
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -41,7 +36,11 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
-                .requestMatchers("/api/search/featured").permitAll()
+                .requestMatchers("/api/tasks/health").permitAll()
+                .requestMatchers("/api/tasks/**").hasAnyRole("REVIEWER", "ADMINISTRATOR")
+                .requestMatchers("/api/search/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/tags").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMINISTRATOR")
                 .requestMatchers("/api/users/pending-contributors").hasRole("ADMINISTRATOR")
@@ -50,49 +49,29 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/users/*").hasRole("ADMINISTRATOR")
                 .requestMatchers("/api/users/*/grant-contributor").hasRole("ADMINISTRATOR")
                 .requestMatchers("/api/users/*/revoke-contributor").hasRole("ADMINISTRATOR")
+                .requestMatchers(HttpMethod.POST, "/api/categories").hasRole("ADMINISTRATOR")
+                .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMINISTRATOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasRole("ADMINISTRATOR")
+                .requestMatchers(HttpMethod.POST, "/api/tags").hasRole("ADMINISTRATOR")
+                .requestMatchers(HttpMethod.PUT, "/api/tags/**").hasRole("ADMINISTRATOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/tags/**").hasRole("ADMINISTRATOR")
                 .requestMatchers("/api/reviews/**").hasAnyRole("REVIEWER", "ADMINISTRATOR")
-                .requestMatchers(HttpMethod.POST, "/api/resources").hasRole("CONTRIBUTOR")
-                .requestMatchers(HttpMethod.PUT, "/api/resources/**").hasRole("CONTRIBUTOR")
-                .requestMatchers(HttpMethod.DELETE, "/api/resources/**").hasRole("CONTRIBUTOR")
-                .requestMatchers("/api/resources/*/submit").hasRole("CONTRIBUTOR")
-                .requestMatchers("/api/resources/*/revise").hasRole("CONTRIBUTOR")
-                .requestMatchers("/api/files/upload-url").hasRole("CONTRIBUTOR")
-                .requestMatchers("/api/files/**").hasRole("CONTRIBUTOR")
-                .requestMatchers("/api/internal/**").hasRole("SYSTEM")
+                .requestMatchers(HttpMethod.POST, "/api/resources").hasAnyRole("CONTRIBUTOR", "REVIEWER", "ADMINISTRATOR")
+                .requestMatchers(HttpMethod.PUT, "/api/resources/**").hasAnyRole("CONTRIBUTOR", "REVIEWER", "ADMINISTRATOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/resources/**").hasAnyRole("CONTRIBUTOR", "REVIEWER", "ADMINISTRATOR")
+                .requestMatchers("/api/resources/*/submit").hasAnyRole("CONTRIBUTOR", "REVIEWER", "ADMINISTRATOR")
+                .requestMatchers("/api/resources/*/revise").hasAnyRole("CONTRIBUTOR", "REVIEWER", "ADMINISTRATOR")
+                .requestMatchers("/api/files/**").hasAnyRole("CONTRIBUTOR", "REVIEWER", "ADMINISTRATOR")
                 .anyRequest().authenticated()
             )
-            .oauth2ResourceServer(oauth2 -> oauth2
-                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
-            .addFilterBefore(new ApiKeyAuthFilter(internalApiKey), UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(new JwtAuthFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));
         return http.build();
     }
 
-    /**
-     * AWS Cognito stores the platform role in a custom claim "custom:role"
-     * (e.g., "custom:role": "CONTRIBUTOR"). Spring Security's hasRole()
-     * expects a "ROLE_" prefix. This converter bridges the two by reading
-     * from the custom claim and adding the prefix automatically.
-     */
     @Bean
-    public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        grantedAuthoritiesConverter.setAuthoritiesClaimName("custom:role");
-        grantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
-
-        JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
-        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
-        return jwtAuthenticationConverter;
-    }
-
-    /**
-     * Custom JWT decoder that accepts both Cognito access tokens and ID tokens.
-     * The default Spring decoder only accepts access tokens (token_use=access),
-     * but we need ID tokens because they contain the custom:role claim.
-     */
-    @Bean
-    public JwtDecoder jwtDecoder() {
-        NimbusJwtDecoder decoder = (NimbusJwtDecoder) JwtDecoders.fromIssuerLocation(issuerUri);
-        // No additional token_use validation — accept both access and id tokens
-        return decoder;
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }

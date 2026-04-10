@@ -5,11 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Upload, X, FileIcon, Loader2 } from "lucide-react";
-import type {
-  FileReferenceDto,
-  UploadUrlResponse,
-  FileReferenceRequest,
-} from "@/types";
+import type { FileReferenceDto } from "@/types";
 
 interface FileUploaderProps {
   resourceId: string;
@@ -19,7 +15,7 @@ interface FileUploaderProps {
 
 interface UploadingFile {
   name: string;
-  progress: "requesting-url" | "uploading" | "registering" | "done" | "error";
+  progress: "uploading" | "done" | "error";
   error?: string;
 }
 
@@ -42,7 +38,7 @@ export function FileUploader({
   });
 
   async function uploadFile(file: File) {
-    const entry: UploadingFile = { name: file.name, progress: "requesting-url" };
+    const entry: UploadingFile = { name: file.name, progress: "uploading" };
     setUploading((prev) => [...prev, entry]);
 
     const updateEntry = (updates: Partial<UploadingFile>) => {
@@ -52,37 +48,20 @@ export function FileUploader({
     };
 
     try {
-      // 1. Get pre-signed URL
-      const urlResp = await apiClient.post<UploadUrlResponse>(
-        "/api/files/upload-url",
-        {
-          resourceId,
-          fileName: file.name,
-          contentType: file.type || "application/octet-stream",
-        }
-      );
+      const formData = new FormData();
+      formData.append("file", file);
 
-      // 2. PUT file directly to S3 (raw fetch, no auth header)
-      updateEntry({ progress: "uploading" });
-      const putResp = await fetch(urlResp.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type || "application/octet-stream" },
-        body: file,
+      const token = localStorage.getItem("accessToken");
+      const resp = await fetch(`/api/files/${resourceId}/upload`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
       });
 
-      if (!putResp.ok) {
-        throw new Error(`S3 upload failed: ${putResp.status}`);
+      if (!resp.ok) {
+        const errBody = await resp.json().catch(() => null);
+        throw new Error(errBody?.message || `Upload failed: ${resp.status}`);
       }
-
-      // 3. Register file reference
-      updateEntry({ progress: "registering" });
-      const refBody: FileReferenceRequest = {
-        s3Key: urlResp.s3Key,
-        originalFileName: file.name,
-        contentType: file.type || "application/octet-stream",
-        fileSize: file.size,
-      };
-      await apiClient.post(`/api/files/${resourceId}/references`, refBody);
 
       updateEntry({ progress: "done" });
       queryClient.invalidateQueries({ queryKey: ["resource", resourceId] });
@@ -99,7 +78,6 @@ export function FileUploader({
     const files = e.target.files;
     if (!files) return;
     Array.from(files).forEach(uploadFile);
-    // Reset input so the same file can be selected again
     e.target.value = "";
   }
 
@@ -109,10 +87,7 @@ export function FileUploader({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  // Remove completed uploads from the uploading list
-  const activeUploads = uploading.filter(
-    (u) => u.progress !== "done"
-  );
+  const activeUploads = uploading.filter((u) => u.progress !== "done");
 
   return (
     <div className="space-y-3">
@@ -136,14 +111,10 @@ export function FileUploader({
         />
       </div>
 
-      {/* Active uploads */}
       {activeUploads.length > 0 && (
         <ul className="space-y-2">
           {activeUploads.map((u) => (
-            <li
-              key={u.name}
-              className="flex items-center gap-2 rounded-md border p-2 text-sm"
-            >
+            <li key={u.name} className="flex items-center gap-2 rounded-md border p-2 text-sm">
               {u.progress === "error" ? (
                 <X className="size-4 text-destructive" />
               ) : (
@@ -151,9 +122,7 @@ export function FileUploader({
               )}
               <span className="flex-1 truncate">{u.name}</span>
               <span className="text-xs text-muted-foreground">
-                {u.progress === "requesting-url" && "Preparing…"}
                 {u.progress === "uploading" && "Uploading…"}
-                {u.progress === "registering" && "Registering…"}
                 {u.progress === "error" && (
                   <span className="text-destructive">{u.error}</span>
                 )}
@@ -163,20 +132,14 @@ export function FileUploader({
         </ul>
       )}
 
-      {/* Existing files */}
       {existingFiles.length > 0 && (
         <ul className="space-y-2">
           {existingFiles.map((file) => (
-            <li
-              key={file.id}
-              className="flex items-center justify-between rounded-md border p-2"
-            >
+            <li key={file.id} className="flex items-center justify-between rounded-md border p-2">
               <div className="flex items-center gap-2 min-w-0">
                 <FileIcon className="size-4 shrink-0 text-muted-foreground" />
                 <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">
-                    {file.originalFileName}
-                  </p>
+                  <p className="text-sm font-medium truncate">{file.originalFileName}</p>
                   <p className="text-xs text-muted-foreground">
                     {file.contentType} · {formatFileSize(file.fileSize)}
                   </p>
