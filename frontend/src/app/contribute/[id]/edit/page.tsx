@@ -113,13 +113,18 @@ function EditResourceContent({ id }: { id: string }) {
           Resource saved successfully.
         </div>
       )}
+      编辑页里的 resource 是异步加载的。
+      这里通过 key 强制 ResourceForm 在资源到达后重新挂载，
+      从而让表单 useState 的初始值直接吃到最新 resource。
+
       <ResourceForm
+        key={resource.id}
         resource={resource}
         onSubmit={handleSubmit}
         isSubmitting={updateMutation.isPending}
         submitLabel="Save Changes"
         error={error}
-        resourceId={id}
+        resourceId={resource.id}
         onFilesChange={handleFilesChange}
       />
     </main>

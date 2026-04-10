@@ -6,6 +6,7 @@ import com.heritage.platform.model.*;
 import com.heritage.platform.repository.ResourceRepository;
 import com.heritage.platform.repository.ReviewFeedbackRepository;
 import com.heritage.platform.repository.UserRepository;
+import com.heritage.platform.dto.ReviewHistoryResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,9 +22,9 @@ public class ReviewService {
     private final ResourceService resourceService;
 
     public ReviewService(ResourceRepository resourceRepository,
-                         ReviewFeedbackRepository reviewFeedbackRepository,
-                         UserRepository userRepository,
-                         ResourceService resourceService) {
+            ReviewFeedbackRepository reviewFeedbackRepository,
+            UserRepository userRepository,
+            ResourceService resourceService) {
         this.resourceRepository = resourceRepository;
         this.reviewFeedbackRepository = reviewFeedbackRepository;
         this.userRepository = userRepository;
@@ -37,12 +38,18 @@ public class ReviewService {
     public List<Resource> getReviewQueue() {
         List<Resource> resources = resourceRepository.findByStatusOrderByCreatedAtAsc(ResourceStatus.PENDING_REVIEW);
         resources.forEach(r -> {
-            if (r.getCategory() != null) r.getCategory().getName();
-            if (r.getTags() != null) r.getTags().size();
-            if (r.getFileReferences() != null) r.getFileReferences().size();
-            if (r.getExternalLinks() != null) r.getExternalLinks().size();
-            if (r.getReviewFeedbacks() != null) r.getReviewFeedbacks().size();
-            if (r.getContributor() != null) r.getContributor().getDisplayName();
+            if (r.getCategory() != null)
+                r.getCategory().getName();
+            if (r.getTags() != null)
+                r.getTags().size();
+            if (r.getFileReferences() != null)
+                r.getFileReferences().size();
+            if (r.getExternalLinks() != null)
+                r.getExternalLinks().size();
+            if (r.getReviewFeedbacks() != null)
+                r.getReviewFeedbacks().size();
+            if (r.getContributor() != null)
+                r.getContributor().getDisplayName();
         });
         return resources;
     }
@@ -108,8 +115,30 @@ public class ReviewService {
 
     @Transactional(readOnly = true)
     public List<ReviewFeedback> searchReviewHistory(UUID reviewerId, String decision) {
-        return reviewFeedbackRepository.searchReviewHistory(reviewerId, decision);
+        List<ReviewFeedback> records = reviewFeedbackRepository.searchReviewHistory(reviewerId, decision);
+
+        // 关键节点：
+        // 提前在事务内初始化 DTO 映射会用到的关联字段，
+        // 避免 controller/service 之外再访问时触发 lazy loading 问题。
+        records.forEach(rf -> {
+            if (rf.getResource() != null) {
+                rf.getResource().getId();
+                rf.getResource().getTitle();
+            }
+            if (rf.getReviewer() != null) {
+                rf.getReviewer().getDisplayName();
+            }
+        });
+
+        return records;
     }
 
+    @Transactional(readOnly = true)
+    public List<ReviewHistoryResponse> getReviewHistory(UUID reviewerId, String decision) {
+        List<ReviewFeedback> records = searchReviewHistory(reviewerId, decision);
 
+        return records.stream()
+                .map(ReviewHistoryResponse::fromEntity)
+                .toList();
+    }
 }

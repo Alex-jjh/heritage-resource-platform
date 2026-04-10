@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { FileUploader } from "@/components/file-uploader";
@@ -90,22 +90,6 @@ export function ResourceForm({
     queryKey: ["tags"],
     queryFn: () => apiClient.get<Tag[]>("/api/tags"),
   });
-
-  // Sync form when resource prop changes (e.g. after refetch)
-  useEffect(() => {
-    if (resource) {
-      setTitle(resource.title);
-      setCategoryId(resource.category?.id ?? "");
-      setPlace(resource.place ?? "");
-      setDescription(resource.description ?? "");
-      setCopyrightDeclaration(resource.copyrightDeclaration ?? "");
-      setSelectedTagIds(resource.tags?.map((t) => t.id) ?? []);
-      setExternalLinks(
-        resource.externalLinks?.map((l) => ({ url: l.url, label: l.label })) ??
-          []
-      );
-    }
-  }, [resource]);
 
   function toggleTag(tagId: string) {
     setSelectedTagIds((prev) =>
@@ -287,7 +271,7 @@ export function ResourceForm({
           <FileUploader
             resourceId={resourceId}
             existingFiles={existingFiles}
-            onFilesChange={onFilesChange ?? (() => {})}
+            onFilesChange={onFilesChange ?? (() => { })}
           />
         </div>
       )}

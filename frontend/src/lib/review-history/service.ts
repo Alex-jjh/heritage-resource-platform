@@ -1,13 +1,9 @@
 import { apiClient } from "@/lib/api-client";
-import { REVIEW_HISTORY_MOCK_DATA } from "@/lib/review-history/mock-data";
 import type {
     PagedResponse,
     ReviewHistoryQueryParams,
     ReviewHistoryRecord,
 } from "@/types/review-history";
-
-const USE_MOCK =
-    process.env.NEXT_PUBLIC_USE_REVIEW_HISTORY_MOCK === "true";
 
 function normalizeKeyword(value: string): string {
     return value.trim().toLowerCase();
@@ -36,43 +32,55 @@ function buildPagedResponse<T>(
     };
 }
 
-function getMockReviewHistory(
+function filterAndSortReviewHistory(
+    items: ReviewHistoryRecord[],
     params: ReviewHistoryQueryParams
-): PagedResponse<ReviewHistoryRecord> {
+): ReviewHistoryRecord[] {
     const {
         q = "",
-        reviewerEmployeeId = "",
+        reviewerId = "",
         decision = "ALL",
-        page = 0,
-        size = 10,
-        sort = "reviewedAt,desc",
+        sort = "createdAt,desc",
     } = params;
 
     const keyword = normalizeKeyword(q);
-    const employeeId = normalizeKeyword(reviewerEmployeeId);
+    const normalizedReviewerId = normalizeKeyword(reviewerId);
 
-    let filtered = [...REVIEW_HISTORY_MOCK_DATA];
+    let filtered = [...items];
 
+    /**
+     * 当前后端 history 接口还没有明确支持通用 keyword 搜索，
+     * 所以 q 先在前端 service 层做本地过滤，
+     * 这样 page.tsx 不需要同步大改。
+     */
     if (keyword) {
         filtered = filtered.filter((item) => {
+            const resourceTitle = item.resourceTitle?.toLowerCase?.() ?? "";
+            const comments = item.comments?.toLowerCase?.() ?? "";
+            const reviewerName = item.reviewerName?.toLowerCase?.() ?? "";
+            const reviewerIdValue = item.reviewerId?.toLowerCase?.() ?? "";
+            const decisionValue = item.decision?.toLowerCase?.() ?? "";
+            const createdAt = item.createdAt
+                ? new Date(item.createdAt).toLocaleDateString().toLowerCase()
+                : "";
+
             return (
-                item.resourceTitle.toLowerCase().includes(keyword) ||
-                item.comments.toLowerCase().includes(keyword) ||
-                item.reviewerName.toLowerCase().includes(keyword) ||
-                item.reviewerEmail.toLowerCase().includes(keyword) ||
-                item.reviewerEmployeeId.toLowerCase().includes(keyword) ||
-                item.decision.toLowerCase().includes(keyword) ||
-                new Date(item.reviewedAt)
-                    .toLocaleDateString()
-                    .toLowerCase()
-                    .includes(keyword)
+                resourceTitle.includes(keyword) ||
+                comments.includes(keyword) ||
+                reviewerName.includes(keyword) ||
+                reviewerIdValue.includes(keyword) ||
+                decisionValue.includes(keyword) ||
+                createdAt.includes(keyword)
             );
         });
     }
 
-    if (employeeId) {
+    /**
+     * 前后端统一改成 reviewerId(UUID) 过滤，不再使用 employee ID。
+     */
+    if (normalizedReviewerId) {
         filtered = filtered.filter((item) =>
-            item.reviewerEmployeeId.toLowerCase().includes(employeeId)
+            (item.reviewerId?.toLowerCase?.() ?? "").includes(normalizedReviewerId)
         );
     }
 
@@ -83,38 +91,47 @@ function getMockReviewHistory(
     const [sortField, sortDirection] = sort.split(",");
 
     filtered.sort((a, b) => {
-        if (sortField === "reviewedAt") {
-            const aTime = new Date(a.reviewedAt).getTime();
-            const bTime = new Date(b.reviewedAt).getTime();
+        if (sortField === "createdAt") {
+            const aTime = new Date(a.createdAt).getTime();
+            const bTime = new Date(b.createdAt).getTime();
             return sortDirection === "asc" ? aTime - bTime : bTime - aTime;
         }
         return 0;
     });
 
-    return buildPagedResponse(filtered, page, size);
+    return filtered;
 }
 
 export async function getReviewHistory(
     params: ReviewHistoryQueryParams
 ): Promise<PagedResponse<ReviewHistoryRecord>> {
-    if (USE_MOCK) {
-        return Promise.resolve(getMockReviewHistory(params));
-    }
+    const page = params.page ?? 0;
+    const size = params.size ?? 10;
 
     const searchParams = new URLSearchParams();
 
-    if (params.q?.trim()) searchParams.set("q", params.q.trim());
-    if (params.reviewerEmployeeId?.trim()) {
-        searchParams.set("reviewerEmployeeId", params.reviewerEmployeeId.trim());
+    /**
+     * 当前后端明确支持 reviewerId(UUID) 和 decision。
+     */
+    if (params.reviewerId?.trim()) {
+        searchParams.set("reviewerId", params.reviewerId.trim());
     }
+
     if (params.decision && params.decision !== "ALL") {
         searchParams.set("decision", params.decision);
     }
-    searchParams.set("page", String(params.page ?? 0));
-    searchParams.set("size", String(params.size ?? 10));
-    searchParams.set("sort", params.sort ?? "reviewedAt,desc");
 
-    return apiClient.get<PagedResponse<ReviewHistoryRecord>>(
-        `/api/reviews/history?${searchParams.toString()}`
-    );
+    const path = searchParams.toString()
+        ? `/api/reviews/history?${searchParams.toString()}`
+        : "/api/reviews/history";
+
+    /**
+     * 后端当前返回的是 List<ReviewHistoryResponse>，
+     * 不是分页结构，所以这里先拿数组，再包装成前端仍在使用的 PagedResponse。
+     */
+    const records = await apiClient.get<ReviewHistoryRecord[]>(path);
+
+    const filtered = filterAndSortReviewHistory(records, params);
+
+    return buildPagedResponse(filtered, page, size);
 }

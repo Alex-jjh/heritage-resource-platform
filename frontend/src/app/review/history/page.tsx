@@ -15,7 +15,7 @@ import type {
     ReviewHistoryRecord,
 } from "@/types/review-history";
 
-function formatReviewedAt(dateString: string) {
+function formatCreatedAt(dateString: string) {
     return new Date(dateString).toLocaleString(undefined, {
         year: "numeric",
         month: "short",
@@ -27,20 +27,20 @@ function formatReviewedAt(dateString: string) {
 
 function ReviewHistoryContent() {
     const [keyword, setKeyword] = useState("");
-    const [reviewerEmployeeId, setReviewerEmployeeId] = useState("");
+    const [reviewerId, setReviewerId] = useState("");
     const [decision, setDecision] = useState<"ALL" | ReviewDecision>("ALL");
     const [page, setPage] = useState(0);
 
     const queryParams: ReviewHistoryQueryParams = useMemo(
         () => ({
             q: keyword,
-            reviewerEmployeeId,
+            reviewerId,
             decision,
             page,
             size: 10,
-            sort: "reviewedAt,desc",
+            sort: "createdAt,desc",
         }),
-        [keyword, reviewerEmployeeId, decision, page]
+        [keyword, reviewerId, decision, page]
     );
 
     const historyQuery = useQuery({
@@ -63,7 +63,7 @@ function ReviewHistoryContent() {
                         </p>
                         <h1 className="font-serif text-3xl font-bold">Review History</h1>
                         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                            View past review decisions and filter records by reviewer employee ID,
+                            View past review decisions and filter records by reviewer ID,
                             keyword, or decision type.
                         </p>
                     </div>
@@ -90,16 +90,16 @@ function ReviewHistoryContent() {
                     </div>
 
                     <div className="space-y-1">
-                        <label htmlFor="review-history-employee" className="text-sm font-medium">
-                            Reviewer Employee ID
+                        <label htmlFor="review-history-reviewer-id" className="text-sm font-medium">
+                            Reviewer ID
                         </label>
                         <Input
-                            id="review-history-employee"
-                            placeholder="e.g. EMP-R-1001"
-                            value={reviewerEmployeeId}
+                            id="review-history-reviewer-id"
+                            placeholder="e.g. reviewer UUID"
+                            value={reviewerId}
                             onChange={(e) => {
                                 setPage(0);
-                                setReviewerEmployeeId(e.target.value);
+                                setReviewerId(e.target.value);
                             }}
                         />
                     </div>
@@ -146,9 +146,9 @@ function ReviewHistoryContent() {
                     </div>
                 ) : records.length === 0 ? (
                     <div className="rounded-lg border bg-card px-6 py-16 text-center">
-                        <p className="text-lg font-medium">No matching review history records.</p>
+                        <p className="text-lg font-medium">No review history yet.</p>
                         <p className="mt-2 text-sm text-muted-foreground">
-                            Try adjusting the keyword, employee ID, or decision filters.
+                            Review decisions will appear here once resources have been approved or rejected.
                         </p>
                     </div>
                 ) : (
@@ -183,9 +183,7 @@ function ReviewHistoryContent() {
                     <Button
                         variant="outline"
                         onClick={() =>
-                            setPage((current) =>
-                                historyQuery.data?.last ? current : current + 1
-                            )
+                            setPage((current) => (historyQuery.data?.last ? current : current + 1))
                         }
                         disabled={(historyQuery.data?.last ?? true) || historyQuery.isLoading}
                     >
@@ -207,9 +205,8 @@ function ReviewHistoryRow({ record }: { record: ReviewHistoryRecord }) {
 
             <td className="px-4 py-3">
                 <div>{record.reviewerName}</div>
-                <div className="mt-1 text-xs text-muted-foreground">{record.reviewerEmail}</div>
                 <div className="mt-1 text-xs text-muted-foreground">
-                    Employee ID: {record.reviewerEmployeeId}
+                    Reviewer ID: {record.reviewerId}
                 </div>
             </td>
 
@@ -226,7 +223,7 @@ function ReviewHistoryRow({ record }: { record: ReviewHistoryRecord }) {
             </td>
 
             <td className="px-4 py-3 text-muted-foreground">
-                <time dateTime={record.reviewedAt}>{formatReviewedAt(record.reviewedAt)}</time>
+                <time dateTime={record.createdAt}>{formatCreatedAt(record.createdAt)}</time>
             </td>
         </tr>
     );
