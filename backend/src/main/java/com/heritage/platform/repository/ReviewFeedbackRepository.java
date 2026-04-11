@@ -9,23 +9,24 @@ import java.util.UUID;
 
 @Repository
 public interface ReviewFeedbackRepository extends JpaRepository<ReviewFeedback, UUID> {
-    
-    
+
     List<ReviewFeedback> findByResourceIdOrderByCreatedAtDesc(UUID resourceId);
 
-    
     /**
-     * Dynamic Query:·
-     * If reviewerId is null, check everyone; if there is a value, check this person.
-     * If decision is null, check all statuses; if there is a value, check the specific status
+     * Dynamic Query:
+     * If reviewerEmail is null, return everyone's review history.
+     * If reviewerEmail has a value, return only that reviewer's records.
+     * If decision is null, return all decisions.
+     * If decision has a value, return only the matching decision type.
      */
-
-    @org.springframework.data.jpa.repository.Query("SELECT r FROM ReviewFeedback r WHERE " +
-           "(:reviewerId IS NULL OR r.reviewer.id = :reviewerId) AND " +
-           "(:decision IS NULL OR r.decision = :decision) " +
-           "ORDER BY r.createdAt DESC")
+    @org.springframework.data.jpa.repository.Query(
+            "SELECT r FROM ReviewFeedback r WHERE " +
+            "(:reviewerEmail IS NULL OR r.reviewer.email = :reviewerEmail) AND " +
+            "(:decision IS NULL OR r.decision = :decision) " +
+            "ORDER BY r.createdAt DESC"
+    )
     java.util.List<ReviewFeedback> searchReviewHistory(
-            @org.springframework.data.repository.query.Param("reviewerId") java.util.UUID reviewerId, 
+            @org.springframework.data.repository.query.Param("reviewerEmail") String reviewerEmail,
             @org.springframework.data.repository.query.Param("decision") String decision
     );
 }

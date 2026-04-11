@@ -48,11 +48,6 @@ function ReviewDetailContent({ id }: { id: string }) {
     queryFn: () => apiClient.get<ResourceResponse>(`/api/resources/${id}`),
   });
 
-  /**
-   * 关键改动：
-   * 不再维护前端静态 feedback options
-   * 直接从后端拿 key / label / content 的结构化数据
-   */
   const predefinedFeedbackQuery = useQuery({
     queryKey: ["predefined-feedback"],
     queryFn: () =>
@@ -386,7 +381,6 @@ function ReviewDetailContent({ id }: { id: string }) {
                           Quick reply tags
                         </p>
 
-                        {/* 关键节点：按钮列表改为动态读取后端接口，而不是前端写死 */}
                         {predefinedFeedbackQuery.isLoading && (
                           <p className="text-xs text-muted-foreground">
                             Loading preset feedback...

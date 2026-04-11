@@ -8,8 +8,8 @@ public class ReviewHistoryResponse {
     private UUID id;
     private UUID resourceId;
     private String resourceTitle;
-    private UUID reviewerId; // 关键新增：前后端统一使用 reviewer UUID
     private String reviewerName;
+    private String reviewerEmail; // 改为 reviewer email
     private String comments;
     private String decision;
     private Instant createdAt;
@@ -24,8 +24,8 @@ public class ReviewHistoryResponse {
         }
 
         if (rf.getReviewer() != null) {
-            dto.reviewerId = rf.getReviewer().getId();
             dto.reviewerName = rf.getReviewer().getDisplayName();
+            dto.reviewerEmail = rf.getReviewer().getEmail();
         }
 
         dto.comments = rf.getComments();
@@ -59,20 +59,20 @@ public class ReviewHistoryResponse {
         this.resourceTitle = resourceTitle;
     }
 
-    public UUID getReviewerId() {
-        return reviewerId;
-    }
-
-    public void setReviewerId(UUID reviewerId) {
-        this.reviewerId = reviewerId;
-    }
-
     public String getReviewerName() {
         return reviewerName;
     }
 
     public void setReviewerName(String reviewerName) {
         this.reviewerName = reviewerName;
+    }
+
+    public String getReviewerEmail() {
+        return reviewerEmail;
+    }
+
+    public void setReviewerEmail(String reviewerEmail) {
+        this.reviewerEmail = reviewerEmail;
     }
 
     public String getComments() {

@@ -16,37 +16,98 @@ import type {
 } from "@/types/review-history";
 
 function formatCreatedAt(dateString: string) {
-    return new Date(dateString).toLocaleString(undefined, {
+    return new Date(dateString).toLocaleString("en-GB", {
         year: "numeric",
         month: "short",
-        day: "numeric",
+        day: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
+        hour12: false,
     });
 }
 
+function getAuthInfoFromToken() {
+    if (typeof window === "undefined") {
+        return {
+            reviewerEmail: "",
+            isAdmin: false,
+        };
+    }
+
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+        return {
+            reviewerEmail: "",
+            isAdmin: false,
+        };
+    }
+
+    try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+
+        const reviewerEmail =
+            (typeof payload.email === "string" && payload.email) ||
+            (typeof payload.sub === "string" && payload.sub.includes("@") ? payload.sub : "") ||
+            "";
+
+        const roles: string[] = Array.isArray(payload.roles)
+            ? payload.roles
+            : Array.isArray(payload.authorities)
+                ? payload.authorities
+                : typeof payload.role === "string"
+                    ? [payload.role]
+                    : [];
+
+        const isAdmin = roles.some(
+            (role) =>
+                role === "ADMINISTRATOR" ||
+                role === "ROLE_ADMINISTRATOR" ||
+                role === "ADMIN"
+        );
+
+        return {
+            reviewerEmail,
+            isAdmin,
+        };
+    } catch {
+        return {
+            reviewerEmail: "",
+            isAdmin: false,
+        };
+    }
+}
+
 function ReviewHistoryContent() {
+    const authInfo = getAuthInfoFromToken();
+
     const [keyword, setKeyword] = useState("");
-    const [reviewerId, setReviewerId] = useState("");
+    const [scope, setScope] = useState<"ALL" | "MINE">(
+        authInfo.isAdmin ? "ALL" : "MINE"
+    );
     const [decision, setDecision] = useState<"ALL" | ReviewDecision>("ALL");
     const [page, setPage] = useState(0);
+
+    const effectiveScope = authInfo.isAdmin ? scope : "MINE";
 
     const queryParams: ReviewHistoryQueryParams = useMemo(
         () => ({
             q: keyword,
-            reviewerId,
+            reviewerEmail:
+                effectiveScope === "MINE" ? authInfo.reviewerEmail || undefined : undefined,
             decision,
             page,
             size: 10,
             sort: "createdAt,desc",
         }),
-        [keyword, reviewerId, decision, page]
+        [keyword, effectiveScope, authInfo.reviewerEmail, decision, page]
     );
 
     const historyQuery = useQuery({
         queryKey: ["review-history", queryParams],
         queryFn: () => getReviewHistory(queryParams),
         placeholderData: (previousData) => previousData,
+
+        enabled: effectiveScope === "ALL" || Boolean(authInfo.reviewerEmail),
     });
 
     const records = historyQuery.data?.content ?? [];
@@ -63,8 +124,9 @@ function ReviewHistoryContent() {
                         </p>
                         <h1 className="font-serif text-3xl font-bold">Review History</h1>
                         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                            View past review decisions and filter records by reviewer ID,
-                            keyword, or decision type.
+                            {authInfo.isAdmin
+                                ? "View past review decisions and switch between all team reviews and your own review records."
+                                : "View your own past review decisions."}
                         </p>
                     </div>
 
@@ -73,33 +135,45 @@ function ReviewHistoryContent() {
                     </Link>
                 </div>
 
-                <div className="mb-6 grid gap-3 rounded-lg border bg-card p-4 md:grid-cols-3">
+                {authInfo.isAdmin && (
+                    <div className="mb-4 flex items-center gap-2">
+                        <Button
+                            variant={scope === "ALL" ? "default" : "outline"}
+                            onClick={() => {
+                                setPage(0);
+                                setScope("ALL");
+                            }}
+                        >
+                            All Reviews
+                        </Button>
+                        <Button
+                            variant={scope === "MINE" ? "default" : "outline"}
+                            onClick={() => {
+                                setPage(0);
+                                setScope("MINE");
+                            }}
+                        >
+                            My Reviews
+                        </Button>
+                    </div>
+                )}
+
+                <div className="mb-6 grid gap-3 rounded-lg border bg-card p-4 md:grid-cols-2">
                     <div className="space-y-1">
                         <label htmlFor="review-history-keyword" className="text-sm font-medium">
                             Keyword
                         </label>
                         <Input
                             id="review-history-keyword"
-                            placeholder="Search decision, date, comments..."
+                            placeholder={
+                                authInfo.isAdmin
+                                    ? "Search reviewer email, decision, date, comments..."
+                                    : "Search decision, date, comments..."
+                            }
                             value={keyword}
                             onChange={(e) => {
                                 setPage(0);
                                 setKeyword(e.target.value);
-                            }}
-                        />
-                    </div>
-
-                    <div className="space-y-1">
-                        <label htmlFor="review-history-reviewer-id" className="text-sm font-medium">
-                            Reviewer ID
-                        </label>
-                        <Input
-                            id="review-history-reviewer-id"
-                            placeholder="e.g. reviewer UUID"
-                            value={reviewerId}
-                            onChange={(e) => {
-                                setPage(0);
-                                setReviewerId(e.target.value);
                             }}
                         />
                     </div>
@@ -144,11 +218,24 @@ function ReviewHistoryContent() {
                     <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-6 py-10 text-center text-destructive">
                         Failed to load review history. Please try again later.
                     </div>
+                ) : effectiveScope === "MINE" && !authInfo.reviewerEmail ? (
+                    <div className="rounded-lg border bg-card px-6 py-16 text-center">
+                        <p className="text-lg font-medium">Unable to load your reviewer email.</p>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                            Please sign in again and retry.
+                        </p>
+                    </div>
                 ) : records.length === 0 ? (
                     <div className="rounded-lg border bg-card px-6 py-16 text-center">
-                        <p className="text-lg font-medium">No review history yet.</p>
+                        <p className="text-lg font-medium">
+                            {effectiveScope === "MINE"
+                                ? "You haven’t reviewed any resources yet."
+                                : "No review history yet."}
+                        </p>
                         <p className="mt-2 text-sm text-muted-foreground">
-                            Review decisions will appear here once resources have been approved or rejected.
+                            {effectiveScope === "MINE"
+                                ? "Once you approve or reject resources, your review records will appear here."
+                                : "Review decisions will appear here once resources have been approved or rejected."}
                         </p>
                     </div>
                 ) : (
@@ -200,13 +287,12 @@ function ReviewHistoryRow({ record }: { record: ReviewHistoryRecord }) {
         <tr className="border-b align-top last:border-0 hover:bg-muted/20">
             <td className="px-4 py-3">
                 <div className="font-medium">{record.resourceTitle}</div>
-                <div className="mt-1 text-xs text-muted-foreground">{record.resourceId}</div>
             </td>
 
             <td className="px-4 py-3">
                 <div>{record.reviewerName}</div>
                 <div className="mt-1 text-xs text-muted-foreground">
-                    Reviewer ID: {record.reviewerId}
+                    {record.reviewerEmail}
                 </div>
             </td>
 

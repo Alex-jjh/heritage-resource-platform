@@ -4,8 +4,8 @@ export interface ReviewHistoryRecord {
     id: string;
     resourceId: string;
     resourceTitle: string;
-    reviewerId: string;
     reviewerName: string;
+    reviewerEmail: string;
     decision: ReviewDecision;
     comments: string;
     createdAt: string; // ISO string from backend
@@ -13,7 +13,7 @@ export interface ReviewHistoryRecord {
 
 export interface ReviewHistoryQueryParams {
     q?: string;
-    reviewerId?: string;
+    reviewerEmail?: string;
     decision?: "ALL" | ReviewDecision;
     page?: number;
     size?: number;
