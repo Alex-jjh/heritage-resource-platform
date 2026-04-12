@@ -29,19 +29,31 @@ public class CommentController {
     public ResponseEntity<CommentResponse> addComment(
             @PathVariable UUID resourceId,
             Principal principal,
-            @Valid @RequestBody CreateCommentRequest request) {
-        Comment comment = commentService.addComment(resourceId, principal.getName(), request.getBody());
-        return ResponseEntity.status(HttpStatus.CREATED).body(CommentResponse.fromEntity(comment));
+            @Valid @RequestBody CreateCommentRequest request
+    ) {
+        Comment comment = commentService.addComment(
+                resourceId,
+                principal.getName(),
+                request.getBody(),
+                request.isAnonymous()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(CommentResponse.fromEntity(comment));
     }
 
     @GetMapping("/{resourceId}")
     public ResponseEntity<Page<CommentResponse>> getComments(
             @PathVariable UUID resourceId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size
+    ) {
         Pageable pageable = PageRequest.of(page, size);
+
         Page<CommentResponse> comments = commentService.getComments(resourceId, pageable)
                 .map(CommentResponse::fromEntity);
+
         return ResponseEntity.ok(comments);
     }
 }

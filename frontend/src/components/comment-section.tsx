@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, ApiError } from "@/lib/api-client";
@@ -11,9 +12,61 @@ interface CommentSectionProps {
   resourceId: string;
 }
 
+function getInitials(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function CommentAvatar({
+  authorName,
+  avatarUrl,
+  anonymous,
+}: {
+  authorName: string;
+  avatarUrl?: string | null;
+  anonymous: boolean;
+}) {
+  const displayName = anonymous ? "Anonymous" : authorName;
+  const initials = anonymous ? "A" : getInitials(displayName) || "?";
+
+  if (avatarUrl && !anonymous) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={displayName}
+        className="h-10 w-10 shrink-0 rounded-full border object-cover"
+      />
+    );
+  }
+
+  return (
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-muted text-sm font-semibold text-foreground">
+      {initials}
+    </div>
+  );
+}
+
+function formatCommentDate(dateString: string) {
+  return new Date(dateString).toLocaleString("en-GB", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 export function CommentSection({ resourceId }: CommentSectionProps) {
   const queryClient = useQueryClient();
+
   const [body, setBody] = useState("");
+  const [anonymous, setAnonymous] = useState(false);
   const [page, setPage] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,12 +79,11 @@ export function CommentSection({ resourceId }: CommentSectionProps) {
   });
 
   const addComment = useMutation({
-    mutationFn: (commentBody: string) =>
-      apiClient.post<CommentResponse>(`/api/comments/${resourceId}`, {
-        body: commentBody,
-      }),
+    mutationFn: (payload: { body: string; anonymous: boolean }) =>
+      apiClient.post<CommentResponse>(`/api/comments/${resourceId}`, payload),
     onSuccess: () => {
       setBody("");
+      setAnonymous(false);
       setError(null);
       setPage(0);
       queryClient.invalidateQueries({ queryKey: ["comments", resourceId] });
@@ -47,21 +99,31 @@ export function CommentSection({ resourceId }: CommentSectionProps) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
     if (!body.trim()) {
       setError("Comment cannot be empty.");
       return;
     }
-    addComment.mutate(body.trim());
+
+    addComment.mutate({
+      body: body.trim(),
+      anonymous,
+    });
   }
 
   const data = commentsQuery.data;
 
   return (
     <section aria-labelledby="comments-heading" className="space-y-6">
-      <h2 id="comments-heading" className="text-xl font-semibold">Comments</h2>
+      <h2 id="comments-heading" className="text-xl font-semibold">
+        Comments
+      </h2>
 
       <form onSubmit={handleSubmit} className="space-y-3">
-        <label htmlFor="comment-input" className="sr-only">Add a comment</label>
+        <label htmlFor="comment-input" className="sr-only">
+          Add a comment
+        </label>
+
         <Textarea
           id="comment-input"
           placeholder="Share your thoughts…"
@@ -69,9 +131,23 @@ export function CommentSection({ resourceId }: CommentSectionProps) {
           onChange={(e) => setBody(e.target.value)}
           rows={3}
         />
+
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={anonymous}
+            onChange={(e) => setAnonymous(e.target.checked)}
+            className="h-4 w-4"
+          />
+          Post anonymously
+        </label>
+
         {error && (
-          <p role="alert" className="text-sm text-destructive">{error}</p>
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
         )}
+
         <Button type="submit" disabled={addComment.isPending}>
           {addComment.isPending ? "Posting…" : "Post Comment"}
         </Button>
@@ -79,30 +155,88 @@ export function CommentSection({ resourceId }: CommentSectionProps) {
 
       {commentsQuery.isLoading ? (
         <p className="text-sm text-muted-foreground">Loading comments…</p>
+      ) : commentsQuery.isError ? (
+        <p role="alert" className="text-sm text-destructive">
+          Failed to load comments.
+        </p>
       ) : data && data.content.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No comments yet. Be the first to share your thoughts.</p>
+        <p className="text-sm text-muted-foreground">
+          No comments yet. Be the first to share your thoughts.
+        </p>
       ) : data ? (
         <>
           <ul className="space-y-4">
-            {data.content.map((comment) => (
-              <li key={comment.id} className="rounded-md border p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{comment.authorName}</span>
-                  <time className="text-xs text-muted-foreground" dateTime={comment.createdAt}>
-                    {new Date(comment.createdAt).toLocaleDateString(undefined, {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </time>
-                </div>
-                <p className="mt-2 text-sm whitespace-pre-wrap">{comment.body}</p>
-              </li>
-            ))}
+            {data.content.map((comment) => {
+              const canOpenProfile =
+                !comment.anonymous &&
+                comment.profileClickable &&
+                Boolean(comment.authorId);
+
+              const avatar = (
+                <CommentAvatar
+                  authorName={comment.authorName}
+                  avatarUrl={comment.avatarUrl}
+                  anonymous={comment.anonymous}
+                />
+              );
+
+              const authorLabel = (
+                <span className="text-sm font-medium">
+                  {comment.authorName}
+                </span>
+              );
+
+              return (
+                <li key={comment.id} className="rounded-md border p-4">
+                  <div className="flex items-start gap-3">
+                    {canOpenProfile ? (
+                      <Link
+                        href={`/users/${comment.authorId}`}
+                        className="shrink-0 rounded-full transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                        aria-label={`Open ${comment.authorName}'s profile`}
+                      >
+                        {avatar}
+                      </Link>
+                    ) : (
+                      avatar
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        {canOpenProfile ? (
+                          <Link
+                            href={`/users/${comment.authorId}`}
+                            className="text-sm font-medium hover:underline"
+                          >
+                            {comment.authorName}
+                          </Link>
+                        ) : (
+                          authorLabel
+                        )}
+
+                        <time
+                          className="text-xs text-muted-foreground"
+                          dateTime={comment.createdAt}
+                        >
+                          {formatCommentDate(comment.createdAt)}
+                        </time>
+                      </div>
+
+                      <p className="mt-2 whitespace-pre-wrap text-sm">
+                        {comment.body}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
 
           {data.totalPages > 1 && (
-            <nav aria-label="Comments pagination" className="flex items-center justify-center gap-2">
+            <nav
+              aria-label="Comments pagination"
+              className="flex items-center justify-center gap-2"
+            >
               <Button
                 variant="outline"
                 size="sm"
@@ -111,9 +245,11 @@ export function CommentSection({ resourceId }: CommentSectionProps) {
               >
                 Previous
               </Button>
+
               <span className="text-sm text-muted-foreground">
-                Page {data.number + 1} of {data.totalPages}
+                Page {data.number + 1} of {Math.max(data.totalPages, 1)}
               </span>
+
               <Button
                 variant="outline"
                 size="sm"

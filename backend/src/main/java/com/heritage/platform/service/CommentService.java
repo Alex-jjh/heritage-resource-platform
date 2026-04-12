@@ -23,19 +23,28 @@ public class CommentService {
     private final UserRepository userRepository;
 
     public CommentService(CommentRepository commentRepository,
-                          ResourceRepository resourceRepository,
-                          UserRepository userRepository) {
+            ResourceRepository resourceRepository,
+            UserRepository userRepository) {
         this.commentRepository = commentRepository;
         this.resourceRepository = resourceRepository;
         this.userRepository = userRepository;
     }
 
     /**
-     * Adds a comment to an approved resource.
-     * Rejects comments on non-approved resources and empty comment bodies.
+     * Backward-compatible overload. If the caller has not been updated yet,
+     * comments default to non-anonymous.
      */
     @Transactional
     public Comment addComment(UUID resourceId, String email, String body) {
+        return addComment(resourceId, email, body, false);
+    }
+
+    /**
+     * Adds a comment to an approved resource. Rejects comments on non-approved
+     * resources and empty comment bodies.
+     */
+    @Transactional
+    public Comment addComment(UUID resourceId, String email, String body, boolean anonymous) {
         if (body == null || body.isBlank()) {
             throw new IllegalArgumentException("Comment body must not be empty");
         }
@@ -53,24 +62,33 @@ public class CommentService {
         Comment comment = new Comment();
         comment.setResource(resource);
         comment.setAuthor(author);
-        comment.setBody(body);
+        comment.setBody(body.trim());
+        comment.setAnonymous(anonymous);
 
         return commentRepository.save(comment);
     }
 
     /**
-     * Returns paginated comments for a resource ordered by creation date descending.
+     * Returns paginated comments for a resource ordered by creation date
+     * descending.
      */
     @Transactional(readOnly = true)
     public Page<Comment> getComments(UUID resourceId, Pageable pageable) {
         if (!resourceRepository.existsById(resourceId)) {
             throw new ResourceNotFoundException("Resource not found");
         }
-        Page<Comment> comments = commentRepository.findByResourceIdOrderByCreatedAtDesc(resourceId, pageable);
-        // Force-initialize lazy author association
+
+        Page<Comment> comments
+                = commentRepository.findByResourceIdOrderByCreatedAtDesc(resourceId, pageable);
+
+        // Force-initialize lazy author association for DTO mapping
         comments.getContent().forEach(c -> {
-            if (c.getAuthor() != null) c.getAuthor().getDisplayName();
+            if (c.getAuthor() != null) {
+                c.getAuthor().getDisplayName();
+                c.getAuthor().getAvatarUrl();
+            }
         });
+
         return comments;
     }
 }
