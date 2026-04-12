@@ -89,9 +89,13 @@ class ResourceServiceTest {
         resource.setContributor(contributor);
         resource.setTitle("Heritage Site");
         resource.setCategory(category);
+        resource.setDescription("A historic site");
         resource.setCopyrightDeclaration("CC BY 4.0");
         resource.setStatus(ResourceStatus.DRAFT);
-        resource.setTags(new HashSet<>());
+        Tag tag = new Tag();
+        tag.setId(UUID.randomUUID());
+        tag.setName("Heritage");
+        resource.setTags(new HashSet<>(Set.of(tag)));
         resource.setFileReferences(new ArrayList<>());
         resource.setExternalLinks(new ArrayList<>());
         return resource;
@@ -283,6 +287,34 @@ class ResourceServiceTest {
                 resourceService.submitForReview(resource.getId(), "contributor@example.com"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("copyrightDeclaration");
+    }
+
+    @Test
+    void submitForReview_withMissingDescription_throwsIllegalState() {
+        Resource resource = createDraftResource();
+        resource.setDescription(null);
+
+        when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
+
+        assertThatThrownBy(() ->
+                resourceService.submitForReview(resource.getId(), "contributor@example.com"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("description");
+    }
+
+    @Test
+    void submitForReview_withMissingTags_throwsIllegalState() {
+        Resource resource = createDraftResource();
+        resource.setTags(new HashSet<>());
+
+        when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
+
+        assertThatThrownBy(() ->
+                resourceService.submitForReview(resource.getId(), "contributor@example.com"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("tags");
     }
 
     // --- Get resource by ID tests ---

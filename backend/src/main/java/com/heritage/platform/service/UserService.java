@@ -5,6 +5,7 @@ import com.heritage.platform.exception.ResourceNotFoundException;
 import com.heritage.platform.model.User;
 import com.heritage.platform.model.UserRole;
 import com.heritage.platform.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,9 +16,11 @@ import java.util.UUID;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
@@ -52,6 +55,9 @@ public class UserService {
     public User updateProfile(String email, UpdateProfileRequest request) {
         User user = getUserByEmail(email);
         user.setDisplayName(request.getDisplayName());
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        }
         return userRepository.save(user);
     }
 

@@ -25,19 +25,48 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const PASSWORD_MIN_LENGTH = 8;
+  const PASSWORD_MAX_LENGTH = 100;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setIsSubmitting(true);
+    setFieldErrors({});
 
+    const errors: Record<string, string> = {};
+    if (!displayName.trim()) {
+      errors.displayName = "Display name is required.";
+    }
+    if (!email.trim()) {
+      errors.email = "Email is required.";
+    }
+    if (!password) {
+      errors.password = "Password is required.";
+    } else if (password.length < PASSWORD_MIN_LENGTH) {
+      errors.password = `Password must be at least ${PASSWORD_MIN_LENGTH} characters`;
+    } else if (password.length > PASSWORD_MAX_LENGTH) {
+      errors.password = `Password must be at most ${PASSWORD_MAX_LENGTH} characters`;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setError("Please fix the highlighted fields.");
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       await register(email, password, displayName);
       router.push("/login?registered=true");
     } catch (err) {
       if (err instanceof ApiError) {
-        const body = err.body as { message?: string } | undefined;
+        const body = err.body as { message?: string; fieldErrors?: Record<string, string> } | undefined;
+        if (body?.fieldErrors) {
+          setFieldErrors(body.fieldErrors);
+        }
         setError(body?.message || err.message || "Registration failed.");
       } else {
         setError("An unexpected error occurred. Please try again.");
@@ -76,7 +105,13 @@ export default function RegisterPage() {
                 onChange={(e) => setDisplayName(e.target.value)}
                 required
                 autoComplete="name"
+                aria-invalid={Boolean(fieldErrors.displayName)}
               />
+              {fieldErrors.displayName && (
+                <p role="alert" className="text-sm text-destructive">
+                  {fieldErrors.displayName}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -88,7 +123,13 @@ export default function RegisterPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
+                aria-invalid={Boolean(fieldErrors.email)}
               />
+              {fieldErrors.email && (
+                <p role="alert" className="text-sm text-destructive">
+                  {fieldErrors.email}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
@@ -98,9 +139,19 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={8}
+                minLength={PASSWORD_MIN_LENGTH}
+                maxLength={PASSWORD_MAX_LENGTH}
                 autoComplete="new-password"
+                aria-invalid={Boolean(fieldErrors.password)}
               />
+              <p className="text-sm text-muted-foreground">
+                Password must be between {PASSWORD_MIN_LENGTH} and {PASSWORD_MAX_LENGTH} characters.
+              </p>
+              {fieldErrors.password && (
+                <p role="alert" className="text-sm text-destructive">
+                  {fieldErrors.password}
+                </p>
+              )}
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-3">

@@ -30,6 +30,7 @@ export interface RegisterRequest {
 
 export interface UpdateProfileRequest {
   displayName: string;
+  password?: string;
 }
 
 // Resource types

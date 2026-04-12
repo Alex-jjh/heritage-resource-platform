@@ -28,11 +28,16 @@ function ProfileContent() {
   const { user, refreshUser } = useAuth();
 
   const [displayName, setDisplayName] = useState("");
+  const [password, setPassword] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState<string | null>(null);
+
+  const PASSWORD_MIN_LENGTH = 8;
+  const PASSWORD_MAX_LENGTH = 100;
 
   useEffect(() => {
     if (user) {
@@ -43,23 +48,47 @@ function ProfileContent() {
   if (!user) return null;
 
   async function handleSave() {
-    setError(null);
-    setSuccess(null);
+    const errors: Record<string, string> = {};
 
     if (!displayName.trim()) {
-      setError("Display name is required.");
+      errors.displayName = "Display name is required.";
+    }
+    if (password) {
+      if (password.length < PASSWORD_MIN_LENGTH) {
+        errors.password = `Password must be at least ${PASSWORD_MIN_LENGTH} characters`;
+      } else if (password.length > PASSWORD_MAX_LENGTH) {
+        errors.password = `Password must be at most ${PASSWORD_MAX_LENGTH} characters`;
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setError("Please fix the highlighted fields.");
       return;
     }
 
+    setError(null);
+    setSuccess(null);
+    setFieldErrors({});
     setIsSaving(true);
+
     try {
-      await apiClient.put<User>("/api/users/me", { displayName: displayName.trim() });
-      setSuccess("Profile updated successfully.");
+      const payload = {
+        displayName: displayName.trim(),
+        ...(password ? { password } : {}),
+      };
+
+      await apiClient.put<User>("/api/users/me", payload);
+      setSuccess("Update Successful");
       setIsEditing(false);
-      refreshUser();
+      setPassword("");
+      await refreshUser();
     } catch (err) {
       if (err instanceof ApiError) {
-        const body = err.body as { message?: string } | undefined;
+        const body = err.body as { message?: string; fieldErrors?: Record<string, string> } | undefined;
+        if (body?.fieldErrors) {
+          setFieldErrors(body.fieldErrors);
+        }
         setError(body?.message || err.message || "Failed to update profile.");
       } else {
         setError("An unexpected error occurred.");
@@ -71,8 +100,10 @@ function ProfileContent() {
 
   function handleCancel() {
     setDisplayName(user!.displayName);
+    setPassword("");
     setIsEditing(false);
     setError(null);
+    setFieldErrors({});
     setSuccess(null);
   }
 
@@ -117,18 +148,49 @@ function ProfileContent() {
           <div className="space-y-2">
             <Label htmlFor="displayName">Display Name</Label>
             {isEditing ? (
-              <Input
-                id="displayName"
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                maxLength={100}
-                autoFocus
-              />
+              <>
+                <Input
+                  id="displayName"
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  maxLength={100}
+                  autoFocus
+                  aria-invalid={Boolean(fieldErrors.displayName)}
+                />
+                {fieldErrors.displayName && (
+                  <p role="alert" className="text-sm text-destructive">
+                    {fieldErrors.displayName}
+                  </p>
+                )}
+              </>
             ) : (
               <p id="displayName" className="text-sm">{user.displayName}</p>
             )}
           </div>
+          {isEditing && (
+            <div className="space-y-2">
+              <Label htmlFor="password">New Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                aria-invalid={Boolean(fieldErrors.password)}
+                autoComplete="new-password"
+                placeholder="Leave blank to keep current password"
+                maxLength={PASSWORD_MAX_LENGTH}
+              />
+              <p className="text-sm text-muted-foreground">
+                Password must be between {PASSWORD_MIN_LENGTH} and {PASSWORD_MAX_LENGTH} characters.
+              </p>
+              {fieldErrors.password && (
+                <p role="alert" className="text-sm text-destructive">
+                  {fieldErrors.password}
+                </p>
+              )}
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Email</Label>
             <p className="text-sm text-muted-foreground">{user.email}</p>
@@ -172,7 +234,14 @@ function ProfileContent() {
               </Button>
             </>
           ) : (
-            <Button onClick={() => { setSuccess(null); setIsEditing(true); }}>
+            <Button
+              onClick={() => {
+                setSuccess(null);
+                setError(null);
+                setFieldErrors({});
+                setIsEditing(true);
+              }}
+            >
               Edit Profile
             </Button>
           )}

@@ -22,6 +22,7 @@ import type { ResourceResponse, ResourceStatus } from "@/types";
 function ContributeDashboardContent() {
   const queryClient = useQueryClient();
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const resourcesQuery = useQuery({
     queryKey: ["my-resources"],
@@ -35,7 +36,16 @@ function ContributeDashboardContent() {
     onSuccess: () => {
       queryClient.refetchQueries({ queryKey: ["my-resources"] });
       setSuccessMsg("Resource submitted for review!");
+      setErrorMsg(null);
       setTimeout(() => setSuccessMsg(null), 4000);
+    },
+    onError: (err) => {
+      setSuccessMsg(null);
+      if (err instanceof Error) {
+        setErrorMsg(err.message);
+      } else {
+        setErrorMsg("Failed to submit resource for review.");
+      }
     },
   });
 
@@ -64,6 +74,11 @@ function ContributeDashboardContent() {
       {successMsg && (
         <div role="status" className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-700">
           {successMsg}
+        </div>
+      )}
+      {errorMsg && (
+        <div role="alert" className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+          {errorMsg}
         </div>
       )}
 

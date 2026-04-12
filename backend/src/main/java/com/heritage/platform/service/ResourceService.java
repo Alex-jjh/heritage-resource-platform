@@ -286,6 +286,12 @@ public class ResourceService {
         if (resource.getCategory() == null) {
             errors.put("category", "Category is required");
         }
+        if (resource.getDescription() == null || resource.getDescription().isBlank()) {
+            errors.put("description", "Description is required");
+        }
+        if (resource.getTags() == null || resource.getTags().isEmpty()) {
+            errors.put("tags", "At least one tag is required");
+        }
         if (resource.getCopyrightDeclaration() == null || resource.getCopyrightDeclaration().isBlank()) {
             errors.put("copyrightDeclaration", "Copyright declaration is required");
         }

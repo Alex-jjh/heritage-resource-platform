@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Optional;
@@ -40,11 +41,14 @@ class UserServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
     private UserService userService;
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository);
+        userService = new UserService(userRepository, passwordEncoder);
     }
 
     private User createTestUser(UUID id, String email, UserRole role) {
@@ -83,6 +87,22 @@ class UserServiceTest {
 
         User result = userService.updateProfile("user@example.com", request);
         assertEquals("New Name", result.getDisplayName());
+    }
+
+    @Test
+    void updateProfile_updatesDisplayNameAndPassword() {
+        User user = createTestUser(UUID.randomUUID(), "user@example.com", UserRole.REGISTERED_VIEWER);
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.encode("new-password")).thenReturn("hashed-password");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        UpdateProfileRequest request = new UpdateProfileRequest();
+        request.setDisplayName("New Name");
+        request.setPassword("new-password");
+
+        User result = userService.updateProfile("user@example.com", request);
+        assertEquals("New Name", result.getDisplayName());
+        assertEquals("hashed-password", result.getPasswordHash());
     }
 
     @Test

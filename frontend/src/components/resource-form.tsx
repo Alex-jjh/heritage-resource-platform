@@ -80,6 +80,7 @@ export function ResourceForm({
     resource?.externalLinks?.map((l) => ({ url: l.url, label: l.label })) ?? []
   );
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [linkErrors, setLinkErrors] = useState<Record<number, string>>({});
 
   const categoriesQuery = useQuery({
     queryKey: ["categories"],
@@ -133,19 +134,48 @@ export function ResourceForm({
     setExternalLinks((prev) => prev.filter((_, i) => i !== index));
   }
 
+  function isValidHttpUrl(value: string) {
+    try {
+      const url = new URL(value);
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      return false;
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const errors: string[] = [];
+    const linkValidationErrors: Record<number, string> = {};
+
     if (!title.trim()) errors.push("Title is required");
     if (!categoryId) errors.push("Category is required");
     if (!copyrightDeclaration.trim())
       errors.push("Copyright declaration is required");
 
+    externalLinks.forEach((link, index) => {
+      const url = link.url.trim();
+      const label = link.label.trim();
+      if (url || label) {
+        if (!url) {
+          linkValidationErrors[index] = "URL is required for this link.";
+        } else if (!isValidHttpUrl(url)) {
+          linkValidationErrors[index] = "Website URL must be a valid HTTP or HTTPS URL.";
+        }
+      }
+    });
+
+    if (Object.keys(linkValidationErrors).length > 0) {
+      errors.push("Please fix the external link URL errors.");
+    }
+
     if (errors.length > 0) {
       setValidationErrors(errors);
+      setLinkErrors(linkValidationErrors);
       return;
     }
     setValidationErrors([]);
+    setLinkErrors({});
 
     await onSubmit({
       title: title.trim(),
@@ -316,7 +346,13 @@ export function ResourceForm({
                 }
                 placeholder="https://example.com"
                 aria-label={`External link URL ${index + 1}`}
+                aria-invalid={Boolean(linkErrors[index])}
               />
+              {linkErrors[index] && (
+                <p role="alert" className="text-sm text-destructive">
+                  {linkErrors[index]}
+                </p>
+              )}
               <Input
                 value={link.label}
                 onChange={(e) =>
