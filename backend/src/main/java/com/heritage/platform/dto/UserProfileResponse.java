@@ -12,7 +12,16 @@ public class UserProfileResponse {
     private String displayName;
     private UserRole role;
     private boolean contributorRequested;
+    private List<ResourceResponse> publishedResources; // Store the resources posted by this user
 
+    public List<ResourceResponse> getPublishedResources() {
+        return publishedResources;
+    }
+
+    public void setPublishedResources(List<ResourceResponse> publishedResources) {
+        this.publishedResources = publishedResources;
+    }
+    
     public UserProfileResponse() {}
 
     public static UserProfileResponse fromUser(User user) {
