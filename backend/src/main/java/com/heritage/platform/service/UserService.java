@@ -5,6 +5,9 @@ import com.heritage.platform.exception.ResourceNotFoundException;
 import com.heritage.platform.model.User;
 import com.heritage.platform.model.UserRole;
 import com.heritage.platform.repository.UserRepository;
+import com.heritage.platform.dto.UserProfileResponse;
+import com.heritage.platform.dto.ResourceResponse;
+import com.heritage.platform.repository.ResourceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,9 +18,11 @@ import java.util.UUID;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final ResourceRepository resourceRepository;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, ResourceRepository resourceRepository) {
         this.userRepository = userRepository;
+        this.resourceRepository = resourceRepository;
     }
 
     /**
@@ -107,5 +112,21 @@ public class UserService {
         user.setRole(UserRole.REGISTERED_VIEWER);
         user.setContributorRequested(false);
         return userRepository.save(user);
+    }
+
+    @Transactional(readOnly = true)
+    public UserProfileResponse getUserProfile(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        UserProfileResponse response = UserProfileResponse.fromUser(user);
+
+        List<ResourceResponse> resources = resourceRepository.findByContributorId(userId)
+                .stream()
+                .map(ResourceResponse::fromEntity)
+                .toList();
+
+        response.setPublishedResources(resources);
+        return response;
     }
 }
