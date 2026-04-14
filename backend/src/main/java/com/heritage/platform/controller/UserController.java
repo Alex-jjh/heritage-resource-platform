@@ -6,8 +6,10 @@ import com.heritage.platform.dto.UserProfileResponse;
 import com.heritage.platform.model.User;
 import com.heritage.platform.service.UserService;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.security.Principal;
 import java.util.List;
@@ -44,6 +46,18 @@ public class UserController {
             @Valid @RequestBody UpdateProfileRequest request
     ) {
         User user = userService.updateProfile(principal.getName(), request);
+
+        return ResponseEntity.ok(
+                UserProfileResponse.fromEntity(user, List.of())
+        );
+    }
+
+    @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserProfileResponse> uploadAvatar(
+            Principal principal,
+            @RequestParam("file") MultipartFile file
+    ) {
+        User user = userService.uploadAvatar(principal.getName(), file);
 
         return ResponseEntity.ok(
                 UserProfileResponse.fromEntity(user, List.of())

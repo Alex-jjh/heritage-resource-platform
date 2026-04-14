@@ -11,19 +11,35 @@ import com.heritage.platform.repository.ResourceRepository;
 import com.heritage.platform.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class UserService {
 
+    private static final long MAX_AVATAR_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+
+    private static final Set<String> ALLOWED_AVATAR_CONTENT_TYPES = Set.of(
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+    );
+
     private final UserRepository userRepository;
     private final ResourceRepository resourceRepository;
+    private final FileService fileService;
 
-    public UserService(UserRepository userRepository, ResourceRepository resourceRepository) {
+    public UserService(
+            UserRepository userRepository,
+            ResourceRepository resourceRepository,
+            FileService fileService
+    ) {
         this.userRepository = userRepository;
         this.resourceRepository = resourceRepository;
+        this.fileService = fileService;
     }
 
     /**
@@ -36,18 +52,21 @@ public class UserService {
     }
 
     /**
-     * Allows a REGISTERED_VIEWER to request contributor status.
-     * The request is stored and visible to administrators for approval.
+     * Allows a REGISTERED_VIEWER to request contributor status. The request is
+     * stored and visible to administrators for approval.
      */
     @Transactional
     public void requestContributorStatus(String email) {
         User user = getUserByEmail(email);
+
         if (user.getRole() != UserRole.REGISTERED_VIEWER) {
             throw new IllegalStateException("Only registered viewers can request contributor status");
         }
+
         if (user.isContributorRequested()) {
             throw new IllegalStateException("Contributor status has already been requested");
         }
+
         user.setContributorRequested(true);
         userRepository.save(user);
     }
@@ -79,7 +98,42 @@ public class UserService {
     }
 
     /**
-     * Returns all REGISTERED_VIEWER users who have requested contributor status.
+     * Uploads a new avatar image for the current user and stores the resolved
+     * URL.
+     *
+     * This method assumes FileService provides: String
+     * uploadAvatar(MultipartFile file, UUID userId)
+     */
+    @Transactional
+    public User uploadAvatar(String email, MultipartFile file) {
+        User user = getUserByEmail(email);
+
+        validateAvatarFile(file);
+
+        String avatarUrl = fileService.uploadAvatar(file, user.getId());
+        user.setAvatarUrl(avatarUrl);
+
+        return userRepository.save(user);
+    }
+
+    private void validateAvatarFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Avatar file must not be empty");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_AVATAR_CONTENT_TYPES.contains(contentType)) {
+            throw new IllegalArgumentException("Only JPG, PNG, and WEBP images are allowed for avatars");
+        }
+
+        if (file.getSize() > MAX_AVATAR_SIZE_BYTES) {
+            throw new IllegalArgumentException("Avatar image must be smaller than 5MB");
+        }
+    }
+
+    /**
+     * Returns all REGISTERED_VIEWER users who have requested contributor
+     * status.
      */
     @Transactional(readOnly = true)
     public List<User> getPendingContributorRequests() {
@@ -95,6 +149,7 @@ public class UserService {
     public void changeUserRole(UUID userId, String roleName) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         UserRole newRole = UserRole.valueOf(roleName);
         user.setRole(newRole);
         user.setContributorRequested(false);
@@ -105,6 +160,7 @@ public class UserService {
     public void deleteUser(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         userRepository.delete(user);
     }
 

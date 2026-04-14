@@ -26,10 +26,18 @@ import java.util.UUID;
 public class FileService {
 
     private static final long MAX_FILE_SIZE_BYTES = 50L * 1024 * 1024; // 50 MB
+    private static final long MAX_AVATAR_SIZE_BYTES = 5L * 1024 * 1024; // 5 MB
+
     private static final int THUMBNAIL_WIDTH = 400;
     private static final int THUMBNAIL_HEIGHT = 300;
+
     private static final Set<String> IMAGE_CONTENT_TYPES = Set.of(
-            "image/jpeg", "image/png", "image/gif", "image/webp");
+            "image/jpeg", "image/png", "image/gif", "image/webp"
+    );
+
+    private static final Set<String> AVATAR_CONTENT_TYPES = Set.of(
+            "image/jpeg", "image/png", "image/webp"
+    );
 
     private final ResourceRepository resourceRepository;
     private final FileReferenceRepository fileReferenceRepository;
@@ -41,20 +49,23 @@ public class FileService {
     @Value("${app.storage.thumbnail-dir:/opt/heritage/thumbnails}")
     private String thumbnailDir;
 
+    @Value("${app.storage.avatar-dir:/opt/heritage/avatars}")
+    private String avatarDir;
+
     @Value("${app.storage.base-url:}")
     private String storageBaseUrl;
 
     public FileService(ResourceRepository resourceRepository,
-                       FileReferenceRepository fileReferenceRepository,
-                       UserRepository userRepository) {
+            FileReferenceRepository fileReferenceRepository,
+            UserRepository userRepository) {
         this.resourceRepository = resourceRepository;
         this.fileReferenceRepository = fileReferenceRepository;
         this.userRepository = userRepository;
     }
 
     /**
-     * Uploads a file to local disk and creates a file reference.
-     * Also generates a thumbnail if the file is an image.
+     * Uploads a file to local disk and creates a file reference. Also generates
+     * a thumbnail if the file is an image.
      */
     @Transactional
     public FileReference uploadFile(UUID resourceId, MultipartFile file, String email) throws IOException {
@@ -68,14 +79,12 @@ public class FileService {
             throw new IllegalArgumentException("File size exceeds maximum of 50MB");
         }
 
-        // Save file to disk
         String storedFileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
         Path resourceDir = Paths.get(uploadDir, resourceId.toString());
         Files.createDirectories(resourceDir);
         Path filePath = resourceDir.resolve(storedFileName);
         file.transferTo(filePath.toFile());
 
-        // Create file reference
         String fileKey = resourceId + "/" + storedFileName;
         FileReference fileRef = new FileReference();
         fileRef.setResource(resource);
@@ -85,12 +94,43 @@ public class FileService {
         fileRef.setFileSize(file.getSize());
         FileReference saved = fileReferenceRepository.save(fileRef);
 
-        // Generate thumbnail if image
         if (file.getContentType() != null && IMAGE_CONTENT_TYPES.contains(file.getContentType())) {
             generateThumbnail(resourceId, filePath, storedFileName);
         }
 
         return saved;
+    }
+
+    /**
+     * Uploads a user avatar image to local disk and returns the final public
+     * URL. This method does not update the User entity itself; UserService does
+     * that.
+     */
+    public String uploadAvatar(MultipartFile file, UUID userId) {
+        validateAvatarFile(file);
+
+        // Optional: ensure target user exists
+        userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        String originalFileName = file.getOriginalFilename() == null
+                ? "avatar"
+                : file.getOriginalFilename();
+
+        String storedFileName = UUID.randomUUID() + "_" + originalFileName;
+
+        try {
+            Path userAvatarDir = Paths.get(avatarDir, userId.toString());
+            Files.createDirectories(userAvatarDir);
+
+            Path avatarPath = userAvatarDir.resolve(storedFileName);
+            file.transferTo(avatarPath.toFile());
+
+            String avatarKey = userId + "/" + storedFileName;
+            return generateAvatarUrl(avatarKey);
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to upload avatar image", e);
+        }
     }
 
     /**
@@ -105,6 +145,13 @@ public class FileService {
      */
     public String generateThumbnailUrl(String thumbnailKey) {
         return storageBaseUrl + "/files/thumbnails/" + thumbnailKey;
+    }
+
+    /**
+     * Generates an avatar URL.
+     */
+    public String generateAvatarUrl(String avatarKey) {
+        return storageBaseUrl + "/files/avatars/" + avatarKey;
     }
 
     /**
@@ -124,13 +171,28 @@ public class FileService {
             throw new ResourceNotFoundException("File reference not found on this resource");
         }
 
-        // Delete physical file
         try {
             Path filePath = Paths.get(uploadDir, fileRef.getS3Key());
             Files.deleteIfExists(filePath);
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
 
         fileReferenceRepository.delete(fileRef);
+    }
+
+    private void validateAvatarFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Avatar file must not be empty");
+        }
+
+        if (file.getSize() > MAX_AVATAR_SIZE_BYTES) {
+            throw new IllegalArgumentException("Avatar image must be smaller than 5MB");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !AVATAR_CONTENT_TYPES.contains(contentType)) {
+            throw new IllegalArgumentException("Only JPG, PNG, and WEBP images are allowed for avatars");
+        }
     }
 
     private void generateThumbnail(UUID resourceId, Path originalPath, String fileName) {
@@ -143,7 +205,6 @@ public class FileService {
                     .size(THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
                     .toFile(thumbPath.toFile());
 
-            // Update resource thumbnail key
             Resource resource = resourceRepository.findById(resourceId).orElse(null);
             if (resource != null) {
                 resource.setThumbnailS3Key(resourceId + "/" + fileName);

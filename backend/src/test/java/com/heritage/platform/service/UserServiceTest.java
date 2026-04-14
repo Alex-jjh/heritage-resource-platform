@@ -51,11 +51,14 @@ class UserServiceTest {
     @Mock
     private ResourceRepository resourceRepository;
 
+    @Mock
+    private FileService fileService;
+
     private UserService userService;
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository, resourceRepository);
+        userService = new UserService(userRepository, resourceRepository, fileService);
     }
 
     private User createTestUser(UUID id, String email, UserRole role) {

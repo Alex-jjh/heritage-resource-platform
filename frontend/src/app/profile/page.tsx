@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { apiClient, ApiError } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
@@ -16,7 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { User } from "@/types";
+import type { User, UserProfileResponse } from "@/types";
 
 const ROLE_LABELS: Record<string, string> = {
   REGISTERED_VIEWER: "Registered Viewer",
@@ -24,6 +24,13 @@ const ROLE_LABELS: Record<string, string> = {
   REVIEWER: "Reviewer",
   ADMINISTRATOR: "Administrator",
 };
+
+const MAX_AVATAR_SIZE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_AVATAR_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
 
 function getInitials(name: string) {
   return name
@@ -70,11 +77,17 @@ function ProfileContent() {
   const [profilePublic, setProfilePublic] = useState(true);
   const [showEmail, setShowEmail] = useState(false);
 
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
+  const [selectedAvatarPreviewUrl, setSelectedAvatarPreviewUrl] = useState<string | null>(null);
+
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -86,10 +99,99 @@ function ProfileContent() {
     }
   }, [user]);
 
+  useEffect(() => {
+    return () => {
+      if (selectedAvatarPreviewUrl) {
+        URL.revokeObjectURL(selectedAvatarPreviewUrl);
+      }
+    };
+  }, [selectedAvatarPreviewUrl]);
+
   if (!user) return null;
 
   const previewName = displayName.trim() || user.displayName || "User";
   const roleLabel = ROLE_LABELS[user.role] ?? user.role;
+  const avatarPreviewToShow =
+    selectedAvatarPreviewUrl || avatarUrl || user.avatarUrl || null;
+
+  function clearSelectedAvatar() {
+    if (selectedAvatarPreviewUrl) {
+      URL.revokeObjectURL(selectedAvatarPreviewUrl);
+    }
+    setSelectedAvatarFile(null);
+    setSelectedAvatarPreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
+  function handleAvatarFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setError(null);
+    setSuccess(null);
+
+    const file = e.target.files?.[0];
+    if (!file) {
+      clearSelectedAvatar();
+      return;
+    }
+
+    if (!ALLOWED_AVATAR_TYPES.has(file.type)) {
+      setError("Only JPG, PNG, and WEBP images are allowed for avatars.");
+      clearSelectedAvatar();
+      return;
+    }
+
+    if (file.size > MAX_AVATAR_SIZE_BYTES) {
+      setError("Avatar image must be smaller than 5MB.");
+      clearSelectedAvatar();
+      return;
+    }
+
+    if (selectedAvatarPreviewUrl) {
+      URL.revokeObjectURL(selectedAvatarPreviewUrl);
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setSelectedAvatarFile(file);
+    setSelectedAvatarPreviewUrl(previewUrl);
+  }
+
+  async function uploadAvatarFile(file: File): Promise<UserProfileResponse> {
+    const token = localStorage.getItem("accessToken");
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch(`${apiBaseUrl}/api/users/me/avatar`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+
+    if (!response.ok) {
+      let message = "Failed to upload avatar.";
+      const contentType = response.headers.get("content-type") ?? "";
+
+      try {
+        if (contentType.includes("application/json")) {
+          const data = (await response.json()) as { message?: string };
+          message = data.message || message;
+        } else {
+          const text = await response.text();
+          if (text) {
+            message = text;
+          }
+        }
+      } catch {
+        // keep fallback message
+      }
+
+      throw new Error(message);
+    }
+
+    return (await response.json()) as UserProfileResponse;
+  }
 
   async function handleSave() {
     setError(null);
@@ -101,6 +203,7 @@ function ProfileContent() {
     }
 
     setIsSaving(true);
+
     try {
       await apiClient.put<User>("/api/users/me", {
         displayName: displayName.trim(),
@@ -110,6 +213,14 @@ function ProfileContent() {
         showEmail,
       });
 
+      if (selectedAvatarFile) {
+        setIsUploadingAvatar(true);
+        const uploadedProfile = await uploadAvatarFile(selectedAvatarFile);
+        setAvatarUrl(uploadedProfile.avatarUrl ?? "");
+        clearSelectedAvatar();
+        setIsUploadingAvatar(false);
+      }
+
       await refreshUser();
       setSuccess("Profile updated successfully.");
       setIsEditing(false);
@@ -117,11 +228,14 @@ function ProfileContent() {
       if (err instanceof ApiError) {
         const body = err.body as { message?: string } | undefined;
         setError(body?.message || err.message || "Failed to update profile.");
+      } else if (err instanceof Error) {
+        setError(err.message || "An unexpected error occurred.");
       } else {
         setError("An unexpected error occurred.");
       }
     } finally {
       setIsSaving(false);
+      setIsUploadingAvatar(false);
     }
   }
 
@@ -154,6 +268,8 @@ function ProfileContent() {
     setBio(user.bio ?? "");
     setProfilePublic(user.profilePublic ?? true);
     setShowEmail(user.showEmail ?? false);
+
+    clearSelectedAvatar();
 
     setError(null);
     setSuccess(null);
@@ -193,7 +309,7 @@ function ProfileContent() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
               <ProfileAvatarPreview
                 displayName={previewName}
-                avatarUrl={avatarUrl || user.avatarUrl}
+                avatarUrl={avatarPreviewToShow}
               />
 
               <div className="min-w-0 flex-1 space-y-2">
@@ -211,6 +327,12 @@ function ProfileContent() {
                   <span>•</span>
                   <span>Email display: {showEmail ? "Shown" : "Hidden"}</span>
                 </div>
+
+                {selectedAvatarFile && (
+                  <p className="text-xs text-muted-foreground">
+                    Selected avatar: {selectedAvatarFile.name}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -221,23 +343,71 @@ function ProfileContent() {
                   id="display-name"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  disabled={!isEditing || isSaving}
+                  disabled={!isEditing || isSaving || isUploadingAvatar}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="avatar-url">Avatar URL</Label>
-                <Input
-                  id="avatar-url"
-                  placeholder="https://example.com/avatar.png"
-                  value={avatarUrl}
-                  onChange={(e) => setAvatarUrl(e.target.value)}
-                  disabled={!isEditing || isSaving}
-                />
-                <p className="text-xs text-muted-foreground">
-                  This version uses an image URL. If you later add a real upload API,
-                  this field can be replaced by an upload control.
-                </p>
+              <div className="space-y-3 rounded-md border p-4">
+                <div className="space-y-2">
+                  <Label htmlFor="avatar-file">Upload Avatar Image</Label>
+
+                  <input
+                    id="avatar-file"
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleAvatarFileChange}
+                    disabled={!isEditing || isSaving || isUploadingAvatar}
+                    className="hidden"
+                  />
+
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={!isEditing || isSaving || isUploadingAvatar}
+                    >
+                      Choose File
+                    </Button>
+
+                    <span className="text-sm text-muted-foreground">
+                      {selectedAvatarFile
+                        ? `Selected: ${selectedAvatarFile.name}`
+                        : "No file selected"}
+                    </span>
+
+                    {selectedAvatarFile && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={clearSelectedAvatar}
+                        disabled={!isEditing || isSaving || isUploadingAvatar}
+                      >
+                        Remove Selection
+                      </Button>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    Choose a JPG, PNG, or WEBP image from your computer. Maximum size: 5MB.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="avatar-url">Avatar URL (optional)</Label>
+                  <Input
+                    id="avatar-url"
+                    placeholder="https://example.com/avatar.png"
+                    value={avatarUrl}
+                    onChange={(e) => setAvatarUrl(e.target.value)}
+                    disabled={!isEditing || isSaving || isUploadingAvatar}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    You can still set an avatar by URL. If you also choose a local file,
+                    the uploaded file will take precedence when you save.
+                  </p>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -248,7 +418,7 @@ function ProfileContent() {
                   placeholder="Tell others a little about yourself..."
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
-                  disabled={!isEditing || isSaving}
+                  disabled={!isEditing || isSaving || isUploadingAvatar}
                 />
               </div>
 
@@ -265,7 +435,7 @@ function ProfileContent() {
                     type="checkbox"
                     checked={profilePublic}
                     onChange={(e) => setProfilePublic(e.target.checked)}
-                    disabled={!isEditing || isSaving}
+                    disabled={!isEditing || isSaving || isUploadingAvatar}
                     className="mt-1 h-4 w-4"
                   />
                 </div>
@@ -281,7 +451,12 @@ function ProfileContent() {
                     type="checkbox"
                     checked={showEmail}
                     onChange={(e) => setShowEmail(e.target.checked)}
-                    disabled={!isEditing || isSaving || !profilePublic}
+                    disabled={
+                      !isEditing ||
+                      isSaving ||
+                      isUploadingAvatar ||
+                      !profilePublic
+                    }
                     className="mt-1 h-4 w-4"
                   />
                 </div>
@@ -295,13 +470,13 @@ function ProfileContent() {
                 <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
               ) : (
                 <>
-                  <Button onClick={handleSave} disabled={isSaving}>
-                    {isSaving ? "Saving..." : "Save Changes"}
+                  <Button onClick={handleSave} disabled={isSaving || isUploadingAvatar}>
+                    {isSaving || isUploadingAvatar ? "Saving..." : "Save Changes"}
                   </Button>
                   <Button
                     variant="outline"
                     onClick={handleCancel}
-                    disabled={isSaving}
+                    disabled={isSaving || isUploadingAvatar}
                   >
                     Cancel
                   </Button>
@@ -313,7 +488,7 @@ function ProfileContent() {
               <Button
                 variant="secondary"
                 onClick={handleRequestContributor}
-                disabled={isRequesting}
+                disabled={isRequesting || isSaving || isUploadingAvatar}
               >
                 {isRequesting ? "Submitting..." : "Request Contributor Access"}
               </Button>
