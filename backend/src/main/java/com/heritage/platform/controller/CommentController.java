@@ -2,6 +2,7 @@ package com.heritage.platform.controller;
 
 import com.heritage.platform.dto.CommentResponse;
 import com.heritage.platform.dto.CreateCommentRequest;
+import com.heritage.platform.dto.MyCommentResponse;
 import com.heritage.platform.model.Comment;
 import com.heritage.platform.service.CommentService;
 import jakarta.validation.Valid;
@@ -53,6 +54,22 @@ public class CommentController {
 
         Page<CommentResponse> comments = commentService.getComments(resourceId, pageable)
                 .map(CommentResponse::fromEntity);
+
+        return ResponseEntity.ok(comments);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<Page<MyCommentResponse>> getMyComments(
+            Principal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<MyCommentResponse> comments = commentService.getMyComments(
+                principal.getName(),
+                pageable
+        );
 
         return ResponseEntity.ok(comments);
     }

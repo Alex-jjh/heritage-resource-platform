@@ -5,7 +5,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { Menu, X, User, LogOut, ChevronDown } from "lucide-react";
+import {
+  Menu,
+  X,
+  User,
+  LogOut,
+  ChevronDown,
+  MessageSquare,
+} from "lucide-react";
 
 function getInitials(name?: string | null) {
   if (!name) return "?";
@@ -138,7 +145,7 @@ function Navbar() {
               </button>
 
               {userMenuOpen && (
-                <div className="absolute right-0 mt-1 w-52 rounded-md border bg-white shadow-lg py-1 z-50">
+                <div className="absolute right-0 mt-1 w-56 rounded-md border bg-white shadow-lg py-1 z-50">
                   <div className="px-4 py-2.5 border-b">
                     <p className="text-sm font-medium truncate">
                       {user.displayName}
@@ -154,6 +161,14 @@ function Navbar() {
                     className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-muted transition-colors"
                   >
                     <User className="size-4" /> Profile
+                  </Link>
+
+                  <Link
+                    href="/my-comments"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-muted transition-colors"
+                  >
+                    <MessageSquare className="size-4" /> My Comments
                   </Link>
 
                   <button
@@ -229,6 +244,12 @@ function Navbar() {
                 <Link href="/profile" onClick={() => setMenuOpen(false)}>
                   <Button variant="ghost" size="sm" className="w-full justify-start">
                     <User className="mr-2 size-4" /> Profile
+                  </Button>
+                </Link>
+
+                <Link href="/my-comments" onClick={() => setMenuOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start">
+                    <MessageSquare className="mr-2 size-4" /> My Comments
                   </Button>
                 </Link>
 

@@ -1,5 +1,6 @@
 package com.heritage.platform.service;
 
+import com.heritage.platform.dto.MyCommentResponse;
 import com.heritage.platform.exception.ResourceNotFoundException;
 import com.heritage.platform.model.Comment;
 import com.heritage.platform.model.Resource;
@@ -18,6 +19,8 @@ import java.util.UUID;
 @Service
 public class CommentService {
 
+    private static final int RESOURCE_COMMENT_PAGE_SIZE = 10;
+
     private final CommentRepository commentRepository;
     private final ResourceRepository resourceRepository;
     private final UserRepository userRepository;
@@ -30,19 +33,11 @@ public class CommentService {
         this.userRepository = userRepository;
     }
 
-    /**
-     * Backward-compatible overload. If the caller has not been updated yet,
-     * comments default to non-anonymous.
-     */
     @Transactional
     public Comment addComment(UUID resourceId, String email, String body) {
         return addComment(resourceId, email, body, false);
     }
 
-    /**
-     * Adds a comment to an approved resource. Rejects comments on non-approved
-     * resources and empty comment bodies.
-     */
     @Transactional
     public Comment addComment(UUID resourceId, String email, String body, boolean anonymous) {
         if (body == null || body.isBlank()) {
@@ -78,8 +73,7 @@ public class CommentService {
             throw new ResourceNotFoundException("Resource not found");
         }
 
-        Page<Comment> comments
-                = commentRepository.findByResourceIdOrderByCreatedAtDesc(resourceId, pageable);
+        Page<Comment> comments = commentRepository.findByResourceIdOrderByCreatedAtDesc(resourceId, pageable);
 
         // Force-initialize lazy author association for DTO mapping
         comments.getContent().forEach(c -> {
@@ -90,5 +84,31 @@ public class CommentService {
         });
 
         return comments;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<MyCommentResponse> getMyComments(String email, Pageable pageable) {
+        // Validate current user exists
+        userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Page<Comment> comments = commentRepository.findByAuthorEmailOrderByCreatedAtDesc(email, pageable);
+
+        return comments.map(comment -> {
+            // Force-init resource association for DTO mapping
+            if (comment.getResource() != null) {
+                comment.getResource().getId();
+                comment.getResource().getTitle();
+            }
+
+            long newerCommentsCount = commentRepository.countByResourceIdAndCreatedAtAfter(
+                    comment.getResource().getId(),
+                    comment.getCreatedAt()
+            );
+
+            int commentPage = (int) (newerCommentsCount / RESOURCE_COMMENT_PAGE_SIZE);
+
+            return MyCommentResponse.fromEntity(comment, commentPage);
+        });
     }
 }

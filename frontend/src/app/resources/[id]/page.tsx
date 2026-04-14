@@ -1,8 +1,9 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { apiClient, ApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { ProtectedRoute } from "@/components/protected-route";
@@ -77,7 +78,7 @@ function ContributorSummary({
   resource: ResourceResponse;
   contributorProfile?: UserProfileResponse | null;
 }) {
-  
+
   const avatarUrl =
     contributorProfile?.avatarUrl ?? resource.contributorAvatarUrl ?? null;
 
@@ -120,11 +121,25 @@ function ContributorSummary({
 function ResourceDetailContent({ id }: { id: string }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+
   const [adminError, setAdminError] = useState<string | null>(null);
   const [unpublishReason, setUnpublishReason] = useState("");
   const [showUnpublishForm, setShowUnpublishForm] = useState(false);
 
   const isAdmin = user?.role === "ADMINISTRATOR";
+
+  const highlightCommentId = searchParams.get("commentId") ?? undefined;
+
+  const initialCommentPage = useMemo(() => {
+    const raw = searchParams.get("commentPage");
+    if (!raw) return 0;
+
+    const parsed = Number(raw);
+    if (Number.isNaN(parsed) || parsed < 0) return 0;
+
+    return parsed;
+  }, [searchParams]);
 
   const resourceQuery = useQuery({
     queryKey: ["resource", id],
@@ -406,7 +421,11 @@ function ResourceDetailContent({ id }: { id: string }) {
         )}
 
         {resource.status === "APPROVED" && (
-          <CommentSection resourceId={resource.id} />
+          <CommentSection
+            resourceId={resource.id}
+            initialPage={initialCommentPage}
+            highlightCommentId={highlightCommentId}
+          />
         )}
       </div>
     </main>

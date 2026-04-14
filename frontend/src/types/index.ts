@@ -139,6 +139,16 @@ export interface CommentResponse {
   createdAt: string;
 }
 
+export interface MyCommentResponse {
+  commentId: string;
+  resourceId: string;
+  resourceTitle: string;
+  body: string;
+  createdAt: string;
+  anonymous: boolean;
+  commentPage: number;
+}
+
 export interface Page<T> {
   content: T[];
   totalElements: number;

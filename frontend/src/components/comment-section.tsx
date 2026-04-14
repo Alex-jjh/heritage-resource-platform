@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,11 @@ import type { CommentResponse, Page } from "@/types";
 
 interface CommentSectionProps {
   resourceId: string;
+  initialPage?: number;
+  highlightCommentId?: string;
 }
+
+const PAGE_SIZE = 10;
 
 function getInitials(name: string) {
   return name
@@ -62,19 +66,34 @@ function formatCommentDate(dateString: string) {
   });
 }
 
-export function CommentSection({ resourceId }: CommentSectionProps) {
+export function CommentSection({
+  resourceId,
+  initialPage = 0,
+  highlightCommentId,
+}: CommentSectionProps) {
   const queryClient = useQueryClient();
 
   const [body, setBody] = useState("");
   const [anonymous, setAnonymous] = useState(false);
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(initialPage);
   const [error, setError] = useState<string | null>(null);
+  const [highlightedCommentId, setHighlightedCommentId] = useState<
+    string | null
+  >(null);
+
+  const commentRefs = useRef<Record<string, HTMLLIElement | null>>({});
+  const hasScrolledToHighlight = useRef(false);
+
+  useEffect(() => {
+    setPage(initialPage);
+    hasScrolledToHighlight.current = false;
+  }, [initialPage, highlightCommentId, resourceId]);
 
   const commentsQuery = useQuery({
     queryKey: ["comments", resourceId, page],
     queryFn: () =>
       apiClient.get<Page<CommentResponse>>(
-        `/api/comments/${resourceId}?page=${page}&size=10`
+        `/api/comments/${resourceId}?page=${page}&size=${PAGE_SIZE}`
       ),
   });
 
@@ -86,6 +105,7 @@ export function CommentSection({ resourceId }: CommentSectionProps) {
       setAnonymous(false);
       setError(null);
       setPage(0);
+      hasScrolledToHighlight.current = false;
       queryClient.invalidateQueries({ queryKey: ["comments", resourceId] });
     },
     onError: (err) => {
@@ -96,6 +116,43 @@ export function CommentSection({ resourceId }: CommentSectionProps) {
       }
     },
   });
+
+  useEffect(() => {
+    if (!highlightCommentId || !commentsQuery.data || hasScrolledToHighlight.current) {
+      return;
+    }
+
+    const targetExistsOnCurrentPage = commentsQuery.data.content.some(
+      (comment) => comment.id === highlightCommentId
+    );
+
+    if (!targetExistsOnCurrentPage) {
+      return;
+    }
+
+    const el = commentRefs.current[highlightCommentId];
+    if (!el) {
+      return;
+    }
+
+    hasScrolledToHighlight.current = true;
+    setHighlightedCommentId(highlightCommentId);
+
+    requestAnimationFrame(() => {
+      el.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    });
+
+    const timeout = window.setTimeout(() => {
+      setHighlightedCommentId((current) =>
+        current === highlightCommentId ? null : current
+      );
+    }, 3000);
+
+    return () => window.clearTimeout(timeout);
+  }, [commentsQuery.data, highlightCommentId]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -172,6 +229,8 @@ export function CommentSection({ resourceId }: CommentSectionProps) {
                 comment.profileClickable &&
                 Boolean(comment.authorId);
 
+              const isHighlighted = highlightedCommentId === comment.id;
+
               const avatar = (
                 <CommentAvatar
                   authorName={comment.authorName}
@@ -181,13 +240,20 @@ export function CommentSection({ resourceId }: CommentSectionProps) {
               );
 
               const authorLabel = (
-                <span className="text-sm font-medium">
-                  {comment.authorName}
-                </span>
+                <span className="text-sm font-medium">{comment.authorName}</span>
               );
 
               return (
-                <li key={comment.id} className="rounded-md border p-4">
+                <li
+                  key={comment.id}
+                  ref={(el) => {
+                    commentRefs.current[comment.id] = el;
+                  }}
+                  className={`rounded-md border p-4 transition-all duration-500 ${isHighlighted
+                      ? "shadow-md ring-2 ring-amber-200 bg-amber-50/40"
+                      : ""
+                    }`}
+                >
                   <div className="flex items-start gap-3">
                     {canOpenProfile ? (
                       <Link
@@ -241,7 +307,10 @@ export function CommentSection({ resourceId }: CommentSectionProps) {
                 variant="outline"
                 size="sm"
                 disabled={data.first}
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                onClick={() => {
+                  hasScrolledToHighlight.current = false;
+                  setPage((p) => Math.max(0, p - 1));
+                }}
               >
                 Previous
               </Button>
@@ -254,7 +323,10 @@ export function CommentSection({ resourceId }: CommentSectionProps) {
                 variant="outline"
                 size="sm"
                 disabled={data.last}
-                onClick={() => setPage((p) => p + 1)}
+                onClick={() => {
+                  hasScrolledToHighlight.current = false;
+                  setPage((p) => p + 1);
+                }}
               >
                 Next
               </Button>
