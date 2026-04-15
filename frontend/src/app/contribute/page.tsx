@@ -36,22 +36,22 @@ function ContributeDashboardContent() {
   });
 
   return (
-    <main className="container">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+    <main className="max-w-5xl mx-auto px-5 py-5">
+      <div className="flex justify-between items-center mb-5">
         <h1>My Resources</h1>
-        <Link href="/contribute/new" className="btn btn-primary">+ New Resource</Link>
+        <Link href="/contribute/new" className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 no-underline">+ New Resource</Link>
       </div>
 
-      {successMsg && <div className="success-msg">{successMsg}</div>}
+      {successMsg && <div className="bg-green-50 border border-green-200 text-green-700 p-3 rounded text-sm mb-3">{successMsg}</div>}
 
       {resourcesQuery.isLoading ? (
         <p>Loading...</p>
       ) : resourcesQuery.isError ? (
-        <div className="error-msg">Failed to load your resources.</div>
+        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded text-sm mb-3">Failed to load your resources.</div>
       ) : resourcesQuery.data && resourcesQuery.data.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 40 }}>
-          <p style={{ color: "#888" }}>You haven&apos;t created any resources yet.</p>
-          <Link href="/contribute/new" className="btn" style={{ marginTop: 12 }}>Create your first resource</Link>
+        <div className="text-center py-10">
+          <p className="text-gray-400">You haven&apos;t created any resources yet.</p>
+          <Link href="/contribute/new" className="bg-white border border-gray-300 px-3 py-1.5 rounded text-sm hover:bg-gray-50 no-underline inline-block mt-3">Create your first resource</Link>
         </div>
       ) : (
         <div>
@@ -61,11 +61,11 @@ function ContributeDashboardContent() {
             const isRejected = status === "REJECTED";
 
             return (
-              <div key={resource.id} className="card">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div key={resource.id} className="bg-white border border-gray-200 rounded p-4 mb-3">
+                <div className="flex justify-between items-start">
                   <div>
-                    <h3 style={{ margin: "0 0 4px" }}>{resource.title}</h3>
-                    <p style={{ margin: 0, fontSize: 13, color: "#666" }}>
+                    <h3 className="m-0 mb-1">{resource.title}</h3>
+                    <p className="m-0 text-[13px] text-gray-500">
                       {resource.category.name}
                       {resource.place && <> · {resource.place}</>}
                       {" · Updated "}
@@ -75,30 +75,30 @@ function ContributeDashboardContent() {
                   <StatusBadge status={status} />
                 </div>
 
-                <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <Link href={`/resources/${resource.id}`} className="btn btn-sm">👁 View</Link>
+                <div className="mt-2.5 flex gap-2 flex-wrap">
+                  <Link href={`/resources/${resource.id}`} className="bg-white border border-gray-300 px-2 py-1 rounded text-xs hover:bg-gray-50 no-underline text-inherit">View</Link>
                   {isDraft && (
                     <>
-                      <Link href={`/contribute/${resource.id}/edit`} className="btn btn-sm">✏️ Edit</Link>
-                      <button className="btn btn-sm btn-primary" onClick={() => submitMutation.mutate(resource.id)} disabled={submitMutation.isPending}>
-                        {submitMutation.isPending ? "Submitting..." : "📤 Submit for Review"}
+                      <Link href={`/contribute/${resource.id}/edit`} className="bg-white border border-gray-300 px-2 py-1 rounded text-xs hover:bg-gray-50 no-underline text-inherit">Edit</Link>
+                      <button className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700 disabled:opacity-50" onClick={() => submitMutation.mutate(resource.id)} disabled={submitMutation.isPending}>
+                        {submitMutation.isPending ? "Submitting..." : "Submit for Review"}
                       </button>
                     </>
                   )}
                   {isRejected && (
-                    <button className="btn btn-sm" onClick={() => reviseMutation.mutate(resource.id)} disabled={reviseMutation.isPending}>
-                      {reviseMutation.isPending ? "Revising..." : "🔄 Revise"}
+                    <button className="bg-white border border-gray-300 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50" onClick={() => reviseMutation.mutate(resource.id)} disabled={reviseMutation.isPending}>
+                      {reviseMutation.isPending ? "Revising..." : "Revise"}
                     </button>
                   )}
                 </div>
 
                 {(isRejected || isDraft) && resource.reviewFeedbacks && resource.reviewFeedbacks.length > 0 && (
-                  <div className="warning-msg" style={{ marginTop: 10 }}>
+                  <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 p-3 rounded text-sm mt-2.5">
                     <strong>Reviewer Feedback:</strong>
                     {resource.reviewFeedbacks.map((fb) => (
-                      <div key={fb.id} style={{ marginTop: 4 }}>
-                        <p style={{ margin: 0 }}>{fb.comments}</p>
-                        <p style={{ margin: "2px 0 0", fontSize: 12, color: "#999" }}>
+                      <div key={fb.id} className="mt-1">
+                        <p className="m-0">{fb.comments}</p>
+                        <p className="mt-0.5 mb-0 text-xs text-gray-400">
                           {fb.decision} · {new Date(fb.createdAt).toLocaleDateString()}
                         </p>
                       </div>

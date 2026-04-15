@@ -42,46 +42,46 @@ export function CommentSection({ resourceId }: CommentSectionProps) {
   const data = commentsQuery.data;
 
   return (
-    <div style={{ marginTop: 20 }}>
+    <div className="mt-5">
       <h2>Comments</h2>
 
-      <form onSubmit={handleSubmit} style={{ marginBottom: 20 }}>
+      <form onSubmit={handleSubmit} className="mb-5">
         <textarea
           placeholder="Share your thoughts..."
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={3}
-          style={{ marginBottom: 8 }}
+          className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500 mb-2"
         />
-        {error && <p style={{ color: "#c00", fontSize: 13 }}>{error}</p>}
-        <button type="submit" className="btn btn-primary btn-sm" disabled={addComment.isPending}>
+        {error && <p className="text-red-600 text-[13px]">{error}</p>}
+        <button type="submit" className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700 disabled:opacity-50" disabled={addComment.isPending}>
           {addComment.isPending ? "Posting..." : "Post Comment"}
         </button>
       </form>
 
       {commentsQuery.isLoading ? (
-        <p style={{ color: "#888" }}>Loading comments...</p>
+        <p className="text-gray-400">Loading comments...</p>
       ) : data && data.content.length === 0 ? (
-        <p style={{ color: "#888" }}>No comments yet. Be the first to share your thoughts.</p>
+        <p className="text-gray-400">No comments yet. Be the first to share your thoughts.</p>
       ) : data ? (
         <>
           {data.content.map((comment) => (
-            <div key={comment.id} className="card" style={{ marginBottom: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                <strong style={{ fontSize: 14 }}>{comment.authorName}</strong>
-                <span style={{ fontSize: 12, color: "#888" }}>
+            <div key={comment.id} className="bg-white border border-gray-200 rounded p-4 mb-2">
+              <div className="flex justify-between mb-1">
+                <strong className="text-sm">{comment.authorName}</strong>
+                <span className="text-xs text-gray-400">
                   {new Date(comment.createdAt).toLocaleDateString()}
                 </span>
               </div>
-              <p style={{ margin: 0, fontSize: 14, whiteSpace: "pre-wrap" }}>{comment.body}</p>
+              <p className="m-0 text-sm whitespace-pre-wrap">{comment.body}</p>
             </div>
           ))}
 
           {data.totalPages > 1 && (
-            <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 12 }}>
-              <button className="btn btn-sm" disabled={data.first} onClick={() => setPage((p) => Math.max(0, p - 1))}>Previous</button>
-              <span style={{ fontSize: 13 }}>Page {data.number + 1} of {data.totalPages}</span>
-              <button className="btn btn-sm" disabled={data.last} onClick={() => setPage((p) => p + 1)}>Next</button>
+            <div className="flex justify-center gap-2.5 mt-3">
+              <button className="bg-white border border-gray-300 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50" disabled={data.first} onClick={() => setPage((p) => Math.max(0, p - 1))}>Previous</button>
+              <span className="text-[13px]">Page {data.number + 1} of {data.totalPages}</span>
+              <button className="bg-white border border-gray-300 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50" disabled={data.last} onClick={() => setPage((p) => p + 1)}>Next</button>
             </div>
           )}
         </>

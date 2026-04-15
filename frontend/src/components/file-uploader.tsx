@@ -76,36 +76,36 @@ export function FileUploader({ resourceId, existingFiles, onFilesChange }: FileU
 
   return (
     <div>
-      <button type="button" className="btn btn-sm" onClick={() => fileInputRef.current?.click()}>
-        📎 Upload Files
+      <button type="button" className="bg-white border border-gray-300 px-2 py-1 rounded text-xs hover:bg-gray-50" onClick={() => fileInputRef.current?.click()}>
+        Upload Files
       </button>
-      <input ref={fileInputRef} type="file" multiple style={{ display: "none" }} onChange={handleFileSelect} />
+      <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} />
 
       {activeUploads.length > 0 && (
-        <ul style={{ listStyle: "none", padding: 0, marginTop: 8 }}>
+        <ul className="list-none p-0 mt-2">
           {activeUploads.map((u) => (
-            <li key={u.name} style={{ padding: "6px 0", fontSize: 13, color: u.progress === "error" ? "#c00" : "#666" }}>
-              {u.progress === "uploading" ? "⏳" : "❌"} {u.name} {u.progress === "error" && `- ${u.error}`}
+            <li key={u.name} className={`py-1.5 text-[13px] ${u.progress === "error" ? "text-red-600" : "text-gray-500"}`}>
+              {u.progress === "uploading" ? "uploading..." : "error"} {u.name} {u.progress === "error" && `- ${u.error}`}
             </li>
           ))}
         </ul>
       )}
 
       {existingFiles.length > 0 && (
-        <ul style={{ listStyle: "none", padding: 0, marginTop: 8 }}>
+        <ul className="list-none p-0 mt-2">
           {existingFiles.map((file) => (
-            <li key={file.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #eee" }}>
+            <li key={file.id} className="flex justify-between items-center py-1.5 border-b border-gray-100">
               <div>
-                <span style={{ fontSize: 14 }}>{file.originalFileName}</span>
-                <span style={{ fontSize: 12, color: "#888", marginLeft: 8 }}>{file.contentType} · {formatSize(file.fileSize)}</span>
+                <span className="text-sm">{file.originalFileName}</span>
+                <span className="text-xs text-gray-400 ml-2">{file.contentType} · {formatSize(file.fileSize)}</span>
               </div>
               <button
                 type="button"
-                className="btn btn-sm btn-danger"
+                className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
                 onClick={() => removeFileMutation.mutate(file.id)}
                 disabled={removeFileMutation.isPending}
               >
-                ✕
+                Remove
               </button>
             </li>
           ))}

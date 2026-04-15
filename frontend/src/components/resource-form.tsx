@@ -103,38 +103,38 @@ export function ResourceForm({ resource, onSubmit, isSubmitting, submitLabel, er
   return (
     <form onSubmit={handleSubmit}>
       {(validationErrors.length > 0 || error) && (
-        <div className="error-msg">
-          {validationErrors.map((err) => <p key={err} style={{ margin: "2px 0" }}>{err}</p>)}
-          {error && <p style={{ margin: "2px 0" }}>{error}</p>}
+        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded text-sm mb-3">
+          {validationErrors.map((err) => <p key={err} className="my-0.5">{err}</p>)}
+          {error && <p className="my-0.5">{error}</p>}
         </div>
       )}
 
-      <div className="form-group">
-        <label htmlFor="title">Title *</label>
-        <input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter resource title" />
+      <div className="mb-4">
+        <label htmlFor="title" className="block text-sm font-bold mb-1">Title *</label>
+        <input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter resource title" className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500" />
       </div>
 
-      <div className="form-group">
-        <label htmlFor="category">Category *</label>
-        <select id="category" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+      <div className="mb-4">
+        <label htmlFor="category" className="block text-sm font-bold mb-1">Category *</label>
+        <select id="category" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500">
           <option value="">Select a category</option>
           {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
         </select>
       </div>
 
-      <div className="form-group">
-        <label htmlFor="place">Place</label>
-        <input id="place" type="text" value={place} onChange={(e) => setPlace(e.target.value)} placeholder="Location or place of origin" />
+      <div className="mb-4">
+        <label htmlFor="place" className="block text-sm font-bold mb-1">Place</label>
+        <input id="place" type="text" value={place} onChange={(e) => setPlace(e.target.value)} placeholder="Location or place of origin" className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500" />
       </div>
 
-      <div className="form-group">
-        <label htmlFor="description">Description</label>
-        <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe this heritage resource..." rows={5} />
+      <div className="mb-4">
+        <label htmlFor="description" className="block text-sm font-bold mb-1">Description</label>
+        <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe this heritage resource..." rows={5} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500" />
       </div>
 
-      <div className="form-group">
-        <label>Tags</label>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      <div className="mb-4">
+        <label className="block text-sm font-bold mb-1">Tags</label>
+        <div className="flex flex-wrap gap-1.5">
           {tags.map((tag) => {
             const selected = selectedTagIds.includes(tag.id);
             return (
@@ -142,53 +142,49 @@ export function ResourceForm({ resource, onSubmit, isSubmitting, submitLabel, er
                 key={tag.id}
                 type="button"
                 onClick={() => toggleTag(tag.id)}
-                style={{
-                  padding: "4px 10px",
-                  borderRadius: 12,
-                  border: "1px solid #ccc",
-                  background: selected ? "#1a73e8" : "#fff",
-                  color: selected ? "#fff" : "#333",
-                  cursor: "pointer",
-                  fontSize: 13,
-                }}
+                className={`px-2.5 py-1 rounded-xl border text-[13px] cursor-pointer ${
+                  selected
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-gray-700 border-gray-300"
+                }`}
               >
                 {tag.name}
               </button>
             );
           })}
-          {tags.length === 0 && <p style={{ color: "#888", fontSize: 14 }}>No tags available</p>}
+          {tags.length === 0 && <p className="text-gray-400 text-sm">No tags available</p>}
         </div>
       </div>
 
-      <div className="form-group">
-        <label htmlFor="copyright">Copyright Declaration *</label>
-        <textarea id="copyright" value={copyrightDeclaration} onChange={(e) => setCopyrightDeclaration(e.target.value)} placeholder="Declare copyright ownership or licensing..." rows={3} />
+      <div className="mb-4">
+        <label htmlFor="copyright" className="block text-sm font-bold mb-1">Copyright Declaration *</label>
+        <textarea id="copyright" value={copyrightDeclaration} onChange={(e) => setCopyrightDeclaration(e.target.value)} placeholder="Declare copyright ownership or licensing..." rows={3} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500" />
       </div>
 
       {resourceId && (
-        <div className="form-group">
-          <label>File Attachments</label>
+        <div className="mb-4">
+          <label className="block text-sm font-bold mb-1">File Attachments</label>
           <FileUploader resourceId={resourceId} existingFiles={existingFiles} onFilesChange={onFilesChange ?? (() => {})} />
         </div>
       )}
 
-      <div className="form-group">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <label style={{ margin: 0 }}>External Links</label>
-          <button type="button" className="btn btn-sm" onClick={addLink}>+ Add Link</button>
+      <div className="mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <label className="text-sm font-bold">External Links</label>
+          <button type="button" className="bg-white border border-gray-300 px-2 py-1 rounded text-xs hover:bg-gray-50" onClick={addLink}>+ Add Link</button>
         </div>
         {externalLinks.map((link, index) => (
-          <div key={index} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-            <div style={{ flex: 1 }}>
-              <input type="text" value={link.url} onChange={(e) => updateLink(index, "url", e.target.value)} placeholder="https://example.com" style={{ marginBottom: 4 }} />
-              <input type="text" value={link.label} onChange={(e) => updateLink(index, "label", e.target.value)} placeholder="Link label (optional)" />
+          <div key={index} className="flex gap-2 mb-2">
+            <div className="flex-1">
+              <input type="text" value={link.url} onChange={(e) => updateLink(index, "url", e.target.value)} placeholder="https://example.com" className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500 mb-1" />
+              <input type="text" value={link.label} onChange={(e) => updateLink(index, "label", e.target.value)} placeholder="Link label (optional)" className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500" />
             </div>
-            <button type="button" className="btn btn-sm btn-danger" onClick={() => removeLink(index)}>✕</button>
+            <button type="button" className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700 self-start" onClick={() => removeLink(index)}>Remove</button>
           </div>
         ))}
       </div>
 
-      <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+      <button type="submit" className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 disabled:opacity-50" disabled={isSubmitting}>
         {isSubmitting ? "Saving..." : submitLabel}
       </button>
     </form>

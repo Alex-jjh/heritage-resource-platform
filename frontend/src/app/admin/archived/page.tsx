@@ -21,43 +21,43 @@ function ArchivedContent() {
   });
 
   return (
-    <main className="container">
+    <main className="max-w-5xl mx-auto px-5 py-5">
       <AdminNav />
 
       {archivedQuery.isLoading ? (
         <p>Loading...</p>
       ) : archivedQuery.isError ? (
-        <div className="error-msg">Failed to load archived resources.</div>
+        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded text-sm mb-3">Failed to load archived resources.</div>
       ) : archivedQuery.data && archivedQuery.data.length === 0 ? (
-        <p style={{ textAlign: "center", color: "#888", padding: 40 }}>No archived resources.</p>
+        <p className="text-center text-gray-400 py-10">No archived resources.</p>
       ) : (
-        <table>
+        <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th>Title</th>
-              <th>Category</th>
-              <th>Contributor</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th className="border border-gray-200 px-3 py-2 text-left text-sm bg-gray-50 font-bold">Title</th>
+              <th className="border border-gray-200 px-3 py-2 text-left text-sm bg-gray-50 font-bold">Category</th>
+              <th className="border border-gray-200 px-3 py-2 text-left text-sm bg-gray-50 font-bold">Contributor</th>
+              <th className="border border-gray-200 px-3 py-2 text-left text-sm bg-gray-50 font-bold">Status</th>
+              <th className="border border-gray-200 px-3 py-2 text-left text-sm bg-gray-50 font-bold">Actions</th>
             </tr>
           </thead>
           <tbody>
             {archivedQuery.data?.map((resource) => (
               <tr key={resource.id}>
-                <td>{resource.title}</td>
-                <td>{resource.category.name}</td>
-                <td>{resource.contributorName}</td>
-                <td><StatusBadge status={resource.status} /></td>
-                <td>
-                  <div style={{ display: "flex", gap: 4 }}>
+                <td className="border border-gray-200 px-3 py-2 text-sm">{resource.title}</td>
+                <td className="border border-gray-200 px-3 py-2 text-sm">{resource.category.name}</td>
+                <td className="border border-gray-200 px-3 py-2 text-sm">{resource.contributorName}</td>
+                <td className="border border-gray-200 px-3 py-2 text-sm"><StatusBadge status={resource.status} /></td>
+                <td className="border border-gray-200 px-3 py-2 text-sm">
+                  <div className="flex gap-1">
                     <button
-                      className="btn btn-sm"
+                      className="bg-white border border-gray-300 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50"
                       onClick={() => restoreMutation.mutate(resource.id)}
                       disabled={restoreMutation.isPending}
                     >
-                      {restoreMutation.isPending ? "Restoring..." : "🔄 Restore"}
+                      {restoreMutation.isPending ? "Restoring..." : "Restore"}
                     </button>
-                    <Link href={`/resources/${resource.id}`} className="btn btn-sm">View</Link>
+                    <Link href={`/resources/${resource.id}`} className="bg-white border border-gray-300 px-2 py-1 rounded text-xs hover:bg-gray-50 no-underline text-inherit">View</Link>
                   </div>
                 </td>
               </tr>

@@ -5,22 +5,22 @@ import type { ResourceResponse } from "@/types";
 
 export function ResourceCard({ resource }: { resource: ResourceResponse }) {
   return (
-    <Link href={`/resources/${resource.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-      <div className="card" style={{ height: "100%" }}>
-        <div style={{ background: "#eee", height: 150, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 4, marginBottom: 10, overflow: "hidden" }}>
+    <Link href={`/resources/${resource.id}`} className="no-underline text-inherit">
+      <div className="bg-white border border-gray-200 rounded p-4 mb-3 h-full">
+        <div className="bg-gray-100 h-[150px] flex items-center justify-center rounded mb-2.5 overflow-hidden">
           {resource.thumbnailUrl ? (
-            <img src={resource.thumbnailUrl} alt={resource.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <img src={resource.thumbnailUrl} alt={resource.title} className="w-full h-full object-cover" />
           ) : (
-            <span style={{ fontSize: 40 }}>🏛️</span>
+            <span className="text-sm text-gray-400">No image</span>
           )}
         </div>
-        <h3 style={{ margin: "0 0 4px", fontSize: 16 }}>{resource.title}</h3>
-        <p style={{ margin: 0, fontSize: 13, color: "#666" }}>{resource.category.name}</p>
-        {resource.place && <p style={{ margin: "2px 0 0", fontSize: 12, color: "#999" }}>{resource.place}</p>}
+        <h3 className="m-0 mb-1 text-base">{resource.title}</h3>
+        <p className="m-0 text-[13px] text-gray-500">{resource.category.name}</p>
+        {resource.place && <p className="mt-0.5 mb-0 text-xs text-gray-400">{resource.place}</p>}
         {resource.tags.length > 0 && (
-          <div style={{ marginTop: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>
+          <div className="mt-1.5 flex gap-1 flex-wrap">
             {resource.tags.slice(0, 3).map((tag) => (
-              <span key={tag.id} style={{ background: "#e8e8e8", padding: "1px 6px", borderRadius: 8, fontSize: 11 }}>{tag.name}</span>
+              <span key={tag.id} className="bg-gray-200 px-1.5 py-0.5 rounded-lg text-[11px]">{tag.name}</span>
             ))}
           </div>
         )}

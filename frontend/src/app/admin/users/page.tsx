@@ -67,38 +67,38 @@ function UsersContent() {
   });
 
   return (
-    <main className="container">
+    <main className="max-w-5xl mx-auto px-5 py-5">
       <AdminNav />
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <span style={{ color: "#888", fontSize: 14 }}>{users.length} users</span>
-        <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(!showAdd)}>+ Add User</button>
+      <div className="flex justify-between items-center mb-4">
+        <span className="text-gray-400 text-sm">{users.length} users</span>
+        <button className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700" onClick={() => setShowAdd(!showAdd)}>+ Add User</button>
       </div>
 
       {showAdd && (
-        <div className="card" style={{ marginBottom: 16 }}>
-          <h3 style={{ marginTop: 0 }}>Add New User</h3>
-          {addError && <div className="error-msg">{addError}</div>}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
-            <input type="text" placeholder="Display Name" value={newName} onChange={(e) => setNewName(e.target.value)} />
-            <input type="email" placeholder="Email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-            <input type="password" placeholder="Password (min 8)" value={newPass} onChange={(e) => setNewPass(e.target.value)} />
-            <select value={newRole} onChange={(e) => setNewRole(e.target.value)}>
+        <div className="bg-white border border-gray-200 rounded p-4 mb-4">
+          <h3 className="mt-0">Add New User</h3>
+          {addError && <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded text-sm mb-3">{addError}</div>}
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <input type="text" placeholder="Display Name" value={newName} onChange={(e) => setNewName(e.target.value)} className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500" />
+            <input type="email" placeholder="Email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500" />
+            <input type="password" placeholder="Password (min 8)" value={newPass} onChange={(e) => setNewPass(e.target.value)} className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500" />
+            <select value={newRole} onChange={(e) => setNewRole(e.target.value)} className="border border-gray-300 rounded px-2 py-1.5 text-sm">
               {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn btn-primary btn-sm" onClick={() => addUser.mutate()} disabled={addUser.isPending || !newEmail || !newName || !newPass}>
+          <div className="flex gap-2">
+            <button className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700 disabled:opacity-50" onClick={() => addUser.mutate()} disabled={addUser.isPending || !newEmail || !newName || !newPass}>
               {addUser.isPending ? "Creating..." : "Create"}
             </button>
-            <button className="btn btn-sm" onClick={() => { setShowAdd(false); setAddError(null); }}>Cancel</button>
+            <button className="bg-white border border-gray-300 px-2 py-1 rounded text-xs hover:bg-gray-50" onClick={() => { setShowAdd(false); setAddError(null); }}>Cancel</button>
           </div>
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        <input type="search" placeholder="Search by name or email..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1 }} />
-        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} style={{ width: 150 }}>
+      <div className="flex gap-2 mb-4">
+        <input type="search" placeholder="Search by name or email..." value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500" />
+        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="w-[150px] border border-gray-300 rounded px-2 py-1.5 text-sm">
           <option value="ALL">All Roles</option>
           {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
         </select>
@@ -107,36 +107,36 @@ function UsersContent() {
       {usersQ.isLoading ? (
         <p>Loading...</p>
       ) : usersQ.isError ? (
-        <div className="error-msg">Failed to load users.</div>
+        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded text-sm mb-3">Failed to load users.</div>
       ) : filtered.length === 0 ? (
-        <p style={{ textAlign: "center", color: "#888", padding: 40 }}>No users found.</p>
+        <p className="text-center text-gray-400 py-10">No users found.</p>
       ) : (
-        <table>
+        <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Actions</th>
+              <th className="border border-gray-200 px-3 py-2 text-left text-sm bg-gray-50 font-bold">Name</th>
+              <th className="border border-gray-200 px-3 py-2 text-left text-sm bg-gray-50 font-bold">Email</th>
+              <th className="border border-gray-200 px-3 py-2 text-left text-sm bg-gray-50 font-bold">Role</th>
+              <th className="border border-gray-200 px-3 py-2 text-left text-sm bg-gray-50 font-bold">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((user) => (
               <tr key={user.id}>
-                <td>{user.displayName}</td>
-                <td>{user.email}</td>
-                <td>
+                <td className="border border-gray-200 px-3 py-2 text-sm">{user.displayName}</td>
+                <td className="border border-gray-200 px-3 py-2 text-sm">{user.email}</td>
+                <td className="border border-gray-200 px-3 py-2 text-sm">
                   <select
                     value={user.role}
                     onChange={(e) => { if (e.target.value !== user.role) changeRole.mutate({ id: user.id, role: e.target.value }); }}
-                    style={{ width: 130 }}
+                    className="w-[130px] border border-gray-300 rounded px-2 py-1 text-sm"
                   >
                     {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                   </select>
                 </td>
-                <td>
+                <td className="border border-gray-200 px-3 py-2 text-sm">
                   <button
-                    className="btn btn-sm btn-danger"
+                    className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700"
                     onClick={() => { if (confirm(`Delete user ${user.email}?`)) deleteUser.mutate(user.id); }}
                   >
                     Delete

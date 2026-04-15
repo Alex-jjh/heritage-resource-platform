@@ -29,7 +29,7 @@ export function ProtectedRoute({ requiredRoles, children }: ProtectedRouteProps)
   }, [isLoading, pendingAuth, isAuthenticated, user, requiredRoles, router]);
 
   if (isLoading || pendingAuth) {
-    return <div style={{ textAlign: "center", padding: 60 }}>Loading...</div>;
+    return <div className="text-center py-16">Loading...</div>;
   }
 
   if (!isAuthenticated) return null;

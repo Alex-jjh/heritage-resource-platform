@@ -79,55 +79,55 @@ function ProfileContent() {
   }
 
   return (
-    <main style={{ display: "flex", justifyContent: "center", padding: 40 }}>
-      <div className="card" style={{ width: "100%", maxWidth: 450 }}>
+    <main className="flex justify-center p-10">
+      <div className="bg-white border border-gray-200 rounded p-4 mb-3 w-full max-w-md">
         <h1>My Profile</h1>
-        <p style={{ color: "#888", fontSize: 14, marginBottom: 16 }}>View and update your account details</p>
+        <p className="text-gray-400 text-sm mb-4">View and update your account details</p>
 
-        {error && <div className="error-msg">{error}</div>}
-        {success && <div className="success-msg">{success}</div>}
+        {error && <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded text-sm mb-3">{error}</div>}
+        {success && <div className="bg-green-50 border border-green-200 text-green-700 p-3 rounded text-sm mb-3">{success}</div>}
 
-        <div className="form-group">
-          <label>Display Name</label>
+        <div className="mb-4">
+          <label className="block text-sm font-bold mb-1">Display Name</label>
           {isEditing ? (
-            <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoFocus />
+            <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoFocus className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500" />
           ) : (
-            <p style={{ margin: 0 }}>{user.displayName}</p>
+            <p className="m-0">{user.displayName}</p>
           )}
         </div>
 
-        <div className="form-group">
-          <label>Email</label>
-          <p style={{ margin: 0, color: "#666" }}>{user.email}</p>
+        <div className="mb-4">
+          <label className="block text-sm font-bold mb-1">Email</label>
+          <p className="m-0 text-gray-500">{user.email}</p>
         </div>
 
-        <div className="form-group">
-          <label>Role</label>
-          <p style={{ margin: 0, color: "#666" }}>{ROLE_LABELS[user.role] ?? user.role}</p>
+        <div className="mb-4">
+          <label className="block text-sm font-bold mb-1">Role</label>
+          <p className="m-0 text-gray-500">{ROLE_LABELS[user.role] ?? user.role}</p>
         </div>
 
         {user.role === "REGISTERED_VIEWER" && !user.contributorRequested && (
-          <div className="warning-msg">
-            <p style={{ margin: "0 0 8px" }}>Want to contribute heritage resources? Apply to become a Contributor.</p>
-            <button className="btn btn-sm" onClick={handleRequestContributor} disabled={isRequesting}>
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 p-3 rounded text-sm mb-3">
+            <p className="m-0 mb-2">Want to contribute heritage resources? Apply to become a Contributor.</p>
+            <button className="bg-white border border-gray-300 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50" onClick={handleRequestContributor} disabled={isRequesting}>
               {isRequesting ? "Submitting..." : "Apply to be Contributor"}
             </button>
           </div>
         )}
         {user.role === "REGISTERED_VIEWER" && user.contributorRequested && (
-          <div className="warning-msg">Your contributor application is pending administrator approval.</div>
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 p-3 rounded text-sm mb-3">Your contributor application is pending administrator approval.</div>
         )}
 
-        <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
+        <div className="mt-4 flex gap-2">
           {isEditing ? (
             <>
-              <button className="btn btn-primary" onClick={handleSave} disabled={isSaving}>
+              <button className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 disabled:opacity-50" onClick={handleSave} disabled={isSaving}>
                 {isSaving ? "Saving..." : "Save"}
               </button>
-              <button className="btn" onClick={handleCancel} disabled={isSaving}>Cancel</button>
+              <button className="bg-white border border-gray-300 px-3 py-1.5 rounded text-sm hover:bg-gray-50 disabled:opacity-50" onClick={handleCancel} disabled={isSaving}>Cancel</button>
             </>
           ) : (
-            <button className="btn btn-primary" onClick={() => { setSuccess(null); setIsEditing(true); }}>
+            <button className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700" onClick={() => { setSuccess(null); setIsEditing(true); }}>
               Edit Profile
             </button>
           )}

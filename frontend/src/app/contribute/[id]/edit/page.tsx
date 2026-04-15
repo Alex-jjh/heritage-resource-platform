@@ -38,13 +38,13 @@ function EditResourceContent({ id }: { id: string }) {
   }
 
   if (resourceQuery.isLoading) {
-    return <div className="container-narrow"><p>Loading...</p></div>;
+    return <div className="max-w-xl mx-auto px-5 py-5"><p>Loading...</p></div>;
   }
 
   if (resourceQuery.isError) {
     return (
-      <div className="container-narrow">
-        <div className="error-msg">Resource not found or you don&apos;t have permission to edit it.</div>
+      <div className="max-w-xl mx-auto px-5 py-5">
+        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded text-sm mb-3">Resource not found or you don&apos;t have permission to edit it.</div>
         <Link href="/contribute">← Back to my resources</Link>
       </div>
     );
@@ -54,8 +54,8 @@ function EditResourceContent({ id }: { id: string }) {
 
   if (resource.status !== "DRAFT") {
     return (
-      <div className="container-narrow">
-        <div className="warning-msg">
+      <div className="max-w-xl mx-auto px-5 py-5">
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 p-3 rounded text-sm mb-3">
           Only draft resources can be edited. This resource is currently <strong>{resource.status.toLowerCase().replace("_", " ")}</strong>.
         </div>
         <Link href="/contribute">← Back to my resources</Link>
@@ -64,11 +64,11 @@ function EditResourceContent({ id }: { id: string }) {
   }
 
   return (
-    <main className="container-narrow">
+    <main className="max-w-xl mx-auto px-5 py-5">
       <Link href="/contribute">← Back to my resources</Link>
-      <h1 style={{ marginTop: 12 }}>Edit Resource</h1>
+      <h1 className="mt-3">Edit Resource</h1>
       {updateMutation.isSuccess && (
-        <div className="success-msg">Resource saved successfully.</div>
+        <div className="bg-green-50 border border-green-200 text-green-700 p-3 rounded text-sm mb-3">Resource saved successfully.</div>
       )}
       <ResourceForm
         resource={resource}

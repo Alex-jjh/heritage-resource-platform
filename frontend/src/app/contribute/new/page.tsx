@@ -25,10 +25,10 @@ function CreateResourceContent() {
   }
 
   return (
-    <main className="container-narrow">
+    <main className="max-w-xl mx-auto px-5 py-5">
       <Link href="/contribute">← Back to my resources</Link>
-      <h1 style={{ marginTop: 12 }}>Create New Resource</h1>
-      <p style={{ color: "#888", fontSize: 14, marginBottom: 20 }}>
+      <h1 className="mt-3">Create New Resource</h1>
+      <p className="text-gray-400 text-sm mb-5">
         Fill in the details below to create a draft resource. You can upload files after saving.
       </p>
       <ResourceForm onSubmit={handleSubmit} isSubmitting={createMutation.isPending} submitLabel="Create Draft" error={error} />

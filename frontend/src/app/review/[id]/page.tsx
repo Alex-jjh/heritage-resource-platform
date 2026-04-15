@@ -60,12 +60,12 @@ function ReviewDetailContent({ id }: { id: string }) {
     approveMutation.mutate();
   }
 
-  if (resourceQuery.isLoading) return <div className="container"><p>Loading...</p></div>;
+  if (resourceQuery.isLoading) return <div className="max-w-5xl mx-auto px-5 py-5"><p>Loading...</p></div>;
 
   if (resourceQuery.isError) {
     return (
-      <div className="container">
-        <div className="error-msg">Resource not found or you don&apos;t have permission to review it.</div>
+      <div className="max-w-5xl mx-auto px-5 py-5">
+        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded text-sm mb-3">Resource not found or you don&apos;t have permission to review it.</div>
         <Link href="/review">← Back to review queue</Link>
       </div>
     );
@@ -76,69 +76,74 @@ function ReviewDetailContent({ id }: { id: string }) {
   const isActing = approveMutation.isPending || rejectMutation.isPending;
 
   return (
-    <main className="container">
+    <main className="max-w-5xl mx-auto px-5 py-5">
       <Link href="/review">← Back to review queue</Link>
 
-      <div style={{ display: "flex", gap: 30, marginTop: 16, flexWrap: "wrap" }}>
+      <div className="flex gap-8 mt-4 flex-wrap">
         {/* Left: Resource details */}
-        <div style={{ flex: 2, minWidth: 300 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <h1 style={{ margin: 0 }}>{resource.title}</h1>
+        <div className="flex-[2] min-w-[300px]">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="m-0">{resource.title}</h1>
             <StatusBadge status={resource.status as ResourceStatus} />
           </div>
-          <p style={{ color: "#666", fontSize: 14, marginTop: 4 }}>
+          <p className="text-gray-500 text-sm mt-1">
             By {resource.contributorName} · Submitted {new Date(resource.updatedAt).toLocaleDateString()}
           </p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 16 }}>
+          <div className="grid grid-cols-2 gap-3 mt-4">
             <div>
-              <strong style={{ fontSize: 12, color: "#888", textTransform: "uppercase" }}>Category</strong>
-              <p style={{ margin: "2px 0" }}>{resource.category.name}</p>
+              <strong className="text-xs text-gray-400 uppercase">Category</strong>
+              <p className="my-0.5">{resource.category.name}</p>
             </div>
             {resource.place && (
               <div>
-                <strong style={{ fontSize: 12, color: "#888", textTransform: "uppercase" }}>Place</strong>
-                <p style={{ margin: "2px 0" }}>{resource.place}</p>
+                <strong className="text-xs text-gray-400 uppercase">Place</strong>
+                <p className="my-0.5">{resource.place}</p>
               </div>
             )}
           </div>
 
           {resource.tags.length > 0 && (
-            <div style={{ marginTop: 12, display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <div className="mt-3 flex gap-1.5 flex-wrap">
               {resource.tags.map((tag) => (
-                <span key={tag.id} style={{ background: "#e8e8e8", padding: "2px 8px", borderRadius: 10, fontSize: 12 }}>{tag.name}</span>
+                <span key={tag.id} className="bg-gray-200 px-2 py-0.5 rounded-xl text-xs">{tag.name}</span>
               ))}
             </div>
           )}
 
           {resource.description && (
-            <div style={{ marginTop: 16 }}>
+            <div className="mt-4">
               <h2>Description</h2>
-              <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{resource.description}</p>
+              <p className="whitespace-pre-wrap leading-relaxed">{resource.description}</p>
             </div>
           )}
 
-          <div style={{ marginTop: 12 }}>
-            <strong style={{ fontSize: 12, color: "#888", textTransform: "uppercase" }}>Copyright</strong>
+          <div className="mt-3">
+            <strong className="text-xs text-gray-400 uppercase">Copyright</strong>
             <p>{resource.copyrightDeclaration}</p>
           </div>
 
-          <hr style={{ margin: "20px 0", border: "none", borderTop: "1px solid #ddd" }} />
+          <hr className="my-5 border-0 border-t border-gray-200" />
 
           {resource.fileReferences.length > 0 && (
             <div>
               <h2>File Attachments</h2>
-              <table>
+              <table className="w-full border-collapse">
                 <thead>
-                  <tr><th>File</th><th>Type</th><th>Size</th><th>Action</th></tr>
+                  <tr>
+                    <th className="border border-gray-200 px-3 py-2 text-left text-sm bg-gray-50 font-bold">File</th>
+                    <th className="border border-gray-200 px-3 py-2 text-left text-sm bg-gray-50 font-bold">Type</th>
+                    <th className="border border-gray-200 px-3 py-2 text-left text-sm bg-gray-50 font-bold">Size</th>
+                    <th className="border border-gray-200 px-3 py-2 text-left text-sm bg-gray-50 font-bold">Action</th>
+                  </tr>
                 </thead>
                 <tbody>
                   {resource.fileReferences.map((file) => (
                     <tr key={file.id}>
-                      <td>{file.originalFileName}</td>
-                      <td>{file.contentType}</td>
-                      <td>{formatFileSize(file.fileSize)}</td>
-                      <td>{file.downloadUrl && <a href={file.downloadUrl} target="_blank" rel="noopener noreferrer">Download</a>}</td>
+                      <td className="border border-gray-200 px-3 py-2 text-sm">{file.originalFileName}</td>
+                      <td className="border border-gray-200 px-3 py-2 text-sm">{file.contentType}</td>
+                      <td className="border border-gray-200 px-3 py-2 text-sm">{formatFileSize(file.fileSize)}</td>
+                      <td className="border border-gray-200 px-3 py-2 text-sm">{file.downloadUrl && <a href={file.downloadUrl} target="_blank" rel="noopener noreferrer">Download</a>}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -147,7 +152,7 @@ function ReviewDetailContent({ id }: { id: string }) {
           )}
 
           {resource.externalLinks.length > 0 && (
-            <div style={{ marginTop: 16 }}>
+            <div className="mt-4">
               <h2>External Links</h2>
               <ul>
                 {resource.externalLinks.map((link) => (
@@ -161,37 +166,38 @@ function ReviewDetailContent({ id }: { id: string }) {
         </div>
 
         {/* Right: Review actions */}
-        <div style={{ flex: 1, minWidth: 250 }}>
-          <div className="card">
-            <h2 style={{ marginTop: 0 }}>Review Actions</h2>
+        <div className="flex-1 min-w-[250px]">
+          <div className="bg-white border border-gray-200 rounded p-4">
+            <h2 className="mt-0">Review Actions</h2>
 
             {!isPending ? (
-              <p style={{ color: "#888" }}>
+              <p className="text-gray-400">
                 This resource is no longer pending review. Status: <StatusBadge status={resource.status as ResourceStatus} />
               </p>
             ) : (
               <>
-                {actionError && <div className="error-msg">{actionError}</div>}
+                {actionError && <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded text-sm mb-3">{actionError}</div>}
 
-                <button className="btn btn-primary" style={{ width: "100%", marginBottom: 12 }} onClick={handleApprove} disabled={isActing}>
-                  {approveMutation.isPending ? "Approving..." : "✅ Approve"}
+                <button className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 disabled:opacity-50 w-full mb-3" onClick={handleApprove} disabled={isActing}>
+                  {approveMutation.isPending ? "Approving..." : "Approve"}
                 </button>
 
-                <hr style={{ margin: "12px 0", border: "none", borderTop: "1px solid #ddd" }} />
+                <hr className="my-3 border-0 border-t border-gray-200" />
 
-                <div className="form-group">
-                  <label htmlFor="reject-feedback">Rejection Feedback</label>
+                <div className="mb-4">
+                  <label htmlFor="reject-feedback" className="block text-sm font-bold mb-1">Rejection Feedback</label>
                   <textarea
                     id="reject-feedback"
                     placeholder="Explain why this resource is being rejected..."
                     value={feedback}
                     onChange={(e) => { setFeedback(e.target.value); if (feedbackError) setFeedbackError(null); }}
                     rows={4}
+                    className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500"
                   />
-                  {feedbackError && <p style={{ color: "#c00", fontSize: 13 }}>{feedbackError}</p>}
+                  {feedbackError && <p className="text-red-600 text-[13px]">{feedbackError}</p>}
                 </div>
-                <button className="btn btn-danger" style={{ width: "100%" }} onClick={handleReject} disabled={isActing}>
-                  {rejectMutation.isPending ? "Rejecting..." : "❌ Reject"}
+                <button className="bg-red-600 text-white px-3 py-1.5 rounded text-sm hover:bg-red-700 disabled:opacity-50 w-full" onClick={handleReject} disabled={isActing}>
+                  {rejectMutation.isPending ? "Rejecting..." : "Reject"}
                 </button>
               </>
             )}

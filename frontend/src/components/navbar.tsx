@@ -9,45 +9,45 @@ export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header style={{ background: "#fff", borderBottom: "1px solid #ddd", padding: "0 20px" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 50, maxWidth: 1100, margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <Link href="/" style={{ fontWeight: "bold", fontSize: 18, color: "#333", textDecoration: "none" }}>
-            🏛️ Heritage Platform
+    <header className="bg-white border-b border-gray-200 px-5">
+      <div className="flex items-center justify-between h-12 max-w-5xl mx-auto">
+        <div className="flex items-center gap-5">
+          <Link href="/" className="font-bold text-lg text-gray-800 no-underline">
+            Heritage Platform
           </Link>
           {isAuthenticated && user && (
-            <nav style={{ display: "flex", gap: 12 }}>
-              <Link href="/browse">Browse</Link>
+            <nav className="flex gap-3 text-sm">
+              <Link href="/browse" className="text-blue-600 hover:underline">Browse</Link>
               {(user.role === "CONTRIBUTOR" || user.role === "REVIEWER" || user.role === "ADMINISTRATOR") && (
-                <Link href="/contribute">My Resources</Link>
+                <Link href="/contribute" className="text-blue-600 hover:underline">My Resources</Link>
               )}
               {(user.role === "REVIEWER" || user.role === "ADMINISTRATOR") && (
-                <Link href="/review">Review</Link>
+                <Link href="/review" className="text-blue-600 hover:underline">Review</Link>
               )}
               {user.role === "ADMINISTRATOR" && (
-                <Link href="/admin/users">Admin</Link>
+                <Link href="/admin/users" className="text-blue-600 hover:underline">Admin</Link>
               )}
             </nav>
           )}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div className="flex items-center gap-3">
           {isLoading ? null : isAuthenticated && user ? (
-            <div style={{ position: "relative" }}>
+            <div className="relative">
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                style={{ background: "none", border: "1px solid #ccc", borderRadius: 4, padding: "4px 12px", cursor: "pointer" }}
+                className="bg-white border border-gray-300 rounded px-3 py-1 text-sm cursor-pointer"
               >
                 {user.displayName} ▼
               </button>
               {menuOpen && (
-                <div style={{ position: "absolute", right: 0, top: 35, background: "#fff", border: "1px solid #ddd", borderRadius: 4, minWidth: 150, zIndex: 100, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
-                  <Link href="/profile" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "8px 12px", borderBottom: "1px solid #eee" }}>
+                <div className="absolute right-0 top-9 bg-white border border-gray-200 rounded min-w-[150px] z-50 shadow-md">
+                  <Link href="/profile" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-sm border-b border-gray-100 hover:bg-gray-50">
                     Profile
                   </Link>
                   <button
                     onClick={() => { logout(); setMenuOpen(false); }}
-                    style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 12px", background: "none", border: "none", cursor: "pointer", color: "#c00" }}
+                    className="block w-full text-left px-3 py-2 text-sm text-red-600 bg-transparent border-none cursor-pointer hover:bg-gray-50"
                   >
                     Logout
                   </button>
@@ -56,8 +56,8 @@ export function Navbar() {
             </div>
           ) : (
             <>
-              <Link href="/login">Login</Link>
-              <Link href="/register" className="btn btn-primary btn-sm">Register</Link>
+              <Link href="/login" className="text-sm text-blue-600 hover:underline">Login</Link>
+              <Link href="/register" className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Register</Link>
             </>
           )}
         </div>

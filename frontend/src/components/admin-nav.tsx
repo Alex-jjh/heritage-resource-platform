@@ -14,23 +14,20 @@ export function AdminNav() {
   const pathname = usePathname();
 
   return (
-    <div style={{ marginBottom: 20 }}>
+    <div className="mb-5">
       <h1>Admin Panel</h1>
-      <div style={{ display: "flex", gap: 4, borderBottom: "2px solid #ddd", paddingBottom: 0 }}>
+      <div className="flex gap-1 border-b-2 border-gray-200">
         {TABS.map((tab) => {
           const active = pathname === tab.href;
           return (
             <Link
               key={tab.href}
               href={tab.href}
-              style={{
-                padding: "8px 16px",
-                textDecoration: "none",
-                borderBottom: active ? "2px solid #1a73e8" : "2px solid transparent",
-                color: active ? "#1a73e8" : "#666",
-                fontWeight: active ? "bold" : "normal",
-                marginBottom: -2,
-              }}
+              className={`px-4 py-2 no-underline -mb-0.5 ${
+                active
+                  ? "border-b-2 border-blue-600 text-blue-600 font-bold"
+                  : "border-b-2 border-transparent text-gray-500"
+              }`}
             >
               {tab.label}
             </Link>

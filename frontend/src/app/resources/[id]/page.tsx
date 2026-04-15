@@ -41,12 +41,12 @@ function ResourceDetailContent({ id }: { id: string }) {
     onError: (err) => { setAdminError(err instanceof ApiError ? err.message : "Failed to unpublish resource."); },
   });
 
-  if (resourceQuery.isLoading) return <div className="container"><p>Loading...</p></div>;
+  if (resourceQuery.isLoading) return <div className="max-w-5xl mx-auto px-5 py-5"><p>Loading...</p></div>;
 
   if (resourceQuery.isError) {
     return (
-      <div className="container">
-        <div className="error-msg">Resource not found or you don&apos;t have permission to view it.</div>
+      <div className="max-w-5xl mx-auto px-5 py-5">
+        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded text-sm mb-3">Resource not found or you don&apos;t have permission to view it.</div>
         <Link href="/browse">← Back to browse</Link>
       </div>
     );
@@ -55,15 +55,15 @@ function ResourceDetailContent({ id }: { id: string }) {
   const resource = resourceQuery.data!;
 
   return (
-    <main className="container">
+    <main className="max-w-5xl mx-auto px-5 py-5">
       <Link href="/browse">← Back to browse</Link>
 
-      <div style={{ marginTop: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <h1 style={{ margin: 0 }}>{resource.title}</h1>
+      <div className="mt-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="m-0">{resource.title}</h1>
           <StatusBadge status={resource.status as ResourceStatus} />
         </div>
-        <p style={{ color: "#666", fontSize: 14, marginTop: 4 }}>
+        <p className="text-gray-500 text-sm mt-1">
           By {resource.contributorName}
           {resource.approvedAt && (
             <> · Approved on {new Date(resource.approvedAt).toLocaleDateString()}</>
@@ -71,60 +71,60 @@ function ResourceDetailContent({ id }: { id: string }) {
         </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 16 }}>
+      <div className="grid grid-cols-2 gap-3 mt-4">
         <div>
-          <strong style={{ fontSize: 12, color: "#888", textTransform: "uppercase" }}>Category</strong>
-          <p style={{ margin: "2px 0" }}>{resource.category.name}</p>
+          <strong className="text-xs text-gray-400 uppercase">Category</strong>
+          <p className="my-0.5">{resource.category.name}</p>
         </div>
         {resource.place && (
           <div>
-            <strong style={{ fontSize: 12, color: "#888", textTransform: "uppercase" }}>Place</strong>
-            <p style={{ margin: "2px 0" }}>{resource.place}</p>
+            <strong className="text-xs text-gray-400 uppercase">Place</strong>
+            <p className="my-0.5">{resource.place}</p>
           </div>
         )}
       </div>
 
       {resource.tags.length > 0 && (
-        <div style={{ marginTop: 12, display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <div className="mt-3 flex gap-1.5 flex-wrap">
           {resource.tags.map((tag) => (
-            <span key={tag.id} style={{ background: "#e8e8e8", padding: "2px 8px", borderRadius: 10, fontSize: 12 }}>{tag.name}</span>
+            <span key={tag.id} className="bg-gray-200 px-2 py-0.5 rounded-xl text-xs">{tag.name}</span>
           ))}
         </div>
       )}
 
       {resource.description && (
-        <div style={{ marginTop: 16 }}>
+        <div className="mt-4">
           <h2>Description</h2>
-          <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{resource.description}</p>
+          <p className="whitespace-pre-wrap leading-relaxed">{resource.description}</p>
         </div>
       )}
 
-      <div style={{ marginTop: 12 }}>
-        <strong style={{ fontSize: 12, color: "#888", textTransform: "uppercase" }}>Copyright</strong>
+      <div className="mt-3">
+        <strong className="text-xs text-gray-400 uppercase">Copyright</strong>
         <p>{resource.copyrightDeclaration}</p>
       </div>
 
-      <hr style={{ margin: "20px 0", border: "none", borderTop: "1px solid #ddd" }} />
+      <hr className="my-5 border-0 border-t border-gray-200" />
 
       {resource.fileReferences.length > 0 && (
         <div>
           <h2>File Attachments</h2>
-          <table>
+          <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th>File Name</th>
-                <th>Type</th>
-                <th>Size</th>
-                <th>Action</th>
+                <th className="border border-gray-200 px-3 py-2 text-left text-sm bg-gray-50 font-bold">File Name</th>
+                <th className="border border-gray-200 px-3 py-2 text-left text-sm bg-gray-50 font-bold">Type</th>
+                <th className="border border-gray-200 px-3 py-2 text-left text-sm bg-gray-50 font-bold">Size</th>
+                <th className="border border-gray-200 px-3 py-2 text-left text-sm bg-gray-50 font-bold">Action</th>
               </tr>
             </thead>
             <tbody>
               {resource.fileReferences.map((file) => (
                 <tr key={file.id}>
-                  <td>{file.originalFileName}</td>
-                  <td>{file.contentType}</td>
-                  <td>{formatFileSize(file.fileSize)}</td>
-                  <td>
+                  <td className="border border-gray-200 px-3 py-2 text-sm">{file.originalFileName}</td>
+                  <td className="border border-gray-200 px-3 py-2 text-sm">{file.contentType}</td>
+                  <td className="border border-gray-200 px-3 py-2 text-sm">{formatFileSize(file.fileSize)}</td>
+                  <td className="border border-gray-200 px-3 py-2 text-sm">
                     {file.downloadUrl && (
                       <a href={file.downloadUrl} target="_blank" rel="noopener noreferrer">Download</a>
                     )}
@@ -137,7 +137,7 @@ function ResourceDetailContent({ id }: { id: string }) {
       )}
 
       {resource.externalLinks.length > 0 && (
-        <div style={{ marginTop: 16 }}>
+        <div className="mt-4">
           <h2>External Links</h2>
           <ul>
             {resource.externalLinks.map((link) => (
@@ -150,26 +150,26 @@ function ResourceDetailContent({ id }: { id: string }) {
       )}
 
       {isAdmin && resource.status === "APPROVED" && (
-        <div className="card" style={{ marginTop: 20 }}>
+        <div className="bg-white border border-gray-200 rounded p-4 mt-5">
           <h2>Admin Actions</h2>
-          {adminError && <div className="error-msg">{adminError}</div>}
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn btn-sm" onClick={() => archiveMutation.mutate()} disabled={archiveMutation.isPending || unpublishMutation.isPending}>
-              {archiveMutation.isPending ? "Archiving..." : "📦 Archive"}
+          {adminError && <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded text-sm mb-3">{adminError}</div>}
+          <div className="flex gap-2">
+            <button className="bg-white border border-gray-300 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50" onClick={() => archiveMutation.mutate()} disabled={archiveMutation.isPending || unpublishMutation.isPending}>
+              {archiveMutation.isPending ? "Archiving..." : "Archive"}
             </button>
-            <button className="btn btn-sm" onClick={() => setShowUnpublishForm(!showUnpublishForm)} disabled={archiveMutation.isPending || unpublishMutation.isPending}>
-              ↩ Unpublish
+            <button className="bg-white border border-gray-300 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50" onClick={() => setShowUnpublishForm(!showUnpublishForm)} disabled={archiveMutation.isPending || unpublishMutation.isPending}>
+              Unpublish
             </button>
           </div>
           {showUnpublishForm && (
-            <div className="warning-msg" style={{ marginTop: 12 }}>
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 p-3 rounded text-sm mt-3">
               <label htmlFor="unpublish-reason">Reason for unpublishing:</label>
-              <textarea id="unpublish-reason" placeholder="Explain why..." value={unpublishReason} onChange={(e) => setUnpublishReason(e.target.value)} rows={3} style={{ marginTop: 4 }} />
-              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                <button className="btn btn-sm btn-danger" onClick={() => unpublishMutation.mutate(unpublishReason.trim())} disabled={unpublishMutation.isPending}>
+              <textarea id="unpublish-reason" placeholder="Explain why..." value={unpublishReason} onChange={(e) => setUnpublishReason(e.target.value)} rows={3} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500 mt-1" />
+              <div className="flex gap-2 mt-2">
+                <button className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50" onClick={() => unpublishMutation.mutate(unpublishReason.trim())} disabled={unpublishMutation.isPending}>
                   {unpublishMutation.isPending ? "Unpublishing..." : "Confirm Unpublish"}
                 </button>
-                <button className="btn btn-sm" onClick={() => { setShowUnpublishForm(false); setUnpublishReason(""); }}>Cancel</button>
+                <button className="bg-white border border-gray-300 px-2 py-1 rounded text-xs hover:bg-gray-50" onClick={() => { setShowUnpublishForm(false); setUnpublishReason(""); }}>Cancel</button>
               </div>
             </div>
           )}

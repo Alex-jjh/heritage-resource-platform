@@ -36,7 +36,6 @@ function LoginContent() {
     e.preventDefault();
     setError(null);
     setIsSubmitting(true);
-
     try {
       await login(email, password);
       router.push("/browse");
@@ -52,47 +51,32 @@ function LoginContent() {
   }
 
   return (
-    <main style={{ display: "flex", justifyContent: "center", padding: 40 }}>
-      <div className="card" style={{ width: "100%", maxWidth: 400 }}>
-        <h1 style={{ textAlign: "center", marginBottom: 4 }}>Sign In</h1>
-        <p style={{ textAlign: "center", color: "#888", marginBottom: 20, fontSize: 14 }}>
-          Enter your credentials to access the platform
-        </p>
+    <main className="flex justify-center p-10">
+      <div className="bg-white border border-gray-200 rounded p-6 w-full max-w-sm">
+        <h1 className="text-center text-xl font-bold mb-1">Sign In</h1>
+        <p className="text-center text-gray-400 text-sm mb-5">Enter your credentials to access the platform</p>
         <form onSubmit={handleSubmit}>
           {showIdleMsg && (
-            <div className="warning-msg">
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 p-2 rounded text-sm mb-3">
               You were logged out due to inactivity. Please sign in again.
             </div>
           )}
-          {error && <div className="error-msg">{error}</div>}
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
+          {error && <div className="bg-red-50 border border-red-200 text-red-700 p-2 rounded text-sm mb-3">{error}</div>}
+          <div className="mb-4">
+            <label htmlFor="email" className="block text-sm font-bold mb-1">Email</label>
+            <input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email"
+              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500" />
           </div>
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
+          <div className="mb-4">
+            <label htmlFor="password" className="block text-sm font-bold mb-1">Password</label>
+            <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password"
+              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500" />
           </div>
-          <button type="submit" className="btn btn-primary" style={{ width: "100%" }} disabled={isSubmitting}>
+          <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded text-sm hover:bg-blue-700 disabled:opacity-50" disabled={isSubmitting}>
             {isSubmitting ? "Signing in..." : "Sign In"}
           </button>
-          <p style={{ textAlign: "center", marginTop: 12, fontSize: 14 }}>
-            Don&apos;t have an account? <Link href="/register">Register</Link>
+          <p className="text-center mt-3 text-sm">
+            Don&apos;t have an account? <Link href="/register" className="text-blue-600 hover:underline">Register</Link>
           </p>
         </form>
       </div>
