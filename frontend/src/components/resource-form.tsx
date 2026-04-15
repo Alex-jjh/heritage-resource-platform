@@ -4,25 +4,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { FileUploader } from "@/components/file-uploader";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2 } from "lucide-react";
-import type {
-  Category,
-  Tag,
-  ResourceResponse,
-  FileReferenceDto,
-} from "@/types";
+import type { Category, Tag, ResourceResponse, FileReferenceDto } from "@/types";
 
 export interface ResourceFormData {
   title: string;
@@ -35,48 +17,23 @@ export interface ResourceFormData {
 }
 
 interface ResourceFormProps {
-  /** Existing resource for edit mode */
   resource?: ResourceResponse;
-  /** Called on save with form data */
   onSubmit: (data: ResourceFormData) => Promise<void>;
-  /** Loading state for submit button */
   isSubmitting: boolean;
-  /** Submit button label */
   submitLabel: string;
-  /** Error message from parent */
   error?: string | null;
-  /** Resource ID for file uploads (only available in edit mode) */
   resourceId?: string;
-  /** Callback when files change */
   onFilesChange?: () => void;
 }
 
-export function ResourceForm({
-  resource,
-  onSubmit,
-  isSubmitting,
-  submitLabel,
-  error,
-  resourceId,
-  onFilesChange,
-}: ResourceFormProps) {
+export function ResourceForm({ resource, onSubmit, isSubmitting, submitLabel, error, resourceId, onFilesChange }: ResourceFormProps) {
   const [title, setTitle] = useState(resource?.title ?? "");
-  const [categoryId, setCategoryId] = useState(
-    resource?.category?.id ?? ""
-  );
+  const [categoryId, setCategoryId] = useState(resource?.category?.id ?? "");
   const [place, setPlace] = useState(resource?.place ?? "");
-  const [description, setDescription] = useState(
-    resource?.description ?? ""
-  );
-  const [copyrightDeclaration, setCopyrightDeclaration] = useState(
-    resource?.copyrightDeclaration ?? ""
-  );
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(
-    resource?.tags?.map((t) => t.id) ?? []
-  );
-  const [externalLinks, setExternalLinks] = useState<
-    { url: string; label: string }[]
-  >(
+  const [description, setDescription] = useState(resource?.description ?? "");
+  const [copyrightDeclaration, setCopyrightDeclaration] = useState(resource?.copyrightDeclaration ?? "");
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(resource?.tags?.map((t) => t.id) ?? []);
+  const [externalLinks, setExternalLinks] = useState<{ url: string; label: string }[]>(
     resource?.externalLinks?.map((l) => ({ url: l.url, label: l.label })) ?? []
   );
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -91,7 +48,6 @@ export function ResourceForm({
     queryFn: () => apiClient.get<Tag[]>("/api/tags"),
   });
 
-  // Sync form when resource prop changes (e.g. after refetch)
   useEffect(() => {
     if (resource) {
       setTitle(resource.title);
@@ -100,36 +56,23 @@ export function ResourceForm({
       setDescription(resource.description ?? "");
       setCopyrightDeclaration(resource.copyrightDeclaration ?? "");
       setSelectedTagIds(resource.tags?.map((t) => t.id) ?? []);
-      setExternalLinks(
-        resource.externalLinks?.map((l) => ({ url: l.url, label: l.label })) ??
-          []
-      );
+      setExternalLinks(resource.externalLinks?.map((l) => ({ url: l.url, label: l.label })) ?? []);
     }
   }, [resource]);
 
   function toggleTag(tagId: string) {
-    setSelectedTagIds((prev) =>
-      prev.includes(tagId)
-        ? prev.filter((id) => id !== tagId)
-        : [...prev, tagId]
-    );
+    setSelectedTagIds((prev) => prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]);
   }
 
-  function addExternalLink() {
+  function addLink() {
     setExternalLinks((prev) => [...prev, { url: "", label: "" }]);
   }
 
-  function updateExternalLink(
-    index: number,
-    field: "url" | "label",
-    value: string
-  ) {
-    setExternalLinks((prev) =>
-      prev.map((link, i) => (i === index ? { ...link, [field]: value } : link))
-    );
+  function updateLink(index: number, field: "url" | "label", value: string) {
+    setExternalLinks((prev) => prev.map((link, i) => (i === index ? { ...link, [field]: value } : link)));
   }
 
-  function removeExternalLink(index: number) {
+  function removeLink(index: number) {
     setExternalLinks((prev) => prev.filter((_, i) => i !== index));
   }
 
@@ -138,13 +81,8 @@ export function ResourceForm({
     const errors: string[] = [];
     if (!title.trim()) errors.push("Title is required");
     if (!categoryId) errors.push("Category is required");
-    if (!copyrightDeclaration.trim())
-      errors.push("Copyright declaration is required");
-
-    if (errors.length > 0) {
-      setValidationErrors(errors);
-      return;
-    }
+    if (!copyrightDeclaration.trim()) errors.push("Copyright declaration is required");
+    if (errors.length > 0) { setValidationErrors(errors); return; }
     setValidationErrors([]);
 
     await onSubmit({
@@ -154,10 +92,7 @@ export function ResourceForm({
       description: description.trim() || undefined!,
       copyrightDeclaration: copyrightDeclaration.trim(),
       tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined!,
-      externalLinks:
-        externalLinks.filter((l) => l.url.trim()).length > 0
-          ? externalLinks.filter((l) => l.url.trim())
-          : undefined!,
+      externalLinks: externalLinks.filter((l) => l.url.trim()).length > 0 ? externalLinks.filter((l) => l.url.trim()) : undefined!,
     });
   }
 
@@ -166,82 +101,40 @@ export function ResourceForm({
   const existingFiles: FileReferenceDto[] = resource?.fileReferences ?? [];
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit}>
       {(validationErrors.length > 0 || error) && (
-        <div
-          role="alert"
-          className="rounded-md bg-destructive/10 p-3 text-sm text-destructive space-y-1"
-        >
-          {validationErrors.map((err) => (
-            <p key={err}>{err}</p>
-          ))}
-          {error && <p>{error}</p>}
+        <div className="error-msg">
+          {validationErrors.map((err) => <p key={err} style={{ margin: "2px 0" }}>{err}</p>)}
+          {error && <p style={{ margin: "2px 0" }}>{error}</p>}
         </div>
       )}
 
-      {/* Title */}
-      <div className="space-y-1.5">
-        <Label htmlFor="title">
-          Title <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Enter resource title"
-        />
+      <div className="form-group">
+        <label htmlFor="title">Title *</label>
+        <input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter resource title" />
       </div>
 
-      {/* Category */}
-      <div className="space-y-1.5">
-        <Label htmlFor="category">
-          Category <span className="text-destructive">*</span>
-        </Label>
-        <Select value={categoryId} onValueChange={(val) => setCategoryId(val ?? "")}>
-          <SelectTrigger className="w-full" id="category">
-            <SelectValue>
-              {categoryId
-                ? categories.find((c) => c.id === categoryId)?.name ?? "Select a category"
-                : "Select a category"}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {categories.map((cat) => (
-              <SelectItem key={cat.id} value={cat.id}>
-                {cat.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="form-group">
+        <label htmlFor="category">Category *</label>
+        <select id="category" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+          <option value="">Select a category</option>
+          {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+        </select>
       </div>
 
-      {/* Place */}
-      <div className="space-y-1.5">
-        <Label htmlFor="place">Place</Label>
-        <Input
-          id="place"
-          value={place}
-          onChange={(e) => setPlace(e.target.value)}
-          placeholder="Location or place of origin"
-        />
+      <div className="form-group">
+        <label htmlFor="place">Place</label>
+        <input id="place" type="text" value={place} onChange={(e) => setPlace(e.target.value)} placeholder="Location or place of origin" />
       </div>
 
-      {/* Description */}
-      <div className="space-y-1.5">
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe this heritage resource…"
-          rows={5}
-        />
+      <div className="form-group">
+        <label htmlFor="description">Description</label>
+        <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe this heritage resource..." rows={5} />
       </div>
 
-      {/* Tags */}
-      <div className="space-y-1.5">
-        <Label>Tags</Label>
-        <div className="flex flex-wrap gap-2">
+      <div className="form-group">
+        <label>Tags</label>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           {tags.map((tag) => {
             const selected = selectedTagIds.includes(tag.id);
             return (
@@ -249,99 +142,55 @@ export function ResourceForm({
                 key={tag.id}
                 type="button"
                 onClick={() => toggleTag(tag.id)}
-                className="focus:outline-none"
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 12,
+                  border: "1px solid #ccc",
+                  background: selected ? "#1a73e8" : "#fff",
+                  color: selected ? "#fff" : "#333",
+                  cursor: "pointer",
+                  fontSize: 13,
+                }}
               >
-                <Badge
-                  variant={selected ? "default" : "outline"}
-                  className="cursor-pointer"
-                >
-                  {tag.name}
-                </Badge>
+                {tag.name}
               </button>
             );
           })}
-          {tags.length === 0 && (
-            <p className="text-sm text-muted-foreground">No tags available</p>
-          )}
+          {tags.length === 0 && <p style={{ color: "#888", fontSize: 14 }}>No tags available</p>}
         </div>
       </div>
 
-      {/* Copyright Declaration */}
-      <div className="space-y-1.5">
-        <Label htmlFor="copyright">
-          Copyright Declaration <span className="text-destructive">*</span>
-        </Label>
-        <Textarea
-          id="copyright"
-          value={copyrightDeclaration}
-          onChange={(e) => setCopyrightDeclaration(e.target.value)}
-          placeholder="Declare copyright ownership or licensing…"
-          rows={3}
-        />
+      <div className="form-group">
+        <label htmlFor="copyright">Copyright Declaration *</label>
+        <textarea id="copyright" value={copyrightDeclaration} onChange={(e) => setCopyrightDeclaration(e.target.value)} placeholder="Declare copyright ownership or licensing..." rows={3} />
       </div>
 
-      {/* File Attachments (only in edit mode when resourceId is available) */}
       {resourceId && (
-        <div className="space-y-1.5">
-          <Label>File Attachments</Label>
-          <FileUploader
-            resourceId={resourceId}
-            existingFiles={existingFiles}
-            onFilesChange={onFilesChange ?? (() => {})}
-          />
+        <div className="form-group">
+          <label>File Attachments</label>
+          <FileUploader resourceId={resourceId} existingFiles={existingFiles} onFilesChange={onFilesChange ?? (() => {})} />
         </div>
       )}
 
-      {/* External Links */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <Label>External Links</Label>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={addExternalLink}
-          >
-            <Plus className="mr-1 size-3.5" />
-            Add Link
-          </Button>
+      <div className="form-group">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <label style={{ margin: 0 }}>External Links</label>
+          <button type="button" className="btn btn-sm" onClick={addLink}>+ Add Link</button>
         </div>
         {externalLinks.map((link, index) => (
-          <div key={index} className="flex items-start gap-2">
-            <div className="flex-1 space-y-1.5">
-              <Input
-                value={link.url}
-                onChange={(e) =>
-                  updateExternalLink(index, "url", e.target.value)
-                }
-                placeholder="https://example.com"
-                aria-label={`External link URL ${index + 1}`}
-              />
-              <Input
-                value={link.label}
-                onChange={(e) =>
-                  updateExternalLink(index, "label", e.target.value)
-                }
-                placeholder="Link label (optional)"
-                aria-label={`External link label ${index + 1}`}
-              />
+          <div key={index} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+            <div style={{ flex: 1 }}>
+              <input type="text" value={link.url} onChange={(e) => updateLink(index, "url", e.target.value)} placeholder="https://example.com" style={{ marginBottom: 4 }} />
+              <input type="text" value={link.label} onChange={(e) => updateLink(index, "label", e.target.value)} placeholder="Link label (optional)" />
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => removeExternalLink(index)}
-              aria-label={`Remove link ${index + 1}`}
-            >
-              <Trash2 className="size-3.5" />
-            </Button>
+            <button type="button" className="btn btn-sm btn-danger" onClick={() => removeLink(index)}>✕</button>
           </div>
         ))}
       </div>
 
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Saving…" : submitLabel}
-      </Button>
+      <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+        {isSubmitting ? "Saving..." : submitLabel}
+      </button>
     </form>
   );
 }

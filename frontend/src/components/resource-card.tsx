@@ -1,49 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import type { ResourceResponse } from "@/types";
 
 export function ResourceCard({ resource }: { resource: ResourceResponse }) {
   return (
-    <Link href={`/resources/${resource.id}`} className="block group">
-      <Card className="h-full transition-shadow group-hover:shadow-md">
-        <CardHeader className="pb-2">
-          <div className="aspect-[4/3] w-full rounded-md bg-muted flex items-center justify-center overflow-hidden">
-            {resource.thumbnailUrl ? (
-              <img
-                src={resource.thumbnailUrl}
-                alt={resource.title}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <span className="text-3xl text-muted-foreground" aria-hidden="true">🏛️</span>
-            )}
+    <Link href={`/resources/${resource.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+      <div className="card" style={{ height: "100%" }}>
+        <div style={{ background: "#eee", height: 150, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 4, marginBottom: 10, overflow: "hidden" }}>
+          {resource.thumbnailUrl ? (
+            <img src={resource.thumbnailUrl} alt={resource.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            <span style={{ fontSize: 40 }}>🏛️</span>
+          )}
+        </div>
+        <h3 style={{ margin: "0 0 4px", fontSize: 16 }}>{resource.title}</h3>
+        <p style={{ margin: 0, fontSize: 13, color: "#666" }}>{resource.category.name}</p>
+        {resource.place && <p style={{ margin: "2px 0 0", fontSize: 12, color: "#999" }}>{resource.place}</p>}
+        {resource.tags.length > 0 && (
+          <div style={{ marginTop: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>
+            {resource.tags.slice(0, 3).map((tag) => (
+              <span key={tag.id} style={{ background: "#e8e8e8", padding: "1px 6px", borderRadius: 8, fontSize: 11 }}>{tag.name}</span>
+            ))}
           </div>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <h3 className="font-serif text-lg font-semibold leading-tight line-clamp-2">
-            {resource.title}
-          </h3>
-          <p className="text-sm text-muted-foreground">{resource.category.name}</p>
-          {resource.place && (
-            <p className="text-xs text-muted-foreground">{resource.place}</p>
-          )}
-        </CardContent>
-        <CardFooter className="flex flex-wrap gap-1 pt-2 pb-4">
-          {resource.tags.slice(0, 3).map((tag) => (
-            <Badge key={tag.id} variant="outline" className="text-xs">
-              {tag.name}
-            </Badge>
-          ))}
-          {resource.tags.length > 3 && (
-            <Badge variant="outline" className="text-xs">
-              +{resource.tags.length - 3}
-            </Badge>
-          )}
-        </CardFooter>
-      </Card>
+        )}
+      </div>
     </Link>
   );
 }

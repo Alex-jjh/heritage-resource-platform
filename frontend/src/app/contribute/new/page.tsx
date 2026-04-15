@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { apiClient, ApiError } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
-import { PageContainer } from "@/components/page-container";
 import { ResourceForm, type ResourceFormData } from "@/components/resource-form";
 import Link from "next/link";
 import type { ResourceResponse } from "@/types";
@@ -15,19 +14,9 @@ function CreateResourceContent() {
   const [error, setError] = useState<string | null>(null);
 
   const createMutation = useMutation({
-    mutationFn: (data: ResourceFormData) =>
-      apiClient.post<ResourceResponse>("/api/resources", data),
-    onSuccess: (resource) => {
-      // Redirect to edit page so user can upload files
-      router.push(`/contribute/${resource.id}/edit`);
-    },
-    onError: (err) => {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Failed to create resource.");
-      }
-    },
+    mutationFn: (data: ResourceFormData) => apiClient.post<ResourceResponse>("/api/resources", data),
+    onSuccess: (resource) => { router.push(`/contribute/${resource.id}/edit`); },
+    onError: (err) => { setError(err instanceof ApiError ? err.message : "Failed to create resource."); },
   });
 
   async function handleSubmit(data: ResourceFormData) {
@@ -36,27 +25,14 @@ function CreateResourceContent() {
   }
 
   return (
-    <main><PageContainer narrow>
-      <Link
-        href="/contribute"
-        className="text-sm text-accent hover:underline"
-      >
-        ← Back to my resources
-      </Link>
-      <h1 className="font-serif text-3xl font-bold mt-4 mb-6">
-        Create New Resource
-      </h1>
-      <p className="text-sm text-muted-foreground mb-6">
-        Fill in the details below to create a draft resource. You can upload
-        files after saving.
+    <main className="container-narrow">
+      <Link href="/contribute">← Back to my resources</Link>
+      <h1 style={{ marginTop: 12 }}>Create New Resource</h1>
+      <p style={{ color: "#888", fontSize: 14, marginBottom: 20 }}>
+        Fill in the details below to create a draft resource. You can upload files after saving.
       </p>
-      <ResourceForm
-        onSubmit={handleSubmit}
-        isSubmitting={createMutation.isPending}
-        submitLabel="Create Draft"
-        error={error}
-      />
-    </PageContainer></main>
+      <ResourceForm onSubmit={handleSubmit} isSubmitting={createMutation.isPending} submitLabel="Create Draft" error={error} />
+    </main>
   );
 }
 

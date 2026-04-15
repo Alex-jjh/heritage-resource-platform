@@ -5,18 +5,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
-import { PageContainer } from "@/components/page-container";
 import { StatusBadge } from "@/components/status-badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Pencil, Send, RotateCcw, MessageSquare, Eye } from "lucide-react";
 import type { ResourceResponse, ResourceStatus } from "@/types";
 
 function ContributeDashboardContent() {
@@ -25,13 +14,11 @@ function ContributeDashboardContent() {
 
   const resourcesQuery = useQuery({
     queryKey: ["my-resources"],
-    queryFn: () =>
-      apiClient.get<ResourceResponse[]>("/api/resources/mine"),
+    queryFn: () => apiClient.get<ResourceResponse[]>("/api/resources/mine"),
   });
 
   const submitMutation = useMutation({
-    mutationFn: (id: string) =>
-      apiClient.post(`/api/resources/${id}/submit`),
+    mutationFn: (id: string) => apiClient.post(`/api/resources/${id}/submit`),
     onSuccess: () => {
       queryClient.refetchQueries({ queryKey: ["my-resources"] });
       setSuccessMsg("Resource submitted for review!");
@@ -40,8 +27,7 @@ function ContributeDashboardContent() {
   });
 
   const reviseMutation = useMutation({
-    mutationFn: (id: string) =>
-      apiClient.post(`/api/resources/${id}/revise`),
+    mutationFn: (id: string) => apiClient.post(`/api/resources/${id}/revise`),
     onSuccess: () => {
       queryClient.refetchQueries({ queryKey: ["my-resources"] });
       setSuccessMsg("Resource moved back to draft for revision.");
@@ -50,166 +36,81 @@ function ContributeDashboardContent() {
   });
 
   return (
-    <main><PageContainer>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="font-serif text-3xl font-bold">My Resources</h1>
-        <Link href="/contribute/new">
-          <Button>
-            <Plus className="mr-1.5 size-4" />
-            New Resource
-          </Button>
-        </Link>
+    <main className="container">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <h1>My Resources</h1>
+        <Link href="/contribute/new" className="btn btn-primary">+ New Resource</Link>
       </div>
 
-      {successMsg && (
-        <div role="status" className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-700">
-          {successMsg}
-        </div>
-      )}
+      {successMsg && <div className="success-msg">{successMsg}</div>}
 
       {resourcesQuery.isLoading ? (
-        <div className="space-y-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-28 w-full rounded-lg" />
-          ))}
-        </div>
+        <p>Loading...</p>
       ) : resourcesQuery.isError ? (
-        <div
-          role="alert"
-          className="rounded-md bg-destructive/10 p-4 text-sm text-destructive"
-        >
-          Failed to load your resources. Please try again.
-        </div>
+        <div className="error-msg">Failed to load your resources.</div>
       ) : resourcesQuery.data && resourcesQuery.data.length === 0 ? (
-        <div className="py-16 text-center">
-          <p className="text-lg text-muted-foreground">
-            You haven&apos;t created any resources yet.
-          </p>
-          <Link href="/contribute/new" className="mt-3 inline-block">
-            <Button variant="outline">Create your first resource</Button>
-          </Link>
+        <div style={{ textAlign: "center", padding: 40 }}>
+          <p style={{ color: "#888" }}>You haven&apos;t created any resources yet.</p>
+          <Link href="/contribute/new" className="btn" style={{ marginTop: 12 }}>Create your first resource</Link>
         </div>
       ) : (
-        <div className="space-y-4">
-          {resourcesQuery.data?.map((resource) => (
-            <ResourceListItem
-              key={resource.id}
-              resource={resource}
-              onSubmit={() => submitMutation.mutate(resource.id)}
-              onRevise={() => reviseMutation.mutate(resource.id)}
-              isSubmitting={submitMutation.isPending}
-              isRevising={reviseMutation.isPending}
-            />
-          ))}
+        <div>
+          {resourcesQuery.data?.map((resource) => {
+            const status = resource.status as ResourceStatus;
+            const isDraft = status === "DRAFT";
+            const isRejected = status === "REJECTED";
+
+            return (
+              <div key={resource.id} className="card">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div>
+                    <h3 style={{ margin: "0 0 4px" }}>{resource.title}</h3>
+                    <p style={{ margin: 0, fontSize: 13, color: "#666" }}>
+                      {resource.category.name}
+                      {resource.place && <> · {resource.place}</>}
+                      {" · Updated "}
+                      {new Date(resource.updatedAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <StatusBadge status={status} />
+                </div>
+
+                <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <Link href={`/resources/${resource.id}`} className="btn btn-sm">👁 View</Link>
+                  {isDraft && (
+                    <>
+                      <Link href={`/contribute/${resource.id}/edit`} className="btn btn-sm">✏️ Edit</Link>
+                      <button className="btn btn-sm btn-primary" onClick={() => submitMutation.mutate(resource.id)} disabled={submitMutation.isPending}>
+                        {submitMutation.isPending ? "Submitting..." : "📤 Submit for Review"}
+                      </button>
+                    </>
+                  )}
+                  {isRejected && (
+                    <button className="btn btn-sm" onClick={() => reviseMutation.mutate(resource.id)} disabled={reviseMutation.isPending}>
+                      {reviseMutation.isPending ? "Revising..." : "🔄 Revise"}
+                    </button>
+                  )}
+                </div>
+
+                {(isRejected || isDraft) && resource.reviewFeedbacks && resource.reviewFeedbacks.length > 0 && (
+                  <div className="warning-msg" style={{ marginTop: 10 }}>
+                    <strong>Reviewer Feedback:</strong>
+                    {resource.reviewFeedbacks.map((fb) => (
+                      <div key={fb.id} style={{ marginTop: 4 }}>
+                        <p style={{ margin: 0 }}>{fb.comments}</p>
+                        <p style={{ margin: "2px 0 0", fontSize: 12, color: "#999" }}>
+                          {fb.decision} · {new Date(fb.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
-    </PageContainer></main>
-  );
-}
-
-function ResourceListItem({
-  resource,
-  onSubmit,
-  onRevise,
-  isSubmitting,
-  isRevising,
-}: {
-  resource: ResourceResponse;
-  onSubmit: () => void;
-  onRevise: () => void;
-  isSubmitting: boolean;
-  isRevising: boolean;
-}) {
-  const status = resource.status as ResourceStatus;
-  const isDraft = status === "DRAFT";
-  const isRejected = status === "REJECTED";
-
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <CardTitle className="font-serif">{resource.title}</CardTitle>
-            <CardDescription>
-              {resource.category.name}
-              {resource.place && <> · {resource.place}</>}
-              {" · "}
-              Updated{" "}
-              {new Date(resource.updatedAt).toLocaleDateString(undefined, {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              })}
-            </CardDescription>
-          </div>
-          <StatusBadge status={status} />
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href={`/resources/${resource.id}`}>
-            <Button variant="ghost" size="sm">
-              <Eye className="mr-1 size-3.5" />
-              View
-            </Button>
-          </Link>
-          {isDraft && (
-            <>
-              <Link href={`/contribute/${resource.id}/edit`}>
-                <Button variant="outline" size="sm">
-                  <Pencil className="mr-1 size-3.5" />
-                  Edit
-                </Button>
-              </Link>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={onSubmit}
-                disabled={isSubmitting}
-              >
-                <Send className="mr-1 size-3.5" />
-                {isSubmitting ? "Submitting…" : "Submit for Review"}
-              </Button>
-            </>
-          )}
-          {isRejected && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRevise}
-              disabled={isRevising}
-            >
-              <RotateCcw className="mr-1 size-3.5" />
-              {isRevising ? "Revising…" : "Revise"}
-            </Button>
-          )}
-        </div>
-
-        {/* Reviewer/Admin feedback for rejected or unpublished resources */}
-        {(isRejected || isDraft) &&
-          resource.reviewFeedbacks &&
-          resource.reviewFeedbacks.length > 0 && (
-            <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 space-y-2">
-              <div className="flex items-center gap-1.5 text-sm font-medium text-amber-800">
-                <MessageSquare className="size-4" />
-                Admin / Reviewer Feedback
-              </div>
-              {resource.reviewFeedbacks.map((fb) => (
-                <div key={fb.id} className="text-sm text-amber-700">
-                  <p>{fb.comments}</p>
-                  <p className="mt-1 text-xs text-amber-500">
-                    {fb.decision} · {new Date(fb.createdAt).toLocaleDateString(undefined, {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-      </CardContent>
-    </Card>
+    </main>
   );
 }
 

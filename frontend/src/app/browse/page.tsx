@@ -1,18 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { ProtectedRoute } from "@/components/protected-route";
-import { PageContainer } from "@/components/page-container";
-import { SearchBar } from "@/components/search-bar";
-import { ResourceCard } from "@/components/resource-card";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import type { Category, Tag, ResourceResponse, Page } from "@/types";
-
-const DEFAULT_PAGE_SIZE = 20;
 
 function BrowseContent() {
   const { isAuthenticated } = useAuth();
@@ -20,14 +14,9 @@ function BrowseContent() {
   const [categoryId, setCategoryId] = useState("");
   const [tagId, setTagId] = useState("");
   const [page, setPage] = useState(0);
-  const [pageSize] = useState(DEFAULT_PAGE_SIZE);
+  const pageSize = 20;
 
-  // Committed search params (applied on search click or enter)
-  const [searchParams, setSearchParams] = useState({
-    q: "",
-    categoryId: "",
-    tagId: "",
-  });
+  const [searchParams, setSearchParams] = useState({ q: "", categoryId: "", tagId: "" });
 
   const categoriesQuery = useQuery({
     queryKey: ["categories"],
@@ -50,20 +39,14 @@ function BrowseContent() {
       if (searchParams.tagId) params.set("tagId", searchParams.tagId);
       params.set("page", String(page));
       params.set("size", String(pageSize));
-      return apiClient.get<Page<ResourceResponse>>(
-        `/api/search/resources?${params.toString()}`
-      );
+      return apiClient.get<Page<ResourceResponse>>(`/api/search/resources?${params.toString()}`);
     },
     enabled: isAuthenticated,
   });
 
   function handleSearch() {
     setPage(0);
-    setSearchParams({
-      q: query,
-      categoryId: categoryId === "all" ? "" : categoryId,
-      tagId: tagId === "all" ? "" : tagId,
-    });
+    setSearchParams({ q: query, categoryId, tagId });
   }
 
   function handleClear() {
@@ -75,85 +58,91 @@ function BrowseContent() {
   }
 
   const data = resourcesQuery.data;
+  const categories = categoriesQuery.data ?? [];
+  const tags = tagsQuery.data ?? [];
 
   return (
-    <main><PageContainer>
-      <h1 className="text-3xl font-bold mb-6">Browse Heritage Resources</h1>
+    <main className="container">
+      <h1>Browse Heritage Resources</h1>
 
-      <SearchBar
-        query={query}
-        onQueryChange={setQuery}
-        categoryId={categoryId}
-        onCategoryChange={setCategoryId}
-        tagId={tagId}
-        onTagChange={setTagId}
-        categories={categoriesQuery.data ?? []}
-        tags={tagsQuery.data ?? []}
-        onSearch={handleSearch}
-        onClear={handleClear}
-      />
+      {/* Search bar */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+        <input
+          type="search"
+          placeholder="Search by title, description, or tags..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+          style={{ flex: 1, minWidth: 200 }}
+        />
+        <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} style={{ width: 180 }}>
+          <option value="">All categories</option>
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.id}>{cat.name}</option>
+          ))}
+        </select>
+        <select value={tagId} onChange={(e) => setTagId(e.target.value)} style={{ width: 180 }}>
+          <option value="">All tags</option>
+          {tags.map((tag) => (
+            <option key={tag.id} value={tag.id}>{tag.name}</option>
+          ))}
+        </select>
+        <button className="btn btn-primary" onClick={handleSearch}>Search</button>
+        <button className="btn" onClick={handleClear}>Clear</button>
+      </div>
 
-      <div className="mt-8">
-        {resourcesQuery.isLoading ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="space-y-3">
-                <Skeleton className="aspect-[4/3] w-full rounded-md" />
-                <Skeleton className="h-5 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-              </div>
+      {/* Results */}
+      {resourcesQuery.isLoading ? (
+        <p>Loading...</p>
+      ) : resourcesQuery.isError ? (
+        <div className="error-msg">Failed to load resources. Please try again.</div>
+      ) : data && data.content.length === 0 ? (
+        <p style={{ textAlign: "center", color: "#888", padding: 40 }}>No resources found. Try adjusting your search.</p>
+      ) : data ? (
+        <>
+          <p style={{ fontSize: 14, color: "#888", marginBottom: 12 }}>
+            {data.totalElements} result{data.totalElements !== 1 ? "s" : ""} found
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 16 }}>
+            {data.content.map((resource) => (
+              <Link key={resource.id} href={`/resources/${resource.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                <div className="card" style={{ height: "100%" }}>
+                  <div style={{ background: "#eee", height: 150, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 4, marginBottom: 10, overflow: "hidden" }}>
+                    {resource.thumbnailUrl ? (
+                      <img src={resource.thumbnailUrl} alt={resource.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ) : (
+                      <span style={{ fontSize: 40 }}>🏛️</span>
+                    )}
+                  </div>
+                  <h3 style={{ margin: "0 0 4px", fontSize: 16 }}>{resource.title}</h3>
+                  <p style={{ margin: 0, fontSize: 13, color: "#666" }}>{resource.category.name}</p>
+                  {resource.tags.length > 0 && (
+                    <div style={{ marginTop: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>
+                      {resource.tags.slice(0, 3).map((tag) => (
+                        <span key={tag.id} style={{ background: "#e8e8e8", padding: "1px 6px", borderRadius: 8, fontSize: 11 }}>{tag.name}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </Link>
             ))}
           </div>
-        ) : resourcesQuery.isError ? (
-          <div role="alert" className="rounded-md bg-destructive/10 p-4 text-sm text-destructive">
-            Failed to load resources. Please try again.
-          </div>
-        ) : data && data.content.length === 0 ? (
-          <div className="py-16 text-center">
-            <p className="text-lg text-muted-foreground">No resources found.</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Try adjusting your search or filters.
-            </p>
-          </div>
-        ) : data ? (
-          <>
-            <p className="mb-4 text-sm text-muted-foreground">
-              {data.totalElements} result{data.totalElements !== 1 ? "s" : ""} found
-            </p>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {data.content.map((resource) => (
-                <ResourceCard key={resource.id} resource={resource} />
-              ))}
-            </div>
 
-            {/* Pagination */}
-            {data.totalPages > 1 && (
-              <nav aria-label="Search results pagination" className="mt-8 flex items-center justify-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={data.first}
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                >
-                  Previous
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  Page {data.number + 1} of {data.totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={data.last}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Next
-                </Button>
-              </nav>
-            )}
-          </>
-        ) : null}
-      </div>
-    </PageContainer></main>
+          {/* Pagination */}
+          {data.totalPages > 1 && (
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 10, marginTop: 20 }}>
+              <button className="btn btn-sm" disabled={data.first} onClick={() => setPage((p) => Math.max(0, p - 1))}>
+                ← Previous
+              </button>
+              <span style={{ fontSize: 14 }}>Page {data.number + 1} of {data.totalPages}</span>
+              <button className="btn btn-sm" disabled={data.last} onClick={() => setPage((p) => p + 1)}>
+                Next →
+              </button>
+            </div>
+          )}
+        </>
+      ) : null}
+    </main>
   );
 }
 

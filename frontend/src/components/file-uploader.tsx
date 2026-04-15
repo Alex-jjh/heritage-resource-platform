@@ -3,8 +3,6 @@
 import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
-import { Button } from "@/components/ui/button";
-import { Upload, X, FileIcon, Loader2 } from "lucide-react";
 import type { FileReferenceDto } from "@/types";
 
 interface FileUploaderProps {
@@ -19,18 +17,13 @@ interface UploadingFile {
   error?: string;
 }
 
-export function FileUploader({
-  resourceId,
-  existingFiles,
-  onFilesChange,
-}: FileUploaderProps) {
+export function FileUploader({ resourceId, existingFiles, onFilesChange }: FileUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState<UploadingFile[]>([]);
   const queryClient = useQueryClient();
 
   const removeFileMutation = useMutation({
-    mutationFn: (fileRefId: string) =>
-      apiClient.delete(`/api/files/${resourceId}/references/${fileRefId}`),
+    mutationFn: (fileRefId: string) => apiClient.delete(`/api/files/${resourceId}/references/${fileRefId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["resource", resourceId] });
       onFilesChange();
@@ -42,35 +35,27 @@ export function FileUploader({
     setUploading((prev) => [...prev, entry]);
 
     const updateEntry = (updates: Partial<UploadingFile>) => {
-      setUploading((prev) =>
-        prev.map((u) => (u.name === file.name ? { ...u, ...updates } : u))
-      );
+      setUploading((prev) => prev.map((u) => (u.name === file.name ? { ...u, ...updates } : u)));
     };
 
     try {
       const formData = new FormData();
       formData.append("file", file);
-
       const token = localStorage.getItem("accessToken");
       const resp = await fetch(`/api/files/${resourceId}/upload`, {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
       });
-
       if (!resp.ok) {
         const errBody = await resp.json().catch(() => null);
         throw new Error(errBody?.message || `Upload failed: ${resp.status}`);
       }
-
       updateEntry({ progress: "done" });
       queryClient.invalidateQueries({ queryKey: ["resource", resourceId] });
       onFilesChange();
     } catch (err) {
-      updateEntry({
-        progress: "error",
-        error: err instanceof Error ? err.message : "Upload failed",
-      });
+      updateEntry({ progress: "error", error: err instanceof Error ? err.message : "Upload failed" });
     }
   }
 
@@ -81,7 +66,7 @@ export function FileUploader({
     e.target.value = "";
   }
 
-  function formatFileSize(bytes: number): string {
+  function formatSize(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -90,71 +75,38 @@ export function FileUploader({
   const activeUploads = uploading.filter((u) => u.progress !== "done");
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <Upload className="mr-1.5 size-4" />
-          Upload Files
-        </Button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={handleFileSelect}
-          aria-label="Select files to upload"
-        />
-      </div>
+    <div>
+      <button type="button" className="btn btn-sm" onClick={() => fileInputRef.current?.click()}>
+        📎 Upload Files
+      </button>
+      <input ref={fileInputRef} type="file" multiple style={{ display: "none" }} onChange={handleFileSelect} />
 
       {activeUploads.length > 0 && (
-        <ul className="space-y-2">
+        <ul style={{ listStyle: "none", padding: 0, marginTop: 8 }}>
           {activeUploads.map((u) => (
-            <li key={u.name} className="flex items-center gap-2 rounded-md border p-2 text-sm">
-              {u.progress === "error" ? (
-                <X className="size-4 text-destructive" />
-              ) : (
-                <Loader2 className="size-4 animate-spin text-muted-foreground" />
-              )}
-              <span className="flex-1 truncate">{u.name}</span>
-              <span className="text-xs text-muted-foreground">
-                {u.progress === "uploading" && "Uploading…"}
-                {u.progress === "error" && (
-                  <span className="text-destructive">{u.error}</span>
-                )}
-              </span>
+            <li key={u.name} style={{ padding: "6px 0", fontSize: 13, color: u.progress === "error" ? "#c00" : "#666" }}>
+              {u.progress === "uploading" ? "⏳" : "❌"} {u.name} {u.progress === "error" && `- ${u.error}`}
             </li>
           ))}
         </ul>
       )}
 
       {existingFiles.length > 0 && (
-        <ul className="space-y-2">
+        <ul style={{ listStyle: "none", padding: 0, marginTop: 8 }}>
           {existingFiles.map((file) => (
-            <li key={file.id} className="flex items-center justify-between rounded-md border p-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <FileIcon className="size-4 shrink-0 text-muted-foreground" />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{file.originalFileName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {file.contentType} · {formatFileSize(file.fileSize)}
-                  </p>
-                </div>
+            <li key={file.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #eee" }}>
+              <div>
+                <span style={{ fontSize: 14 }}>{file.originalFileName}</span>
+                <span style={{ fontSize: 12, color: "#888", marginLeft: 8 }}>{file.contentType} · {formatSize(file.fileSize)}</span>
               </div>
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                size="icon-xs"
+                className="btn btn-sm btn-danger"
                 onClick={() => removeFileMutation.mutate(file.id)}
                 disabled={removeFileMutation.isPending}
-                aria-label={`Remove ${file.originalFileName}`}
               >
-                <X className="size-3.5" />
-              </Button>
+                ✕
+              </button>
             </li>
           ))}
         </ul>

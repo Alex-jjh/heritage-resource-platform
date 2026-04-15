@@ -3,18 +3,11 @@
 import { use, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { apiClient, ApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { ProtectedRoute } from "@/components/protected-route";
 import { StatusBadge } from "@/components/status-badge";
 import { CommentSection } from "@/components/comment-section";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
-import { Archive, Undo2 } from "lucide-react";
 import type { ResourceResponse, ResourceStatus } from "@/types";
 
 function formatFileSize(bytes: number): string {
@@ -25,7 +18,6 @@ function formatFileSize(bytes: number): string {
 
 function ResourceDetailContent({ id }: { id: string }) {
   const { user } = useAuth();
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [adminError, setAdminError] = useState<string | null>(null);
   const [unpublishReason, setUnpublishReason] = useState("");
@@ -38,238 +30,158 @@ function ResourceDetailContent({ id }: { id: string }) {
   });
 
   const archiveMutation = useMutation({
-    mutationFn: () =>
-      apiClient.post<ResourceResponse>(`/api/admin/resources/${id}/archive`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["resource", id] });
-      setAdminError(null);
-    },
-    onError: (err) => {
-      setAdminError(err instanceof ApiError ? err.message : "Failed to archive resource.");
-    },
+    mutationFn: () => apiClient.post<ResourceResponse>(`/api/admin/resources/${id}/archive`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["resource", id] }); setAdminError(null); },
+    onError: (err) => { setAdminError(err instanceof ApiError ? err.message : "Failed to archive resource."); },
   });
 
   const unpublishMutation = useMutation({
-    mutationFn: (reason: string) =>
-      apiClient.post<ResourceResponse>(`/api/admin/resources/${id}/unpublish`, { reason }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["resource", id] });
-      setAdminError(null);
-      setShowUnpublishForm(false);
-      setUnpublishReason("");
-    },
-    onError: (err) => {
-      setAdminError(err instanceof ApiError ? err.message : "Failed to unpublish resource.");
-    },
+    mutationFn: (reason: string) => apiClient.post<ResourceResponse>(`/api/admin/resources/${id}/unpublish`, { reason }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["resource", id] }); setAdminError(null); setShowUnpublishForm(false); setUnpublishReason(""); },
+    onError: (err) => { setAdminError(err instanceof ApiError ? err.message : "Failed to unpublish resource."); },
   });
 
-  if (resourceQuery.isLoading) {
-    return (
-      <main className="px-6 py-8 sm:px-10 lg:px-20 xl:px-32 space-y-6">
-        <Skeleton className="h-8 w-2/3" />
-        <Skeleton className="h-5 w-1/3" />
-        <Skeleton className="h-40 w-full" />
-      </main>
-    );
-  }
+  if (resourceQuery.isLoading) return <div className="container"><p>Loading...</p></div>;
 
   if (resourceQuery.isError) {
     return (
-      <main className="px-6 py-8 sm:px-10 lg:px-20 xl:px-32">
-        <div role="alert" className="rounded-md bg-destructive/10 p-4 text-sm text-destructive">
-          Resource not found or you don&apos;t have permission to view it.
-        </div>
-        <Link href="/browse" className="mt-4 inline-block text-sm text-accent hover:underline">
-          ← Back to browse
-        </Link>
-      </main>
+      <div className="container">
+        <div className="error-msg">Resource not found or you don&apos;t have permission to view it.</div>
+        <Link href="/browse">← Back to browse</Link>
+      </div>
     );
   }
 
   const resource = resourceQuery.data!;
 
   return (
-    <main className="px-6 py-8 sm:px-10 lg:px-20 xl:px-32">
-      <Link href="/browse" className="text-sm text-accent hover:underline">
-        ← Back to browse
-      </Link>
+    <main className="container">
+      <Link href="/browse">← Back to browse</Link>
 
-      <div className="mt-4 space-y-6">
-        <div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-3xl font-bold">{resource.title}</h1>
-            <StatusBadge status={resource.status as ResourceStatus} />
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            By {resource.contributorName}
-            {resource.approvedAt && (
-              <> · Approved on{" "}
-                <time dateTime={resource.approvedAt}>
-                  {new Date(resource.approvedAt).toLocaleDateString(undefined, {
-                    year: "numeric", month: "long", day: "numeric",
-                  })}
-                </time>
-              </>
-            )}
-          </p>
+      <div style={{ marginTop: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <h1 style={{ margin: 0 }}>{resource.title}</h1>
+          <StatusBadge status={resource.status as ResourceStatus} />
         </div>
+        <p style={{ color: "#666", fontSize: 14, marginTop: 4 }}>
+          By {resource.contributorName}
+          {resource.approvedAt && (
+            <> · Approved on {new Date(resource.approvedAt).toLocaleDateString()}</>
+          )}
+        </p>
+      </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 16 }}>
+        <div>
+          <strong style={{ fontSize: 12, color: "#888", textTransform: "uppercase" }}>Category</strong>
+          <p style={{ margin: "2px 0" }}>{resource.category.name}</p>
+        </div>
+        {resource.place && (
           <div>
-            <span className="text-xs font-medium uppercase text-muted-foreground">Category</span>
-            <p className="text-sm">{resource.category.name}</p>
+            <strong style={{ fontSize: 12, color: "#888", textTransform: "uppercase" }}>Place</strong>
+            <p style={{ margin: "2px 0" }}>{resource.place}</p>
           </div>
-          {resource.place && (
-            <div>
-              <span className="text-xs font-medium uppercase text-muted-foreground">Place</span>
-              <p className="text-sm">{resource.place}</p>
+        )}
+      </div>
+
+      {resource.tags.length > 0 && (
+        <div style={{ marginTop: 12, display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {resource.tags.map((tag) => (
+            <span key={tag.id} style={{ background: "#e8e8e8", padding: "2px 8px", borderRadius: 10, fontSize: 12 }}>{tag.name}</span>
+          ))}
+        </div>
+      )}
+
+      {resource.description && (
+        <div style={{ marginTop: 16 }}>
+          <h2>Description</h2>
+          <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{resource.description}</p>
+        </div>
+      )}
+
+      <div style={{ marginTop: 12 }}>
+        <strong style={{ fontSize: 12, color: "#888", textTransform: "uppercase" }}>Copyright</strong>
+        <p>{resource.copyrightDeclaration}</p>
+      </div>
+
+      <hr style={{ margin: "20px 0", border: "none", borderTop: "1px solid #ddd" }} />
+
+      {resource.fileReferences.length > 0 && (
+        <div>
+          <h2>File Attachments</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>File Name</th>
+                <th>Type</th>
+                <th>Size</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {resource.fileReferences.map((file) => (
+                <tr key={file.id}>
+                  <td>{file.originalFileName}</td>
+                  <td>{file.contentType}</td>
+                  <td>{formatFileSize(file.fileSize)}</td>
+                  <td>
+                    {file.downloadUrl && (
+                      <a href={file.downloadUrl} target="_blank" rel="noopener noreferrer">Download</a>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {resource.externalLinks.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <h2>External Links</h2>
+          <ul>
+            {resource.externalLinks.map((link) => (
+              <li key={link.id}>
+                <a href={link.url} target="_blank" rel="noopener noreferrer">{link.label || link.url}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {isAdmin && resource.status === "APPROVED" && (
+        <div className="card" style={{ marginTop: 20 }}>
+          <h2>Admin Actions</h2>
+          {adminError && <div className="error-msg">{adminError}</div>}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-sm" onClick={() => archiveMutation.mutate()} disabled={archiveMutation.isPending || unpublishMutation.isPending}>
+              {archiveMutation.isPending ? "Archiving..." : "📦 Archive"}
+            </button>
+            <button className="btn btn-sm" onClick={() => setShowUnpublishForm(!showUnpublishForm)} disabled={archiveMutation.isPending || unpublishMutation.isPending}>
+              ↩ Unpublish
+            </button>
+          </div>
+          {showUnpublishForm && (
+            <div className="warning-msg" style={{ marginTop: 12 }}>
+              <label htmlFor="unpublish-reason">Reason for unpublishing:</label>
+              <textarea id="unpublish-reason" placeholder="Explain why..." value={unpublishReason} onChange={(e) => setUnpublishReason(e.target.value)} rows={3} style={{ marginTop: 4 }} />
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <button className="btn btn-sm btn-danger" onClick={() => unpublishMutation.mutate(unpublishReason.trim())} disabled={unpublishMutation.isPending}>
+                  {unpublishMutation.isPending ? "Unpublishing..." : "Confirm Unpublish"}
+                </button>
+                <button className="btn btn-sm" onClick={() => { setShowUnpublishForm(false); setUnpublishReason(""); }}>Cancel</button>
+              </div>
             </div>
           )}
         </div>
+      )}
 
-        {resource.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {resource.tags.map((tag) => (
-              <Badge key={tag.id} variant="outline">{tag.name}</Badge>
-            ))}
-          </div>
-        )}
-
-        {resource.description && (
-          <div>
-            <h2 className="text-lg font-semibold mb-2">Description</h2>
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{resource.description}</p>
-          </div>
-        )}
-
-        <div>
-          <span className="text-xs font-medium uppercase text-muted-foreground">Copyright</span>
-          <p className="text-sm">{resource.copyrightDeclaration}</p>
-        </div>
-
-        <Separator />
-
-        {resource.fileReferences.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold mb-3">File Attachments</h2>
-            <ul className="space-y-2">
-              {resource.fileReferences.map((file) => (
-                <li key={file.id} className="flex items-center justify-between rounded-md border p-3">
-                  <div>
-                    <p className="text-sm font-medium">{file.originalFileName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {file.contentType} · {formatFileSize(file.fileSize)}
-                    </p>
-                  </div>
-                  {file.downloadUrl && (
-                    <a
-                      href={file.downloadUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex h-7 items-center rounded-md border border-border bg-background px-2.5 text-sm font-medium hover:bg-muted"
-                    >
-                      Download
-                    </a>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {resource.externalLinks.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold mb-3">External Links</h2>
-            <ul className="space-y-2">
-              {resource.externalLinks.map((link) => (
-                <li key={link.id}>
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-accent hover:underline"
-                  >
-                    {link.label || link.url}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        <Separator />
-
-        {isAdmin && resource.status === "APPROVED" && (
-          <div className="rounded-lg border p-4 space-y-3">
-            <h2 className="text-lg font-semibold">Admin Actions</h2>
-            {adminError && (
-              <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                {adminError}
-              </div>
-            )}
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => archiveMutation.mutate()}
-                disabled={archiveMutation.isPending || unpublishMutation.isPending}
-              >
-                <Archive className="mr-1 size-3.5" />
-                {archiveMutation.isPending ? "Archiving…" : "Archive"}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowUnpublishForm(!showUnpublishForm)}
-                disabled={archiveMutation.isPending || unpublishMutation.isPending}
-              >
-                <Undo2 className="mr-1 size-3.5" />
-                Unpublish
-              </Button>
-            </div>
-            {showUnpublishForm && (
-              <div className="mt-3 space-y-2 rounded-md border border-amber-200 bg-amber-50 p-3">
-                <label htmlFor="unpublish-reason" className="text-sm font-medium text-amber-800">
-                  Reason for unpublishing (visible to contributor)
-                </label>
-                <Textarea
-                  id="unpublish-reason"
-                  placeholder="Explain why this resource is being unpublished…"
-                  value={unpublishReason}
-                  onChange={(e) => setUnpublishReason(e.target.value)}
-                  rows={3}
-                />
-                <div className="flex gap-2">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => unpublishMutation.mutate(unpublishReason.trim())}
-                    disabled={unpublishMutation.isPending}
-                  >
-                    {unpublishMutation.isPending ? "Unpublishing…" : "Confirm Unpublish"}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => { setShowUnpublishForm(false); setUnpublishReason(""); }}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {resource.status === "APPROVED" && (
-          <CommentSection resourceId={resource.id} />
-        )}
-      </div>
+      {resource.status === "APPROVED" && <CommentSection resourceId={resource.id} />}
     </main>
   );
 }
 
-export default function ResourceDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default function ResourceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   return (
     <ProtectedRoute>

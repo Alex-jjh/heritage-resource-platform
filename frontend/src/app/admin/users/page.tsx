@@ -4,19 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Trash2, Search, UserPlus } from "lucide-react";
 import { AdminNav } from "@/components/admin-nav";
-import { PageContainer } from "@/components/page-container";
 import type { User } from "@/types";
 
 const ROLES = [
@@ -26,16 +14,7 @@ const ROLES = [
   { value: "ADMINISTRATOR", label: "Admin" },
 ];
 
-const ROLE_LABEL: Record<string, string> = Object.fromEntries(
-  ROLES.map((r) => [r.value, r.label])
-);
-
-const ROLE_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  REGISTERED_VIEWER: "secondary",
-  CONTRIBUTOR: "default",
-  REVIEWER: "outline",
-  ADMINISTRATOR: "destructive",
-};
+const ROLE_LABEL: Record<string, string> = Object.fromEntries(ROLES.map((r) => [r.value, r.label]));
 
 function UsersContent() {
   const qc = useQueryClient();
@@ -54,8 +33,7 @@ function UsersContent() {
   });
 
   const changeRole = useMutation({
-    mutationFn: ({ id, role }: { id: string; role: string }) =>
-      apiClient.put(`/api/users/${id}/role`, { role }),
+    mutationFn: ({ id, role }: { id: string; role: string }) => apiClient.put(`/api/users/${id}/role`, { role }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["all-users"] }),
   });
 
@@ -66,24 +44,16 @@ function UsersContent() {
 
   const addUser = useMutation({
     mutationFn: async () => {
-      // Register via public endpoint then change role if needed
-      await apiClient.post("/api/auth/register", {
-        email: newEmail, password: newPass, displayName: newName,
-      }, { skipAuth: true });
+      await apiClient.post("/api/auth/register", { email: newEmail, password: newPass, displayName: newName }, { skipAuth: true });
       if (newRole !== "REGISTERED_VIEWER") {
-        // Refetch to get the new user's ID
         const users = await apiClient.get<User[]>("/api/users/all");
         const created = users.find((u) => u.email === newEmail);
-        if (created) {
-          await apiClient.put(`/api/users/${created.id}/role`, { role: newRole });
-        }
+        if (created) await apiClient.put(`/api/users/${created.id}/role`, { role: newRole });
       }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["all-users"] });
-      setShowAdd(false);
-      setNewEmail(""); setNewName(""); setNewPass(""); setNewRole("REGISTERED_VIEWER");
-      setAddError(null);
+      setShowAdd(false); setNewEmail(""); setNewName(""); setNewPass(""); setNewRole("REGISTERED_VIEWER"); setAddError(null);
     },
     onError: (err: Error) => setAddError(err.message),
   });
@@ -97,110 +67,87 @@ function UsersContent() {
   });
 
   return (
-    <main><PageContainer>
+    <main className="container">
       <AdminNav />
-      <div className="rounded-lg border bg-card p-6">
-        <h2 className="text-xl font-semibold mb-6">User Management</h2>
-        <div className="flex items-center justify-between mb-6">
-          <span className="text-sm text-muted-foreground">{users.length} users</span>
-          <Button size="sm" onClick={() => setShowAdd(!showAdd)}>
-            <UserPlus className="mr-1 size-4" /> Add User
-          </Button>
-        </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <span style={{ color: "#888", fontSize: 14 }}>{users.length} users</span>
+        <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(!showAdd)}>+ Add User</button>
+      </div>
 
       {showAdd && (
-        <div className="mb-6 rounded-lg border p-4 space-y-3">
-          <h2 className="font-semibold">Add New User</h2>
-          {addError && <p className="text-sm text-destructive">{addError}</p>}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <Input placeholder="Display Name" value={newName} onChange={(e) => setNewName(e.target.value)} />
-            <Input placeholder="Email" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-            <Input placeholder="Password (min 8, A-z, 0-9)" type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)} />
-            <Select value={newRole} onValueChange={(v) => setNewRole(v ?? "REGISTERED_VIEWER")}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
+        <div className="card" style={{ marginBottom: 16 }}>
+          <h3 style={{ marginTop: 0 }}>Add New User</h3>
+          {addError && <div className="error-msg">{addError}</div>}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+            <input type="text" placeholder="Display Name" value={newName} onChange={(e) => setNewName(e.target.value)} />
+            <input type="email" placeholder="Email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+            <input type="password" placeholder="Password (min 8)" value={newPass} onChange={(e) => setNewPass(e.target.value)} />
+            <select value={newRole} onChange={(e) => setNewRole(e.target.value)}>
+              {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
           </div>
-          <div className="flex gap-2">
-            <Button size="sm" onClick={() => addUser.mutate()} disabled={addUser.isPending || !newEmail || !newName || !newPass}>
-              {addUser.isPending ? "Creating…" : "Create"}
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => { setShowAdd(false); setAddError(null); }}>Cancel</Button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-primary btn-sm" onClick={() => addUser.mutate()} disabled={addUser.isPending || !newEmail || !newName || !newPass}>
+              {addUser.isPending ? "Creating..." : "Create"}
+            </button>
+            <button className="btn btn-sm" onClick={() => { setShowAdd(false); setAddError(null); }}>Cancel</button>
           </div>
         </div>
       )}
 
-      <div className="flex gap-3 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input placeholder="Search by name or email..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-        </div>
-        <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v ?? "ALL")}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue>{roleFilter === "ALL" ? "All Roles" : ROLE_LABEL[roleFilter]}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Roles</SelectItem>
-            {ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <input type="search" placeholder="Search by name or email..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1 }} />
+        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} style={{ width: 150 }}>
+          <option value="ALL">All Roles</option>
+          {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+        </select>
       </div>
 
       {usersQ.isLoading ? (
-        <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-md" />)}</div>
+        <p>Loading...</p>
       ) : usersQ.isError ? (
-        <div role="alert" className="rounded-md bg-destructive/10 p-4 text-sm text-destructive">Failed to load users.</div>
+        <div className="error-msg">Failed to load users.</div>
       ) : filtered.length === 0 ? (
-        <div className="py-16 text-center"><p className="text-lg text-muted-foreground">No users found.</p></div>
+        <p style={{ textAlign: "center", color: "#888", padding: 40 }}>No users found.</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium">Name</th>
-                <th className="px-4 py-3 text-left font-medium">Email</th>
-                <th className="px-4 py-3 text-left font-medium">Role</th>
-                <th className="px-4 py-3 text-right font-medium">Actions</th>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((user) => (
+              <tr key={user.id}>
+                <td>{user.displayName}</td>
+                <td>{user.email}</td>
+                <td>
+                  <select
+                    value={user.role}
+                    onChange={(e) => { if (e.target.value !== user.role) changeRole.mutate({ id: user.id, role: e.target.value }); }}
+                    style={{ width: 130 }}
+                  >
+                    {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  </select>
+                </td>
+                <td>
+                  <button
+                    className="btn btn-sm btn-danger"
+                    onClick={() => { if (confirm(`Delete user ${user.email}?`)) deleteUser.mutate(user.id); }}
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filtered.map((user) => (
-                <tr key={user.id} className="border-b last:border-0 hover:bg-muted/30">
-                  <td className="px-4 py-3 font-medium">{user.displayName}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{user.email}</td>
-                  <td className="px-4 py-3">
-                    <Select
-                      value={user.role}
-                      onValueChange={(v) => { if (v && v !== user.role) changeRole.mutate({ id: user.id, role: v }); }}
-                    >
-                      <SelectTrigger className="w-[140px] h-8">
-                        <SelectValue>{ROLE_LABEL[user.role] ?? user.role}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => { if (confirm(`Delete user ${user.email}?`)) deleteUser.mutate(user.id); }}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       )}
-      </div>
-    </PageContainer></main>
+    </main>
   );
 }
 

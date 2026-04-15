@@ -4,12 +4,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { apiClient } from "@/lib/api-client";
-import { ResourceCard } from "@/components/resource-card";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import type { Page, ResourceResponse } from "@/types";
-
-const FEATURED_COUNT = 8;
 
 export default function Home() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -19,7 +14,7 @@ export default function Home() {
     queryFn: () =>
       isAuthenticated
         ? apiClient.get<Page<ResourceResponse>>(
-            `/api/search/resources?page=0&size=${FEATURED_COUNT}`
+            `/api/search/resources?page=0&size=8`
           )
         : apiClient.get<ResourceResponse[]>("/api/search/featured", { skipAuth: true }).then(
             (items) => ({ content: items, totalElements: items.length } as Page<ResourceResponse>)
@@ -30,160 +25,88 @@ export default function Home() {
 
   return (
     <main>
-      {/* Hero section */}
-      <section className="relative overflow-hidden py-24 sm:py-32">
-        {/* Background image */}
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/hero-bg.jpeg')" }}
-        />
-        {/* Warm dark overlay for readability */}
-        <div className="absolute inset-0 bg-gradient-to-r from-stone-900/80 via-stone-900/60 to-stone-800/50" />
-
-        <div className="relative px-6 sm:px-12 lg:px-16">
-          <div className="max-w-2xl">
-            <h1 className="font-serif text-4xl font-bold tracking-tight text-white sm:text-5xl drop-shadow-lg">
-              Discover &amp; Preserve Cultural Heritage
-            </h1>
-            <p className="mt-4 text-lg text-stone-200/90 drop-shadow">
-              A community platform for sharing images, stories, traditions,
-              places, and educational materials that celebrate our shared
-              cultural heritage.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              {isAuthenticated ? (
-                <Link href="/browse">
-                  <Button
-                    size="lg"
-                    className="bg-amber-600 text-white hover:bg-amber-700 shadow-lg"
-                  >
-                    Browse Resources
-                  </Button>
-                </Link>
-              ) : (
-                <>
-                  <Link href="/register">
-                    <Button
-                      size="lg"
-                      className="bg-amber-600 text-white hover:bg-amber-700 shadow-lg"
-                    >
-                      Get Started
-                    </Button>
-                  </Link>
-                  <Link href="/login">
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="border-white/40 bg-white/10 text-white hover:bg-white/20 shadow-lg backdrop-blur-sm"
-                    >
-                      Sign In
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured resources section */}
-      <section className="px-6 py-12 sm:px-12 lg:px-16">
-        <div className="flex items-center justify-between">
-          <h2 className="font-serif text-2xl font-bold">
-            Featured Resources
-          </h2>
-          {isAuthenticated && (
-            <Link href="/browse">
-              <Button variant="link" className="text-accent">
-                View all →
-              </Button>
-            </Link>
-          )}
-        </div>
-
-        <div className="mt-6">
-          {featuredQuery.isLoading || authLoading ? (
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {Array.from({ length: FEATURED_COUNT }).map((_, i) => (
-                  <div key={i} className="space-y-3">
-                    <Skeleton className="aspect-[4/3] w-full rounded-md" />
-                    <Skeleton className="h-5 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </div>
-                ))}
-              </div>
-            ) : featuredQuery.isError ? (
-              <div
-                role="alert"
-                className="rounded-md bg-destructive/10 p-4 text-sm text-destructive"
-              >
-                Unable to load featured resources. Please try again later.
-              </div>
-            ) : resources.length === 0 ? (
-              <div className="py-16 text-center">
-                <p className="text-lg text-muted-foreground">
-                  No approved resources yet.
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Be the first to contribute heritage content.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {resources.map((resource) => (
-                  <ResourceCard key={resource.id} resource={resource} />
-                ))}
-              </div>
-            )}
-          </div>
-
-        {!isAuthenticated && resources.length > 0 && (
-          <div className="mt-8 text-center">
-            <Link href="/login">
-              <Button variant="outline" size="lg">
-                Sign in to view more →
-              </Button>
-            </Link>
+      {/* Hero */}
+      <div style={{ background: "#2c3e50", color: "white", padding: "60px 20px", textAlign: "center" }}>
+        <h1 style={{ fontSize: 32, marginBottom: 12 }}>Discover & Preserve Cultural Heritage</h1>
+        <p style={{ fontSize: 16, color: "#ccc", marginBottom: 24 }}>
+          A community platform for sharing images, stories, traditions, places, and educational materials.
+        </p>
+        {isAuthenticated ? (
+          <Link href="/browse" className="btn btn-primary">Browse Resources</Link>
+        ) : (
+          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+            <Link href="/register" className="btn btn-primary">Get Started</Link>
+            <Link href="/login" className="btn">Sign In</Link>
           </div>
         )}
-      </section>
+      </div>
 
-      {/* Info section for unauthenticated visitors */}
+      {/* Featured Resources */}
+      <div className="container" style={{ marginTop: 30 }}>
+        <h2>Featured Resources</h2>
+
+        {featuredQuery.isLoading || authLoading ? (
+          <p>Loading...</p>
+        ) : featuredQuery.isError ? (
+          <div className="error-msg">Unable to load featured resources.</div>
+        ) : resources.length === 0 ? (
+          <p style={{ color: "#888", textAlign: "center", padding: 40 }}>No approved resources yet.</p>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 16, marginTop: 16 }}>
+            {resources.map((resource) => (
+              <Link key={resource.id} href={`/resources/${resource.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                <div className="card" style={{ height: "100%" }}>
+                  <div style={{ background: "#eee", height: 150, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 4, marginBottom: 10, overflow: "hidden" }}>
+                    {resource.thumbnailUrl ? (
+                      <img src={resource.thumbnailUrl} alt={resource.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ) : (
+                      <span style={{ fontSize: 40 }}>🏛️</span>
+                    )}
+                  </div>
+                  <h3 style={{ margin: "0 0 4px", fontSize: 16 }}>{resource.title}</h3>
+                  <p style={{ margin: 0, fontSize: 13, color: "#666" }}>{resource.category.name}</p>
+                  {resource.place && <p style={{ margin: "2px 0 0", fontSize: 12, color: "#999" }}>{resource.place}</p>}
+                  {resource.tags.length > 0 && (
+                    <div style={{ marginTop: 8, display: "flex", gap: 4, flexWrap: "wrap" }}>
+                      {resource.tags.slice(0, 3).map((tag) => (
+                        <span key={tag.id} style={{ background: "#e8e8e8", padding: "1px 6px", borderRadius: 8, fontSize: 11 }}>{tag.name}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {!isAuthenticated && resources.length > 0 && (
+          <div style={{ textAlign: "center", marginTop: 20 }}>
+            <Link href="/login" className="btn">Sign in to view more →</Link>
+          </div>
+        )}
+      </div>
+
+      {/* Info section */}
       {!authLoading && !isAuthenticated && (
-        <section className="px-6 py-16 sm:px-12 lg:px-16">
-          <div className="grid gap-8 sm:grid-cols-3">
-            <div className="text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-2xl">
-                📸
-              </div>
-              <h3 className="font-serif text-lg font-semibold">Share</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Upload images, stories, and materials that preserve cultural
-                heritage for future generations.
-              </p>
+        <div className="container" style={{ marginTop: 30, paddingBottom: 40 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20, textAlign: "center" }}>
+            <div>
+              <div style={{ fontSize: 32 }}>📸</div>
+              <h3>Share</h3>
+              <p style={{ fontSize: 14, color: "#666" }}>Upload images, stories, and materials that preserve cultural heritage.</p>
             </div>
-            <div className="text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-2xl">
-                ✅
-              </div>
-              <h3 className="font-serif text-lg font-semibold">Curate</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Community reviewers ensure quality and accuracy before resources
-                are published.
-              </p>
+            <div>
+              <div style={{ fontSize: 32 }}>✅</div>
+              <h3>Curate</h3>
+              <p style={{ fontSize: 14, color: "#666" }}>Community reviewers ensure quality and accuracy before publishing.</p>
             </div>
-            <div className="text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-2xl">
-                🔍
-              </div>
-              <h3 className="font-serif text-lg font-semibold">Discover</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Browse and search a growing collection of heritage resources
-                organized by category and tags.
-              </p>
+            <div>
+              <div style={{ fontSize: 32 }}>🔍</div>
+              <h3>Discover</h3>
+              <p style={{ fontSize: 14, color: "#666" }}>Browse and search a growing collection organized by category and tags.</p>
             </div>
           </div>
-        </section>
+        </div>
       )}
     </main>
   );
