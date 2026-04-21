@@ -5,6 +5,7 @@ import com.heritage.platform.exception.ResourceNotFoundException;
 import com.heritage.platform.model.User;
 import com.heritage.platform.model.UserRole;
 import com.heritage.platform.repository.UserRepository;
+import com.heritage.platform.repository.ResourceRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,13 +40,17 @@ class UserServiceTest {
 
     @Mock
     private UserRepository userRepository;
+    
+    @Mock
+    private ResourceRepository resourceRepository;
 
     private UserService userService;
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository);
+        userService = new UserService(userRepository, resourceRepository);
     }
+
 
     private User createTestUser(UUID id, String email, UserRole role) {
         User user = new User();
