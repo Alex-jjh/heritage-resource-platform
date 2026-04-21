@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface FileReferenceRepository extends JpaRepository<FileReference, UUID> {
     List<FileReference> findByResourceId(UUID resourceId);
+    int countByResourceId(UUID resourceId);
 }

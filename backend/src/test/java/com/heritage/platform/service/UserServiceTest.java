@@ -22,26 +22,9 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-/**
- * Unit tests for {@link UserService}.
- *
- * <p>
- * Uses Mockito mocks for {@code UserRepository}. Covers user profile management
- * and the contributor-request lifecycle.
- *
- * <p>
- * Key scenarios covered:
- * <ul>
- * <li>Lookup by email (success and not-found)</li>
- * <li>Profile display-name update</li>
- * <li>Pending contributor request listing</li>
- * <li>Granting and revoking contributor status (role changes and flag
- * resets)</li>
- * <li>User-not-found error handling</li>
- * </ul>
- */
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
