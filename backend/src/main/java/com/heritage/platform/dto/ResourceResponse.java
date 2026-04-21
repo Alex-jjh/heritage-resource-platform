@@ -1,6 +1,9 @@
 package com.heritage.platform.dto;
 
-import com.heritage.platform.model.*;
+import com.heritage.platform.model.ExternalLink;
+import com.heritage.platform.model.FileReference;
+import com.heritage.platform.model.Resource;
+import com.heritage.platform.model.ReviewFeedback;
 
 import java.time.Instant;
 import java.util.List;
@@ -32,7 +35,8 @@ public class ResourceResponse {
     private boolean isFeatured;
     private String featuredStatus;
 
-    public ResourceResponse() {}
+    public ResourceResponse() {
+    }
 
     public static ResourceResponse fromEntity(Resource resource) {
         return fromEntity(resource, null);
@@ -73,13 +77,6 @@ public class ResourceResponse {
         return resp;
     }
 
-    /**
-     * Creates a ResourceResponse with pre-signed download URLs for all file attachments.
-     * Used for the public detail view of approved resources.
-     *
-     * @param resource the resource entity
-     * @param downloadUrlGenerator function that takes an S3 key and returns a pre-signed download URL
-     */
     public static ResourceResponse fromEntityWithFileUrls(Resource resource,
                                                           Function<String, String> downloadUrlGenerator) {
         ResourceResponse resp = new ResourceResponse();
@@ -111,10 +108,11 @@ public class ResourceResponse {
         resp.createdAt = resource.getCreatedAt();
         resp.updatedAt = resource.getUpdatedAt();
         resp.approvedAt = resource.getApprovedAt();
+        resp.isFeatured = resource.isFeatured();
+        resp.featuredStatus = resource.getFeaturedStatus() != null ? resource.getFeaturedStatus().name() : null;
         return resp;
     }
 
-    // Getters
     public UUID getId() { return id; }
     public String getTitle() { return title; }
     public CategoryResponse getCategory() { return category; }

@@ -4,6 +4,8 @@ export type UserRole =
   | "REVIEWER"
   | "ADMINISTRATOR";
 
+export type FeaturedStatus = "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+
 export interface User {
   id: string;
   email: string;
@@ -125,6 +127,9 @@ export interface ResourceResponse {
   approvedAt: string | null;
 
   reviewFeedbacks?: ReviewFeedbackResponse[];
+
+  isFeatured: boolean;
+  featuredStatus: FeaturedStatus | null;
 }
 
 export interface CommentResponse {
@@ -147,6 +152,10 @@ export interface MyCommentResponse {
   createdAt: string;
   anonymous: boolean;
   commentPage: number;
+}
+
+export interface MessageResponse {
+  message: string;
 }
 
 export interface Page<T> {

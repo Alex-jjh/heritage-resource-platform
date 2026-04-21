@@ -27,10 +27,10 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function formatApprovedDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString("en-GB", {
+function formatEnglishDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString("en-US", {
     year: "numeric",
-    month: "long",
+    month: "short",
     day: "numeric",
   });
 }
@@ -78,7 +78,6 @@ function ContributorSummary({
   resource: ResourceResponse;
   contributorProfile?: UserProfileResponse | null;
 }) {
-
   const avatarUrl =
     contributorProfile?.avatarUrl ?? resource.contributorAvatarUrl ?? null;
 
@@ -96,7 +95,7 @@ function ContributorSummary({
           <p className="mt-1 text-sm text-muted-foreground">
             Approved on{" "}
             <time dateTime={resource.approvedAt}>
-              {formatApprovedDate(resource.approvedAt)}
+              {formatEnglishDate(resource.approvedAt)}
             </time>
           </p>
         )}

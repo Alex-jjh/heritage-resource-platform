@@ -16,11 +16,11 @@ import type {
 } from "@/types/review-history";
 
 function formatCreatedAt(dateString: string) {
-    return new Date(dateString).toLocaleString("en-GB", {
+    return new Date(dateString).toLocaleString("en-US", {
         year: "numeric",
         month: "short",
-        day: "2-digit",
-        hour: "2-digit",
+        day: "numeric",
+        hour: "numeric",
         minute: "2-digit",
         hour12: false,
     });
@@ -47,7 +47,9 @@ function getAuthInfoFromToken() {
 
         const reviewerEmail =
             (typeof payload.email === "string" && payload.email) ||
-            (typeof payload.sub === "string" && payload.sub.includes("@") ? payload.sub : "") ||
+            (typeof payload.sub === "string" && payload.sub.includes("@")
+                ? payload.sub
+                : "") ||
             "";
 
         const roles: string[] = Array.isArray(payload.roles)
@@ -106,7 +108,6 @@ function ReviewHistoryContent() {
         queryKey: ["review-history", queryParams],
         queryFn: () => getReviewHistory(queryParams),
         placeholderData: (previousData) => previousData,
-
         enabled: effectiveScope === "ALL" || Boolean(authInfo.reviewerEmail),
     });
 
@@ -202,11 +203,14 @@ function ReviewHistoryContent() {
                     <span>
                         Showing{" "}
                         <span className="font-medium text-foreground">{records.length}</span> of{" "}
-                        <span className="font-medium text-foreground">{totalElements}</span> record(s)
+                        <span className="font-medium text-foreground">{totalElements}</span>{" "}
+                        record(s)
                     </span>
                     <span>
                         Page <span className="font-medium text-foreground">{page + 1}</span> of{" "}
-                        <span className="font-medium text-foreground">{Math.max(totalPages, 1)}</span>
+                        <span className="font-medium text-foreground">
+                            {Math.max(totalPages, 1)}
+                        </span>
                     </span>
                 </div>
 

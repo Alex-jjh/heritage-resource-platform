@@ -12,6 +12,7 @@ import {
   LogOut,
   ChevronDown,
   MessageSquare,
+  Star,
 } from "lucide-react";
 
 function getInitials(name?: string | null) {
@@ -73,32 +74,43 @@ function Navbar() {
       <Link
         key={href}
         href={href}
-        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${active
+        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+          active
             ? "bg-primary/10 text-primary"
             : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
+        }`}
       >
         {label}
       </Link>
     );
   }
 
+  const canManageResources =
+    user?.role === "CONTRIBUTOR" ||
+    user?.role === "REVIEWER" ||
+    user?.role === "ADMINISTRATOR";
+
+  const canReview =
+    user?.role === "REVIEWER" || user?.role === "ADMINISTRATOR";
+
+  const canUseFeaturedPage =
+    user?.role === "CONTRIBUTOR" ||
+    user?.role === "REVIEWER" ||
+    user?.role === "ADMINISTRATOR";
+
   const links =
     isAuthenticated && user
       ? [
-        { href: "/browse", label: "Browse" },
-        ...((user.role === "CONTRIBUTOR" ||
-          user.role === "REVIEWER" ||
-          user.role === "ADMINISTRATOR")
-          ? [{ href: "/contribute", label: "My Resources" }]
-          : []),
-        ...((user.role === "REVIEWER" || user.role === "ADMINISTRATOR")
-          ? [{ href: "/review", label: "Review" }]
-          : []),
-        ...(user.role === "ADMINISTRATOR"
-          ? [{ href: "/admin/users", label: "Admin", matchPrefix: "/admin" }]
-          : []),
-      ]
+          { href: "/browse", label: "Browse" },
+          ...(canManageResources
+            ? [{ href: "/contribute", label: "My Resources" }]
+            : []),
+          ...(canReview ? [{ href: "/review", label: "Review" }] : []),
+          ...(canUseFeaturedPage ? [{ href: "/featured", label: "Featured" }] : []),
+          ...(user.role === "ADMINISTRATOR"
+            ? [{ href: "/admin/users", label: "Admin", matchPrefix: "/admin" }]
+            : []),
+        ]
       : [];
 
   return (
@@ -162,6 +174,16 @@ function Navbar() {
                   >
                     <User className="size-4" /> Profile
                   </Link>
+
+                  {canUseFeaturedPage && (
+                    <Link
+                      href="/featured"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-muted transition-colors"
+                    >
+                      <Star className="size-4" /> Featured
+                    </Link>
+                  )}
 
                   <Link
                     href="/my-comments"
@@ -246,6 +268,14 @@ function Navbar() {
                     <User className="mr-2 size-4" /> Profile
                   </Button>
                 </Link>
+
+                {canUseFeaturedPage && (
+                  <Link href="/featured" onClick={() => setMenuOpen(false)}>
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Star className="mr-2 size-4" /> Featured
+                    </Button>
+                  </Link>
+                )}
 
                 <Link href="/my-comments" onClick={() => setMenuOpen(false)}>
                   <Button variant="ghost" size="sm" className="w-full justify-start">
