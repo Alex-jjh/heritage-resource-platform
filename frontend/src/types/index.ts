@@ -10,6 +10,27 @@ export interface User {
   displayName: string;
   role: UserRole;
   contributorRequested: boolean;
+
+  avatarUrl?: string | null;
+  profilePublic?: boolean;
+  showEmail?: boolean;
+  bio?: string | null;
+  publishedResources?: ResourceResponse[];
+}
+
+export interface UserProfileResponse {
+  id: string;
+  email: string;
+  displayName: string;
+  role: UserRole;
+  contributorRequested: boolean;
+
+  avatarUrl?: string | null;
+  profilePublic: boolean;
+  showEmail: boolean;
+  bio?: string | null;
+
+  publishedResources: ResourceResponse[];
 }
 
 export interface AuthResponse {
@@ -29,10 +50,12 @@ export interface RegisterRequest {
 }
 
 export interface UpdateProfileRequest {
-  displayName: string;
+  displayName?: string;
+  avatarUrl?: string | null;
+  profilePublic?: boolean;
+  showEmail?: boolean;
+  bio?: string | null;
 }
-
-// Resource types
 
 export type ResourceStatus =
   | "DRAFT"
@@ -68,6 +91,15 @@ export interface ExternalLinkDto {
   label: string;
 }
 
+export interface ReviewFeedbackResponse {
+  id: string;
+  resourceId: string;
+  reviewerId: string;
+  comments: string;
+  decision: string;
+  createdAt: string;
+}
+
 export interface ResourceResponse {
   id: string;
   title: string;
@@ -79,26 +111,44 @@ export interface ResourceResponse {
   tags: Tag[];
   fileReferences: FileReferenceDto[];
   externalLinks: ExternalLinkDto[];
+
   contributorName: string;
   contributorId: string;
+  contributorAvatarUrl?: string | null;
+  contributorProfilePublic?: boolean;
+
   thumbnailS3Key: string | null;
   thumbnailUrl: string | null;
+
   createdAt: string;
   updatedAt: string;
   approvedAt: string | null;
+
   reviewFeedbacks?: ReviewFeedbackResponse[];
 }
 
 export interface CommentResponse {
   id: string;
   resourceId: string;
-  authorId: string;
+  authorId: string | null;
   authorName: string;
+  avatarUrl?: string | null;
+  anonymous: boolean;
+  profileClickable: boolean;
   body: string;
   createdAt: string;
 }
 
-// Spring Data Page response
+export interface MyCommentResponse {
+  commentId: string;
+  resourceId: string;
+  resourceTitle: string;
+  body: string;
+  createdAt: string;
+  anonymous: boolean;
+  commentPage: number;
+}
+
 export interface Page<T> {
   content: T[];
   totalElements: number;
@@ -108,15 +158,6 @@ export interface Page<T> {
   first: boolean;
   last: boolean;
   empty: boolean;
-}
-
-export interface ReviewFeedbackResponse {
-  id: string;
-  resourceId: string;
-  reviewerId: string;
-  comments: string;
-  decision: string;
-  createdAt: string;
 }
 
 export interface CreateResourceRequest {

@@ -1,10 +1,12 @@
 package com.heritage.platform.controller;
 
+import com.heritage.platform.dto.PredefinedFeedbackResponse;
 import com.heritage.platform.dto.RejectResourceRequest;
 import com.heritage.platform.dto.ResourceResponse;
+import com.heritage.platform.dto.ReviewHistoryResponse;
 import com.heritage.platform.model.Resource;
+import com.heritage.platform.service.PredefinedFeedbackService;
 import com.heritage.platform.service.ReviewService;
-import com.heritage.platform.service.PredefinedFeedbackService; // 1. 引入新Service
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,10 +20,11 @@ import java.util.UUID;
 public class ReviewController {
 
     private final ReviewService reviewService;
-    private final PredefinedFeedbackService predefinedFeedbackService; // 2. 声明变量
+    private final PredefinedFeedbackService predefinedFeedbackService;
 
-    // 3. 修改构造函数，把两个Service都放进来
-    public ReviewController(ReviewService reviewService, PredefinedFeedbackService predefinedFeedbackService) {
+    public ReviewController(
+            ReviewService reviewService,
+            PredefinedFeedbackService predefinedFeedbackService) {
         this.reviewService = reviewService;
         this.predefinedFeedbackService = predefinedFeedbackService;
     }
@@ -43,33 +46,28 @@ public class ReviewController {
         return ResponseEntity.ok(ResourceResponse.fromEntity(resource));
     }
 
-    // This section handles AC 1 & 2: reject logic, which will invoke the mandatory validation in the Service.
     @PostMapping("/{resourceId}/reject")
     public ResponseEntity<ResourceResponse> reject(
             @PathVariable UUID resourceId,
             Principal principal,
             @Valid @RequestBody RejectResourceRequest request) {
-        // 如果 request.getComments() 为空，Service 层会抛出异常，前端会收到报错弹窗
-        Resource resource = reviewService.rejectResource(resourceId, principal.getName(), request.getComments());
+        Resource resource = reviewService.rejectResource(
+                resourceId,
+                principal.getName(),
+                request.getComments());
         return ResponseEntity.ok(ResourceResponse.fromEntity(resource));
     }
 
     @GetMapping("/predefined-feedback")
-    public ResponseEntity<List<com.heritage.platform.dto.PredefinedFeedbackResponse>> getPredefinedFeedback() {
+    public ResponseEntity<List<PredefinedFeedbackResponse>> getPredefinedFeedback() {
         return ResponseEntity.ok(predefinedFeedbackService.getPredefinedFeedbacks());
     }
 
-    @org.springframework.web.bind.annotation.GetMapping("/history")
-    public org.springframework.http.ResponseEntity<java.util.List<com.heritage.platform.dto.ReviewHistoryResponse>> getReviewHistory(
-            @org.springframework.web.bind.annotation.RequestParam(required = false) java.util.UUID reviewerId,
-            @org.springframework.web.bind.annotation.RequestParam(required = false) String decision) {
-            
-        java.util.List<com.heritage.platform.model.ReviewFeedback> rawData = reviewService.searchReviewHistory(reviewerId, decision);
-        
-        java.util.List<com.heritage.platform.dto.ReviewHistoryResponse> packagedData = rawData.stream()
-                .map(com.heritage.platform.dto.ReviewHistoryResponse::fromEntity)
-                .toList();
-                
-        return org.springframework.http.ResponseEntity.ok(packagedData);
+    @GetMapping("/history")
+    public ResponseEntity<List<ReviewHistoryResponse>> getReviewHistory(
+            @RequestParam(required = false) String reviewerEmail,
+            @RequestParam(required = false) String decision) {
+        return ResponseEntity.ok(
+                reviewService.getReviewHistory(reviewerEmail, decision));
     }
 }

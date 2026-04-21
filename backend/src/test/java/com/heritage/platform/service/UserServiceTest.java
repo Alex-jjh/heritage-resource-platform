@@ -1,9 +1,14 @@
 package com.heritage.platform.service;
 
 import com.heritage.platform.dto.UpdateProfileRequest;
+import com.heritage.platform.dto.UserProfileResponse;
 import com.heritage.platform.exception.ResourceNotFoundException;
+import com.heritage.platform.model.Category;
+import com.heritage.platform.model.Resource;
+import com.heritage.platform.model.ResourceStatus;
 import com.heritage.platform.model.User;
 import com.heritage.platform.model.UserRole;
+import com.heritage.platform.repository.ResourceRepository;
 import com.heritage.platform.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,16 +27,19 @@ import static org.mockito.Mockito.*;
 /**
  * Unit tests for {@link UserService}.
  *
- * <p>Uses Mockito mocks for {@code UserRepository}. Covers user profile
- * management and the contributor-request lifecycle.
+ * <p>
+ * Uses Mockito mocks for {@code UserRepository}. Covers user profile management
+ * and the contributor-request lifecycle.
  *
- * <p>Key scenarios covered:
+ * <p>
+ * Key scenarios covered:
  * <ul>
- *   <li>Lookup by email (success and not-found)</li>
- *   <li>Profile display-name update</li>
- *   <li>Pending contributor request listing</li>
- *   <li>Granting and revoking contributor status (role changes and flag resets)</li>
- *   <li>User-not-found error handling</li>
+ * <li>Lookup by email (success and not-found)</li>
+ * <li>Profile display-name update</li>
+ * <li>Pending contributor request listing</li>
+ * <li>Granting and revoking contributor status (role changes and flag
+ * resets)</li>
+ * <li>User-not-found error handling</li>
  * </ul>
  */
 @ExtendWith(MockitoExtension.class)
@@ -40,11 +48,17 @@ class UserServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private ResourceRepository resourceRepository;
+
+    @Mock
+    private FileService fileService;
+
     private UserService userService;
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository);
+        userService = new UserService(userRepository, resourceRepository, fileService);
     }
 
     private User createTestUser(UUID id, String email, UserRole role) {
@@ -54,7 +68,30 @@ class UserServiceTest {
         user.setDisplayName("Test User");
         user.setRole(role);
         user.setContributorRequested(false);
+        user.setAvatarUrl("https://example.com/avatar.png");
+        user.setProfilePublic(true);
+        user.setShowEmail(false);
+        user.setBio("Test bio");
         return user;
+    }
+
+    private Resource createTestResource(UUID id, String title, ResourceStatus status, User contributor) {
+        Resource resource = new Resource();
+        resource.setId(id);
+        resource.setTitle(title);
+        resource.setStatus(status);
+
+        Category category = new Category();
+        category.setId(UUID.randomUUID());
+        category.setName("Architecture");
+        resource.setCategory(category);
+
+        resource.setContributor(contributor);
+        resource.setPlace("Test Place");
+        resource.setDescription("Test description");
+        resource.setCopyrightDeclaration("Test copyright");
+
+        return resource;
     }
 
     @Test
@@ -63,26 +100,40 @@ class UserServiceTest {
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
 
         User result = userService.getUserByEmail("user@example.com");
+
         assertEquals("user@example.com", result.getEmail());
     }
 
     @Test
     void getUserByEmail_notFound_throwsException() {
         when(userRepository.findByEmail("unknown@example.com")).thenReturn(Optional.empty());
-        assertThrows(ResourceNotFoundException.class, () -> userService.getUserByEmail("unknown@example.com"));
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> userService.getUserByEmail("unknown@example.com")
+        );
     }
 
     @Test
-    void updateProfile_updatesDisplayName() {
+    void updateProfile_updatesExtendedFields() {
         User user = createTestUser(UUID.randomUUID(), "user@example.com", UserRole.REGISTERED_VIEWER);
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
         UpdateProfileRequest request = new UpdateProfileRequest();
         request.setDisplayName("New Name");
+        request.setAvatarUrl("https://example.com/new-avatar.png");
+        request.setProfilePublic(false);
+        request.setShowEmail(true);
+        request.setBio("Updated bio");
 
         User result = userService.updateProfile("user@example.com", request);
+
         assertEquals("New Name", result.getDisplayName());
+        assertEquals("https://example.com/new-avatar.png", result.getAvatarUrl());
+        assertFalse(result.isProfilePublic());
+        assertTrue(result.isShowEmail());
+        assertEquals("Updated bio", result.getBio());
     }
 
     @Test
@@ -94,11 +145,11 @@ class UserServiceTest {
                 .thenReturn(List.of(pending));
 
         List<User> result = userService.getPendingContributorRequests();
+
         assertEquals(1, result.size());
         assertTrue(result.get(0).isContributorRequested());
     }
 
-    // Granting contributor status promotes the role and clears the pending request flag
     @Test
     void grantContributorStatus_updatesRoleToContributor() {
         UUID userId = UUID.randomUUID();
@@ -115,7 +166,6 @@ class UserServiceTest {
         verify(userRepository).save(any(User.class));
     }
 
-    // Revoking demotes back to REGISTERED_VIEWER and clears the request flag
     @Test
     void revokeContributorStatus_resetsToRegisteredViewer() {
         UUID userId = UUID.randomUUID();
@@ -135,10 +185,13 @@ class UserServiceTest {
     void grantContributorStatus_userNotFound_throwsException() {
         UUID userId = UUID.randomUUID();
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
-        assertThrows(ResourceNotFoundException.class, () -> userService.grantContributorStatus(userId));
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> userService.grantContributorStatus(userId)
+        );
     }
 
-    // Changing role updates the role and clears the contributor-requested flag
     @Test
     void changeUserRole_validRole_updatesRole() {
         UUID userId = UUID.randomUUID();
@@ -160,19 +213,22 @@ class UserServiceTest {
         UUID userId = UUID.randomUUID();
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class,
-                () -> userService.changeUserRole(userId, "CONTRIBUTOR"));
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> userService.changeUserRole(userId, "CONTRIBUTOR")
+        );
     }
 
-    // valueOf throws IllegalArgumentException for unknown enum constants
     @Test
     void changeUserRole_invalidRoleName_throwsIllegalArgument() {
         UUID userId = UUID.randomUUID();
         User user = createTestUser(userId, "user@example.com", UserRole.REGISTERED_VIEWER);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
-        assertThrows(IllegalArgumentException.class,
-                () -> userService.changeUserRole(userId, "INVALID_ROLE"));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> userService.changeUserRole(userId, "INVALID_ROLE")
+        );
     }
 
     @Test
@@ -191,7 +247,10 @@ class UserServiceTest {
         UUID userId = UUID.randomUUID();
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> userService.deleteUser(userId));
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> userService.deleteUser(userId)
+        );
     }
 
     @Test
@@ -212,7 +271,49 @@ class UserServiceTest {
         UUID userId = UUID.randomUUID();
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class,
-                () -> userService.revokeContributorStatus(userId));
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> userService.revokeContributorStatus(userId)
+        );
+    }
+
+    @Test
+    void getUserProfile_returnsOnlyApprovedResources() {
+        UUID userId = UUID.randomUUID();
+        User user = createTestUser(userId, "user@example.com", UserRole.CONTRIBUTOR);
+
+        Resource approved = createTestResource(
+                UUID.randomUUID(),
+                "Approved Resource",
+                ResourceStatus.APPROVED,
+                user
+        );
+        Resource draft = createTestResource(
+                UUID.randomUUID(),
+                "Draft Resource",
+                ResourceStatus.DRAFT,
+                user
+        );
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(resourceRepository.findByContributorId(userId)).thenReturn(List.of(approved, draft));
+
+        UserProfileResponse result = userService.getUserProfile(userId);
+
+        assertEquals(userId, result.getId());
+        assertEquals("Test User", result.getDisplayName());
+        assertEquals(1, result.getPublishedResources().size());
+        assertEquals("Approved Resource", result.getPublishedResources().get(0).getTitle());
+    }
+
+    @Test
+    void getUserProfile_userNotFound_throwsException() {
+        UUID userId = UUID.randomUUID();
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> userService.getUserProfile(userId)
+        );
     }
 }
