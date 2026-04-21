@@ -2,7 +2,7 @@ package com.heritage.platform.dto;
 
 import com.heritage.platform.model.User;
 import com.heritage.platform.model.UserRole;
-
+import java.util.List;
 import java.util.UUID;
 
 public class UserProfileResponse {

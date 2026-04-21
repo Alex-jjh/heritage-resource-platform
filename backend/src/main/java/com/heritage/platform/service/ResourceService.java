@@ -303,4 +303,43 @@ public class ResourceService {
         }
         return allowed.isEmpty() ? "none" : String.join(", ", allowed);
     }
+    /**
+     * 贡献者申请将自己的资源设为推荐资源
+     */
+    @Transactional
+    public void applyForFeatured(UUID resourceId, String email) {
+        Resource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        validateOwnership(resource, user);
+
+        // 只有审核通过的资源才能申请上首页
+        if (resource.getStatus() != ResourceStatus.APPROVED) {
+            throw new IllegalStateException("Only approved resources can be featured.");
+        }
+
+        resource.setFeaturedStatus(FeaturedStatus.PENDING);
+        resourceRepository.save(resource);
+    }
+
+    /**
+     * 管理员审批推荐资源的申请，或直接钦点
+     */
+    @Transactional
+    public void approveFeatured(UUID resourceId, boolean approved) {
+        Resource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
+
+        if (approved) {
+            resource.setFeaturedStatus(FeaturedStatus.APPROVED);
+            resource.setFeatured(true); // 真正上首页
+        } else {
+            resource.setFeaturedStatus(FeaturedStatus.REJECTED);
+            resource.setFeatured(false);
+        }
+        resourceRepository.save(resource);
+    }
 }

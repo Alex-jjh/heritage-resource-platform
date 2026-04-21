@@ -2,6 +2,7 @@ package com.heritage.platform.repository;
 
 import com.heritage.platform.model.Resource;
 import com.heritage.platform.model.ResourceStatus;
+import com.heritage.platform.model.FeaturedStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,6 +17,9 @@ import java.util.UUID;
 public interface ResourceRepository extends JpaRepository<Resource, UUID> {
     List<Resource> findByContributorId(UUID contributorId);
     List<Resource> findByStatusOrderByCreatedAtAsc(ResourceStatus status);
+
+    List<Resource> findByIsFeaturedTrueOrderByCreatedAtDesc();
+    List<Resource> findByFeaturedStatus(FeaturedStatus status);
 
     @Query("SELECT r FROM Resource r WHERE r.status = :status AND " +
            "(r.title LIKE %:query% OR r.description LIKE %:query%)")

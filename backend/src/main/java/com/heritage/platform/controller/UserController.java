@@ -87,11 +87,6 @@ public class UserController {
         userService.deleteUser(userId);
         return ResponseEntity.ok(new MessageResponse("User deleted"));
     }
-    @DeleteMapping("/{userId}")
-    public ResponseEntity<MessageResponse> deleteUser(@PathVariable UUID userId) {
-        userService.deleteUser(userId);
-        return ResponseEntity.ok(new MessageResponse("User deleted"));
-    }
 
     // 🌟 就在这里！把新代码粘贴进来
     @GetMapping("/{userId}/profile")

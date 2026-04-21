@@ -29,6 +29,8 @@ public class ResourceResponse {
     private Instant createdAt;
     private Instant updatedAt;
     private Instant approvedAt;
+    private boolean isFeatured;
+    private String featuredStatus;
 
     public ResourceResponse() {}
 
@@ -66,6 +68,8 @@ public class ResourceResponse {
         resp.createdAt = resource.getCreatedAt();
         resp.updatedAt = resource.getUpdatedAt();
         resp.approvedAt = resource.getApprovedAt();
+        resp.isFeatured = resource.isFeatured();
+        resp.featuredStatus = resource.getFeaturedStatus() != null ? resource.getFeaturedStatus().name() : null;
         return resp;
     }
 
@@ -129,6 +133,8 @@ public class ResourceResponse {
     public Instant getUpdatedAt() { return updatedAt; }
     public Instant getApprovedAt() { return approvedAt; }
     public List<ReviewFeedbackDto> getReviewFeedbacks() { return reviewFeedbacks; }
+    public boolean isFeatured() { return isFeatured; }
+    public String getFeaturedStatus() { return featuredStatus; }
 
     public static class FileReferenceDto {
         private UUID id;

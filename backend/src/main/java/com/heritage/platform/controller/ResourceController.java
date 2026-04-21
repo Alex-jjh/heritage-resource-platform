@@ -7,6 +7,8 @@ import com.heritage.platform.model.Resource;
 import com.heritage.platform.model.ResourceStatus;
 import com.heritage.platform.service.FileService;
 import com.heritage.platform.service.ResourceService;
+import com.heritage.platform.dto.MessageResponse;
+import com.heritage.platform.repository.ResourceRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,10 +24,12 @@ public class ResourceController {
 
     private final ResourceService resourceService;
     private final FileService fileService;
+    private final ResourceRepository resourceRepository;
 
-    public ResourceController(ResourceService resourceService, FileService fileService) {
+    public ResourceController(ResourceService resourceService, FileService fileService, ResourceRepository resourceRepository) {
         this.resourceService = resourceService;
         this.fileService = fileService;
+        this.resourceRepository = resourceRepository;
     }
 
     @PostMapping
@@ -95,4 +99,31 @@ public class ResourceController {
                 .toList();
         return ResponseEntity.ok(resources);
     }
+
+    @GetMapping("/featured")
+    public ResponseEntity<List<ResourceResponse>> getFeaturedResources() {
+        List<ResourceResponse> featured = resourceRepository.findByIsFeaturedTrueOrderByCreatedAtDesc()
+                .stream()
+                .map(ResourceResponse::fromEntity)
+                .toList();
+        return ResponseEntity.ok(featured);
+    }
+
+    @PostMapping("/{id}/apply-featured")
+    public ResponseEntity<MessageResponse> applyFeatured(
+            @PathVariable UUID id,
+            Principal principal) {
+        resourceService.applyForFeatured(id, principal.getName());
+        return ResponseEntity.ok(new MessageResponse("Featured application submitted"));
+    }
+
+    @PostMapping("/{id}/approve-featured")
+    public ResponseEntity<MessageResponse> approveFeatured(
+            @PathVariable UUID id,
+            @RequestParam boolean approved) {
+        resourceService.approveFeatured(id, approved);
+        String msg = approved ? "Resource is now featured" : "Featured application rejected";
+        return ResponseEntity.ok(new MessageResponse(msg));
+    }
+
 }

@@ -56,6 +56,13 @@ public class Resource {
     @OneToMany(mappedBy = "resource", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReviewFeedback> reviewFeedbacks = new ArrayList<>();
 
+    @Column(nullable = false)
+    private boolean isFeatured = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private FeaturedStatus featuredStatus = FeaturedStatus.NONE;
+
     private String thumbnailS3Key;
     private Instant createdAt;
     private Instant updatedAt;
@@ -111,4 +118,10 @@ public class Resource {
     public void setApprovedAt(Instant approvedAt) { this.approvedAt = approvedAt; }
     public Instant getArchivedAt() { return archivedAt; }
     public void setArchivedAt(Instant archivedAt) { this.archivedAt = archivedAt; }
+    public boolean isFeatured() { return isFeatured; }
+    public void setFeatured(boolean featured) { isFeatured = featured; }
+
+    public FeaturedStatus getFeaturedStatus() { return featuredStatus; }
+    public void setFeaturedStatus(FeaturedStatus featuredStatus) { this.featuredStatus = featuredStatus; }
+    
 }
