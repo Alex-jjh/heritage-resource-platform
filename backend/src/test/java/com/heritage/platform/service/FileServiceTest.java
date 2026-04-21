@@ -16,8 +16,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.*;
@@ -26,21 +24,6 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for {@link FileService}.
- *
- * <p>Uses Mockito mocks for repository dependencies and a JUnit {@code @TempDir}
- * for local file-system storage. The upload directory and base URL are injected
- * via {@code ReflectionTestUtils} to avoid Spring context loading.
- *
- * <p>Key scenarios covered:
- * <ul>
- *   <li>Successful file upload with metadata persistence</li>
- *   <li>Upload guards: resource not found, non-owner access, non-DRAFT status, max size exceeded</li>
- *   <li>Download and thumbnail URL generation</li>
- *   <li>File reference deletion with ownership and resource-association checks</li>
- * </ul>
- */
 @ExtendWith(MockitoExtension.class)
 class FileServiceTest {
 
@@ -94,9 +77,8 @@ class FileServiceTest {
         draftResource.setCreatedAt(Instant.now());
     }
 
-    // --- Upload tests ---
+    // --- Upload tests (unchanged) ---
 
-    // Verifies that file metadata (name, type, size) is captured and linked to the resource
     @Test
     void uploadFile_validRequest_savesFileAndReference() throws Exception {
         when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
@@ -146,7 +128,6 @@ class FileServiceTest {
                 .isInstanceOf(AccessDeniedException.class);
     }
 
-    // Files can only be attached while the resource is still in DRAFT
     @Test
     void uploadFile_notDraftStatus_throwsIllegalState() {
         draftResource.setStatus(ResourceStatus.PENDING_REVIEW);
@@ -173,7 +154,42 @@ class FileServiceTest {
                 .hasMessageContaining("50MB");
     }
 
-    // --- Download URL tests ---
+    @Test
+    void uploadFile_exceedsMaxCount_throwsIllegalState() {
+        when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
+        when(fileReferenceRepository.countByResourceId(draftResource.getId())).thenReturn(10);
+
+        MultipartFile mockFile = mock(MultipartFile.class);
+        when(mockFile.getSize()).thenReturn(1024L);
+
+        assertThatThrownBy(() -> fileService.uploadFile(draftResource.getId(), mockFile, "contributor@example.com"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("10");
+    }
+
+    @Test
+    void uploadFile_atNinthFile_succeeds() throws Exception {
+        when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
+        when(fileReferenceRepository.countByResourceId(draftResource.getId())).thenReturn(9);
+        when(fileReferenceRepository.save(any(FileReference.class))).thenAnswer(inv -> {
+            FileReference fr = inv.getArgument(0);
+            fr.setId(UUID.randomUUID());
+            return fr;
+        });
+
+        MultipartFile mockFile = mock(MultipartFile.class);
+        when(mockFile.getOriginalFilename()).thenReturn("ninth.jpg");
+        when(mockFile.getContentType()).thenReturn("text/plain");
+        when(mockFile.getSize()).thenReturn(1024L);
+        doNothing().when(mockFile).transferTo(any(java.io.File.class));
+
+        FileReference result = fileService.uploadFile(draftResource.getId(), mockFile, "contributor@example.com");
+        assertThat(result.getOriginalFileName()).isEqualTo("ninth.jpg");
+    }
+
+    // --- Download URL tests (unchanged) ---
 
     @Test
     void generateDownloadUrl_returnsLocalUrl() {
@@ -187,7 +203,7 @@ class FileServiceTest {
         assertThat(url).isEqualTo("http://localhost:8080/files/thumbnails/resource-id/photo.jpg");
     }
 
-    // --- File reference deletion tests ---
+    // --- File reference deletion tests (unchanged) ---
 
     @Test
     void deleteFileReference_validRequest_deletesReference() {
@@ -218,7 +234,6 @@ class FileServiceTest {
                 .hasMessageContaining("File reference not found");
     }
 
-    // Prevents cross-resource file reference manipulation via mismatched IDs
     @Test
     void deleteFileReference_fileRefOnDifferentResource_throwsNotFound() {
         Resource otherResource = new Resource();
@@ -244,5 +259,75 @@ class FileServiceTest {
 
         assertThatThrownBy(() -> fileService.deleteFileReference(draftResource.getId(), UUID.randomUUID(), "other@example.com"))
                 .isInstanceOf(AccessDeniedException.class);
+    }
+
+    // --- setCover tests (new) ---
+
+    @Test
+    void setCover_validRequest_updatesThumbnailKey() {
+        FileReference fileRef = new FileReference();
+        fileRef.setId(UUID.randomUUID());
+        fileRef.setResource(draftResource);
+        fileRef.setS3Key(draftResource.getId() + "/cover.jpg");
+
+        when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
+        when(fileReferenceRepository.findById(fileRef.getId())).thenReturn(Optional.of(fileRef));
+
+        fileService.setCover(draftResource.getId(), fileRef.getId(), "contributor@example.com");
+
+        ArgumentCaptor<Resource> captor = ArgumentCaptor.forClass(Resource.class);
+        verify(resourceRepository).save(captor.capture());
+        assertThat(captor.getValue().getThumbnailS3Key()).isEqualTo(draftResource.getId() + "/cover.jpg");
+    }
+
+    @Test
+    void setCover_notOwner_throwsAccessDenied() {
+        when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
+        when(userRepository.findByEmail("other@example.com")).thenReturn(Optional.of(otherUser));
+
+        assertThatThrownBy(() -> fileService.setCover(draftResource.getId(), UUID.randomUUID(), "other@example.com"))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void setCover_notDraftStatus_throwsIllegalState() {
+        draftResource.setStatus(ResourceStatus.PENDING_REVIEW);
+        when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
+
+        assertThatThrownBy(() -> fileService.setCover(draftResource.getId(), UUID.randomUUID(), "contributor@example.com"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("DRAFT");
+    }
+
+    @Test
+    void setCover_fileRefNotFound_throwsNotFound() {
+        UUID fileRefId = UUID.randomUUID();
+        when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
+        when(fileReferenceRepository.findById(fileRefId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> fileService.setCover(draftResource.getId(), fileRefId, "contributor@example.com"))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("File reference not found");
+    }
+
+    @Test
+    void setCover_fileRefOnDifferentResource_throwsNotFound() {
+        Resource otherResource = new Resource();
+        otherResource.setId(UUID.randomUUID());
+
+        FileReference fileRef = new FileReference();
+        fileRef.setId(UUID.randomUUID());
+        fileRef.setResource(otherResource);
+
+        when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
+        when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
+        when(fileReferenceRepository.findById(fileRef.getId())).thenReturn(Optional.of(fileRef));
+
+        assertThatThrownBy(() -> fileService.setCover(draftResource.getId(), fileRef.getId(), "contributor@example.com"))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("File reference not found on this resource");
     }
 }

@@ -25,7 +25,8 @@ import java.util.UUID;
 @Service
 public class FileService {
 
-    private static final long MAX_FILE_SIZE_BYTES = 50L * 1024 * 1024; // 50 MB
+    private static final long MAX_FILE_SIZE_BYTES = 50L * 1024 * 1024; // 50 MB (unchanged)
+    private static final int MAX_FILES_PER_RESOURCE = 10;
     private static final int THUMBNAIL_WIDTH = 400;
     private static final int THUMBNAIL_HEIGHT = 300;
     private static final Set<String> IMAGE_CONTENT_TYPES = Set.of(
@@ -68,6 +69,11 @@ public class FileService {
             throw new IllegalArgumentException("File size exceeds maximum of 50MB");
         }
 
+        int currentCount = fileReferenceRepository.countByResourceId(resourceId);
+        if (currentCount >= MAX_FILES_PER_RESOURCE) {
+            throw new IllegalStateException("Upload limit reached: a resource cannot have more than 10 media files");
+        }
+
         // Save file to disk
         String storedFileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
         Path resourceDir = Paths.get(uploadDir, resourceId.toString());
@@ -79,7 +85,7 @@ public class FileService {
         String fileKey = resourceId + "/" + storedFileName;
         FileReference fileRef = new FileReference();
         fileRef.setResource(resource);
-        fileRef.setS3Key(fileKey); // reuse s3_key column for local path
+        fileRef.setS3Key(fileKey);
         fileRef.setOriginalFileName(file.getOriginalFilename());
         fileRef.setContentType(file.getContentType());
         fileRef.setFileSize(file.getSize());
@@ -105,6 +111,28 @@ public class FileService {
      */
     public String generateThumbnailUrl(String thumbnailKey) {
         return storageBaseUrl + "/files/thumbnails/" + thumbnailKey;
+    }
+
+    /**
+     * Sets a file reference as the cover (thumbnail) for the resource.
+     * Only the owner can set the cover, and only on DRAFT resources.
+     */
+    @Transactional
+    public void setCover(UUID resourceId, UUID fileRefId, String email) {
+        Resource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        validateOwnershipAndDraftStatus(resource, user);
+
+        FileReference fileRef = fileReferenceRepository.findById(fileRefId)
+                .orElseThrow(() -> new ResourceNotFoundException("File reference not found"));
+        if (!fileRef.getResource().getId().equals(resourceId)) {
+            throw new ResourceNotFoundException("File reference not found on this resource");
+        }
+
+        resource.setThumbnailS3Key(fileRef.getS3Key());
+        resourceRepository.save(resource);
     }
 
     /**
