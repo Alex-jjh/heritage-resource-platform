@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth-context";
 import { ProtectedRoute } from "@/components/protected-route";
 import { PageContainer } from "@/components/page-container";
 import { Badge } from "@/components/ui/badge";
@@ -26,89 +27,49 @@ function formatCreatedAt(dateString: string) {
     });
 }
 
-function getAuthInfoFromToken() {
-    if (typeof window === "undefined") {
-        return {
-            reviewerEmail: "",
-            isAdmin: false,
-        };
-    }
-
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-        return {
-            reviewerEmail: "",
-            isAdmin: false,
-        };
-    }
-
-    try {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-
-        const reviewerEmail =
-            (typeof payload.email === "string" && payload.email) ||
-            (typeof payload.sub === "string" && payload.sub.includes("@")
-                ? payload.sub
-                : "") ||
-            "";
-
-        const roles: string[] = Array.isArray(payload.roles)
-            ? payload.roles
-            : Array.isArray(payload.authorities)
-                ? payload.authorities
-                : typeof payload.role === "string"
-                    ? [payload.role]
-                    : [];
-
-        const isAdmin = roles.some(
-            (role) =>
-                role === "ADMINISTRATOR" ||
-                role === "ROLE_ADMINISTRATOR" ||
-                role === "ADMIN"
-        );
-
-        return {
-            reviewerEmail,
-            isAdmin,
-        };
-    } catch {
-        return {
-            reviewerEmail: "",
-            isAdmin: false,
-        };
-    }
-}
-
 function ReviewHistoryContent() {
-    const authInfo = getAuthInfoFromToken();
+    const { user, isLoading } = useAuth();
+
+    const isAdmin = user?.role === "ADMINISTRATOR";
+    const reviewerEmail = user?.email ?? "";
 
     const [keyword, setKeyword] = useState("");
-    const [scope, setScope] = useState<"ALL" | "MINE">(
-        authInfo.isAdmin ? "ALL" : "MINE"
-    );
+    const [scope, setScope] = useState<"ALL" | "MINE">("ALL");
     const [decision, setDecision] = useState<"ALL" | ReviewDecision>("ALL");
     const [page, setPage] = useState(0);
 
-    const effectiveScope = authInfo.isAdmin ? scope : "MINE";
+    if (isLoading || !user) {
+        return (
+            <main>
+                <PageContainer>
+                    <div className="rounded-lg border bg-card px-6 py-16 text-center text-muted-foreground">
+                        Loading review history...
+                    </div>
+                </PageContainer>
+            </main>
+        );
+    }
+
+    const effectiveScope = isAdmin ? scope : "MINE";
 
     const queryParams: ReviewHistoryQueryParams = useMemo(
         () => ({
             q: keyword,
             reviewerEmail:
-                effectiveScope === "MINE" ? authInfo.reviewerEmail || undefined : undefined,
+                effectiveScope === "MINE" ? reviewerEmail || undefined : undefined,
             decision,
             page,
             size: 10,
             sort: "createdAt,desc",
         }),
-        [keyword, effectiveScope, authInfo.reviewerEmail, decision, page]
+        [keyword, effectiveScope, reviewerEmail, decision, page]
     );
 
     const historyQuery = useQuery({
         queryKey: ["review-history", queryParams],
         queryFn: () => getReviewHistory(queryParams),
         placeholderData: (previousData) => previousData,
-        enabled: effectiveScope === "ALL" || Boolean(authInfo.reviewerEmail),
+        enabled: effectiveScope === "ALL" || Boolean(reviewerEmail),
     });
 
     const records = historyQuery.data?.content ?? [];
@@ -125,7 +86,7 @@ function ReviewHistoryContent() {
                         </p>
                         <h1 className="font-serif text-3xl font-bold">Review History</h1>
                         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                            {authInfo.isAdmin
+                            {isAdmin
                                 ? "View past review decisions and switch between all team reviews and your own review records."
                                 : "View your own past review decisions."}
                         </p>
@@ -136,7 +97,7 @@ function ReviewHistoryContent() {
                     </Link>
                 </div>
 
-                {authInfo.isAdmin && (
+                {isAdmin && (
                     <div className="mb-4 flex items-center gap-2">
                         <Button
                             variant={scope === "ALL" ? "default" : "outline"}
@@ -167,7 +128,7 @@ function ReviewHistoryContent() {
                         <Input
                             id="review-history-keyword"
                             placeholder={
-                                authInfo.isAdmin
+                                isAdmin
                                     ? "Search reviewer email, decision, date, comments..."
                                     : "Search decision, date, comments..."
                             }
@@ -222,7 +183,7 @@ function ReviewHistoryContent() {
                     <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-6 py-10 text-center text-destructive">
                         Failed to load review history. Please try again later.
                     </div>
-                ) : effectiveScope === "MINE" && !authInfo.reviewerEmail ? (
+                ) : effectiveScope === "MINE" && !reviewerEmail ? (
                     <div className="rounded-lg border bg-card px-6 py-16 text-center">
                         <p className="text-lg font-medium">Unable to load your reviewer email.</p>
                         <p className="mt-2 text-sm text-muted-foreground">
@@ -274,7 +235,9 @@ function ReviewHistoryContent() {
                     <Button
                         variant="outline"
                         onClick={() =>
-                            setPage((current) => (historyQuery.data?.last ? current : current + 1))
+                            setPage((current) =>
+                                historyQuery.data?.last ? current : current + 1
+                            )
                         }
                         disabled={(historyQuery.data?.last ?? true) || historyQuery.isLoading}
                     >

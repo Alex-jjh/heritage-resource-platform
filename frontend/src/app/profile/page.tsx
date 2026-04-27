@@ -16,7 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { User, UserProfileResponse } from "@/types";
+import type { User } from "@/types";
 
 const ROLE_LABELS: Record<string, string> = {
   REGISTERED_VIEWER: "Registered Viewer",
@@ -156,7 +156,7 @@ function ProfileContent() {
     setSelectedAvatarPreviewUrl(previewUrl);
   }
 
-  async function uploadAvatarFile(file: File): Promise<UserProfileResponse> {
+  async function uploadAvatarFile(file: File): Promise<User> {
     const token = localStorage.getItem("accessToken");
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -190,7 +190,7 @@ function ProfileContent() {
       throw new Error(message);
     }
 
-    return (await response.json()) as UserProfileResponse;
+    return (await response.json()) as User;
   }
 
   async function handleSave() {

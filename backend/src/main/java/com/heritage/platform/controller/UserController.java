@@ -3,6 +3,7 @@ package com.heritage.platform.controller;
 import com.heritage.platform.dto.MessageResponse;
 import com.heritage.platform.dto.UpdateProfileRequest;
 import com.heritage.platform.dto.UserProfileResponse;
+import com.heritage.platform.dto.UserResponse;
 import com.heritage.platform.model.User;
 import com.heritage.platform.service.UserService;
 import jakarta.validation.Valid;
@@ -26,11 +27,11 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UserProfileResponse> getProfile(Principal principal) {
+    public ResponseEntity<UserResponse> getProfile(Principal principal) {
         User user = userService.getUserByEmail(principal.getName());
 
         return ResponseEntity.ok(
-                UserProfileResponse.fromEntity(user, List.of())
+                UserResponse.fromEntity(user)
         );
     }
 
@@ -41,44 +42,44 @@ public class UserController {
     }
 
     @PutMapping("/me")
-    public ResponseEntity<UserProfileResponse> updateProfile(
+    public ResponseEntity<UserResponse> updateProfile(
             Principal principal,
             @Valid @RequestBody UpdateProfileRequest request
     ) {
         User user = userService.updateProfile(principal.getName(), request);
 
         return ResponseEntity.ok(
-                UserProfileResponse.fromEntity(user, List.of())
+                UserResponse.fromEntity(user)
         );
     }
 
     @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<UserProfileResponse> uploadAvatar(
+    public ResponseEntity<UserResponse> uploadAvatar(
             Principal principal,
             @RequestParam("file") MultipartFile file
     ) {
         User user = userService.uploadAvatar(principal.getName(), file);
 
         return ResponseEntity.ok(
-                UserProfileResponse.fromEntity(user, List.of())
+                UserResponse.fromEntity(user)
         );
     }
 
     @GetMapping("/pending-contributors")
-    public ResponseEntity<List<UserProfileResponse>> getPendingContributors() {
-        List<UserProfileResponse> pending = userService.getPendingContributorRequests()
+    public ResponseEntity<List<UserResponse>> getPendingContributors() {
+        List<UserResponse> pending = userService.getPendingContributorRequests()
                 .stream()
-                .map(user -> UserProfileResponse.fromEntity(user, List.of()))
+                .map(UserResponse::fromEntity)
                 .toList();
 
         return ResponseEntity.ok(pending);
     }
 
     @GetMapping("/all")
-    public ResponseEntity<List<UserProfileResponse>> getAllUsers() {
-        List<UserProfileResponse> users = userService.getAllUsers()
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
+        List<UserResponse> users = userService.getAllUsers()
                 .stream()
-                .map(user -> UserProfileResponse.fromEntity(user, List.of()))
+                .map(UserResponse::fromEntity)
                 .toList();
 
         return ResponseEntity.ok(users);
