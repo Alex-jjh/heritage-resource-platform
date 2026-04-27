@@ -5,16 +5,35 @@ import com.heritage.platform.dto.UpdateResourceRequest;
 import com.heritage.platform.exception.AccessDeniedException;
 import com.heritage.platform.exception.InvalidStatusTransitionException;
 import com.heritage.platform.exception.ResourceNotFoundException;
-import com.heritage.platform.model.*;
-import com.heritage.platform.repository.*;
+import com.heritage.platform.model.Category;
+import com.heritage.platform.model.ExternalLink;
+import com.heritage.platform.model.FeaturedStatus;
+import com.heritage.platform.model.Resource;
+import com.heritage.platform.model.ResourceStatus;
+import com.heritage.platform.model.StatusTransition;
+import com.heritage.platform.model.Tag;
+import com.heritage.platform.model.User;
+import com.heritage.platform.model.UserRole;
+import com.heritage.platform.repository.CategoryRepository;
+import com.heritage.platform.repository.ResourceRepository;
+import com.heritage.platform.repository.StatusTransitionRepository;
+import com.heritage.platform.repository.TagRepository;
+import com.heritage.platform.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class ResourceService {
+
+    private static final int HOMEPAGE_FEATURED_LIMIT = 20;
 
     private final ResourceRepository resourceRepository;
     private final CategoryRepository categoryRepository;
@@ -34,9 +53,6 @@ public class ResourceService {
         this.statusTransitionRepository = statusTransitionRepository;
     }
 
-    /**
-     * Creates a new draft resource for the given contributor.
-     */
     @Transactional
     public Resource createResource(String email, CreateResourceRequest request) {
         User contributor = userRepository.findByEmail(email)
@@ -55,8 +71,7 @@ public class ResourceService {
         resource.setStatus(ResourceStatus.DRAFT);
 
         if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
-            Set<Tag> tags = new HashSet<>(tagRepository.findAllById(request.getTagIds()));
-            resource.setTags(tags);
+            resource.setTags(new HashSet<>(tagRepository.findAllById(request.getTagIds())));
         }
 
         if (request.getExternalLinks() != null) {
@@ -72,10 +87,6 @@ public class ResourceService {
         return saveAndInitialize(resource);
     }
 
-    /**
-     * Gets a resource by ID with access control based on status and role.
-     * Non-admin users can only see APPROVED resources (or their own).
-     */
     @Transactional(readOnly = true)
     public Resource getResourceById(UUID resourceId, String email) {
         Resource resource = resourceRepository.findById(resourceId)
@@ -84,26 +95,22 @@ public class ResourceService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // Admins can see all resources
         if (user.getRole() == UserRole.ADMINISTRATOR) {
             initializeLazyAssociations(resource);
             return resource;
         }
 
-        // Owners can see their own resources regardless of status
         if (resource.getContributor().getId().equals(user.getId())) {
             initializeLazyAssociations(resource);
             return resource;
         }
 
-        // Reviewers can see PENDING_REVIEW resources
         if (user.getRole() == UserRole.REVIEWER
                 && resource.getStatus() == ResourceStatus.PENDING_REVIEW) {
             initializeLazyAssociations(resource);
             return resource;
         }
 
-        // Everyone else can only see APPROVED resources
         if (resource.getStatus() != ResourceStatus.APPROVED) {
             throw new ResourceNotFoundException("Resource not found");
         }
@@ -112,24 +119,6 @@ public class ResourceService {
         return resource;
     }
 
-    private Resource saveAndInitialize(Resource resource) {
-        Resource saved = resourceRepository.save(resource);
-        initializeLazyAssociations(saved);
-        return saved;
-    }
-
-    private void initializeLazyAssociations(Resource resource) {
-        if (resource.getCategory() != null) resource.getCategory().getName();
-        if (resource.getTags() != null) resource.getTags().size();
-        if (resource.getExternalLinks() != null) resource.getExternalLinks().size();
-        if (resource.getFileReferences() != null) resource.getFileReferences().size();
-        if (resource.getReviewFeedbacks() != null) resource.getReviewFeedbacks().size();
-        if (resource.getContributor() != null) resource.getContributor().getDisplayName();
-    }
-
-    /**
-     * Updates a draft resource. Only the owner can update, and only while in DRAFT status.
-     */
     @Transactional
     public Resource updateResource(UUID resourceId, String email, UpdateResourceRequest request) {
         Resource resource = resourceRepository.findById(resourceId)
@@ -154,8 +143,7 @@ public class ResourceService {
         resource.setCopyrightDeclaration(request.getCopyrightDeclaration());
 
         if (request.getTagIds() != null) {
-            Set<Tag> tags = new HashSet<>(tagRepository.findAllById(request.getTagIds()));
-            resource.setTags(tags);
+            resource.setTags(new HashSet<>(tagRepository.findAllById(request.getTagIds())));
         }
 
         if (request.getExternalLinks() != null) {
@@ -172,9 +160,6 @@ public class ResourceService {
         return saveAndInitialize(resource);
     }
 
-    /**
-     * Deletes a draft resource. Hard delete with cascade to file references and external links.
-     */
     @Transactional
     public void deleteResource(UUID resourceId, String email) {
         Resource resource = resourceRepository.findById(resourceId)
@@ -192,22 +177,60 @@ public class ResourceService {
         resourceRepository.delete(resource);
     }
 
-    /**
-     * Lists all resources owned by the given contributor.
-     */
     @Transactional(readOnly = true)
     public List<Resource> listContributorResources(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         List<Resource> resources = resourceRepository.findByContributorId(user.getId());
-        // Force initialization of lazy associations within the transaction
         resources.forEach(this::initializeLazyAssociations);
         return resources;
     }
 
-    /**
-     * Transitions a resource to a new status, validating the transition and recording it.
-     */
+    @Transactional(readOnly = true)
+    public List<Resource> getFeaturedResources() {
+        List<Resource> resources = resourceRepository.findByIsFeaturedTrueAndStatusOrderByApprovedAtDesc(ResourceStatus.APPROVED);
+        resources.forEach(this::initializeLazyAssociations);
+        return resources;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Resource> getHomepageFeaturedResources() {
+        List<Resource> featured = resourceRepository.findByIsFeaturedTrueAndStatusOrderByApprovedAtDesc(ResourceStatus.APPROVED);
+        List<Resource> latestApproved = resourceRepository.findByStatusOrderByApprovedAtDesc(ResourceStatus.APPROVED);
+
+        LinkedHashMap<UUID, Resource> ordered = new LinkedHashMap<>();
+
+        for (Resource resource : featured) {
+            ordered.put(resource.getId(), resource);
+            if (ordered.size() == HOMEPAGE_FEATURED_LIMIT) {
+                break;
+            }
+        }
+
+        if (ordered.size() < HOMEPAGE_FEATURED_LIMIT) {
+            for (Resource resource : latestApproved) {
+                ordered.putIfAbsent(resource.getId(), resource);
+                if (ordered.size() == HOMEPAGE_FEATURED_LIMIT) {
+                    break;
+                }
+            }
+        }
+
+        List<Resource> result = new ArrayList<>(ordered.values());
+        result.forEach(this::initializeLazyAssociations);
+        return result;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Resource> getPendingFeaturedApplications(String email) {
+        requireAdministrator(email);
+
+        List<Resource> resources = resourceRepository.findByFeaturedStatusOrderByCreatedAtDesc(FeaturedStatus.PENDING);
+        resources.forEach(this::initializeLazyAssociations);
+        return resources;
+    }
+
     @Transactional
     public Resource transitionStatus(UUID resourceId, ResourceStatus targetStatus, User actor) {
         Resource resource = resourceRepository.findById(resourceId)
@@ -217,8 +240,8 @@ public class ResourceService {
         if (!currentStatus.canTransitionTo(targetStatus)) {
             throw new InvalidStatusTransitionException(
                     String.format("Cannot transition from %s to %s. Allowed transitions from %s: %s",
-                            currentStatus, targetStatus, currentStatus,
-                            getAllowedTargets(currentStatus)));
+                            currentStatus, targetStatus, currentStatus, getAllowedTargets(currentStatus)))
+                    ;
         }
 
         resource.setStatus(targetStatus);
@@ -239,9 +262,6 @@ public class ResourceService {
         return saveAndInitialize(resource);
     }
 
-    /**
-     * Submits a draft resource for review. Validates required metadata.
-     */
     @Transactional
     public Resource submitForReview(UUID resourceId, String email) {
         Resource resource = resourceRepository.findById(resourceId)
@@ -256,9 +276,6 @@ public class ResourceService {
         return transitionStatus(resourceId, ResourceStatus.PENDING_REVIEW, user);
     }
 
-    /**
-     * Moves a rejected resource back to draft for revision.
-     */
     @Transactional
     public Resource revise(UUID resourceId, String email) {
         Resource resource = resourceRepository.findById(resourceId)
@@ -270,6 +287,97 @@ public class ResourceService {
         validateOwnership(resource, user);
 
         return transitionStatus(resourceId, ResourceStatus.DRAFT, user);
+    }
+
+    @Transactional
+    public void applyForFeatured(UUID resourceId, String email) {
+        Resource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        validateOwnership(resource, user);
+
+        if (resource.getStatus() != ResourceStatus.APPROVED) {
+            throw new IllegalStateException("Only approved resources can be featured.");
+        }
+
+        if (resource.isFeatured() || resource.getFeaturedStatus() == FeaturedStatus.APPROVED) {
+            throw new IllegalStateException("This resource is already featured.");
+        }
+
+        if (resource.getFeaturedStatus() == FeaturedStatus.PENDING) {
+            throw new IllegalStateException("This resource already has a pending featured application.");
+        }
+
+        resource.setFeaturedStatus(FeaturedStatus.PENDING);
+        resourceRepository.save(resource);
+    }
+
+    @Transactional
+    public void approveFeatured(UUID resourceId, boolean approved, String email) {
+        requireAdministrator(email);
+
+        Resource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
+
+        if (resource.getFeaturedStatus() != FeaturedStatus.PENDING) {
+            throw new IllegalStateException("This resource does not have a pending featured application.");
+        }
+
+        if (approved) {
+            resource.setFeaturedStatus(FeaturedStatus.APPROVED);
+            resource.setFeatured(true);
+        } else {
+            resource.setFeaturedStatus(FeaturedStatus.REJECTED);
+            resource.setFeatured(false);
+        }
+
+        resourceRepository.save(resource);
+    }
+
+    @Transactional
+    public void featureResource(UUID resourceId, String email) {
+        requireAdministrator(email);
+
+        Resource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
+
+        if (resource.getStatus() != ResourceStatus.APPROVED) {
+            throw new IllegalStateException("Only approved resources can be manually featured.");
+        }
+
+        resource.setFeatured(true);
+        resource.setFeaturedStatus(FeaturedStatus.APPROVED);
+        resourceRepository.save(resource);
+    }
+
+    @Transactional
+    public void unfeatureResource(UUID resourceId, String email) {
+        requireAdministrator(email);
+
+        Resource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
+
+        resource.setFeatured(false);
+        resource.setFeaturedStatus(FeaturedStatus.NONE);
+        resourceRepository.save(resource);
+    }
+
+    private Resource saveAndInitialize(Resource resource) {
+        Resource saved = resourceRepository.save(resource);
+        initializeLazyAssociations(saved);
+        return saved;
+    }
+
+    private void initializeLazyAssociations(Resource resource) {
+        if (resource.getCategory() != null) resource.getCategory().getName();
+        if (resource.getTags() != null) resource.getTags().size();
+        if (resource.getExternalLinks() != null) resource.getExternalLinks().size();
+        if (resource.getFileReferences() != null) resource.getFileReferences().size();
+        if (resource.getReviewFeedbacks() != null) resource.getReviewFeedbacks().size();
+        if (resource.getContributor() != null) resource.getContributor().getDisplayName();
     }
 
     private void validateOwnership(Resource resource, User user) {
@@ -302,5 +410,16 @@ public class ResourceService {
             }
         }
         return allowed.isEmpty() ? "none" : String.join(", ", allowed);
+    }
+
+    private User requireAdministrator(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (user.getRole() != UserRole.ADMINISTRATOR) {
+            throw new AccessDeniedException("Administrator permission is required");
+        }
+
+        return user;
     }
 }

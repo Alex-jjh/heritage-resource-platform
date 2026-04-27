@@ -25,12 +25,20 @@ import java.util.UUID;
 @Service
 public class FileService {
 
-    private static final long MAX_FILE_SIZE_BYTES = 50L * 1024 * 1024; // 50 MB (unchanged)
+    private static final long MAX_FILE_SIZE_BYTES = 50L * 1024 * 1024; // 50 MB
+    private static final long MAX_AVATAR_SIZE_BYTES = 5L * 1024 * 1024; // 5 MB
     private static final int MAX_FILES_PER_RESOURCE = 10;
+
     private static final int THUMBNAIL_WIDTH = 400;
     private static final int THUMBNAIL_HEIGHT = 300;
+
     private static final Set<String> IMAGE_CONTENT_TYPES = Set.of(
-            "image/jpeg", "image/png", "image/gif", "image/webp");
+            "image/jpeg", "image/png", "image/gif", "image/webp"
+    );
+
+    private static final Set<String> AVATAR_CONTENT_TYPES = Set.of(
+            "image/jpeg", "image/png", "image/webp"
+    );
 
     private final ResourceRepository resourceRepository;
     private final FileReferenceRepository fileReferenceRepository;
@@ -41,6 +49,9 @@ public class FileService {
 
     @Value("${app.storage.thumbnail-dir:/opt/heritage/thumbnails}")
     private String thumbnailDir;
+
+    @Value("${app.storage.avatar-dir:/opt/heritage/avatars}")
+    private String avatarDir;
 
     @Value("${app.storage.base-url:}")
     private String storageBaseUrl;
@@ -53,10 +64,6 @@ public class FileService {
         this.userRepository = userRepository;
     }
 
-    /**
-     * Uploads a file to local disk and creates a file reference.
-     * Also generates a thumbnail if the file is an image.
-     */
     @Transactional
     public FileReference uploadFile(UUID resourceId, MultipartFile file, String email) throws IOException {
         Resource resource = resourceRepository.findById(resourceId)
@@ -64,6 +71,10 @@ public class FileService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         validateOwnershipAndDraftStatus(resource, user);
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("File must not be empty");
+        }
 
         if (file.getSize() > MAX_FILE_SIZE_BYTES) {
             throw new IllegalArgumentException("File size exceeds maximum of 50MB");
@@ -74,24 +85,25 @@ public class FileService {
             throw new IllegalStateException("Upload limit reached: a resource cannot have more than 10 media files");
         }
 
-        // Save file to disk
-        String storedFileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
+        String originalFileName = file.getOriginalFilename() == null
+                ? "upload-file"
+                : file.getOriginalFilename();
+
+        String storedFileName = UUID.randomUUID() + "_" + originalFileName;
         Path resourceDir = Paths.get(uploadDir, resourceId.toString());
         Files.createDirectories(resourceDir);
         Path filePath = resourceDir.resolve(storedFileName);
         file.transferTo(filePath.toFile());
 
-        // Create file reference
         String fileKey = resourceId + "/" + storedFileName;
         FileReference fileRef = new FileReference();
         fileRef.setResource(resource);
         fileRef.setS3Key(fileKey);
-        fileRef.setOriginalFileName(file.getOriginalFilename());
+        fileRef.setOriginalFileName(originalFileName);
         fileRef.setContentType(file.getContentType());
         fileRef.setFileSize(file.getSize());
         FileReference saved = fileReferenceRepository.save(fileRef);
 
-        // Generate thumbnail if image
         if (file.getContentType() != null && IMAGE_CONTENT_TYPES.contains(file.getContentType())) {
             generateThumbnail(resourceId, filePath, storedFileName);
         }
@@ -99,24 +111,44 @@ public class FileService {
         return saved;
     }
 
-    /**
-     * Generates a download URL for a file (local path served by Nginx).
-     */
+    public String uploadAvatar(MultipartFile file, UUID userId) {
+        validateAvatarFile(file);
+
+        userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        String originalFileName = file.getOriginalFilename() == null
+                ? "avatar"
+                : file.getOriginalFilename();
+
+        String storedFileName = UUID.randomUUID() + "_" + originalFileName;
+
+        try {
+            Path userAvatarDir = Paths.get(avatarDir, userId.toString());
+            Files.createDirectories(userAvatarDir);
+
+            Path avatarPath = userAvatarDir.resolve(storedFileName);
+            file.transferTo(avatarPath.toFile());
+
+            String avatarKey = userId + "/" + storedFileName;
+            return generateAvatarUrl(avatarKey);
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to upload avatar image", e);
+        }
+    }
+
     public String generateDownloadUrl(String fileKey) {
         return storageBaseUrl + "/files/uploads/" + fileKey;
     }
 
-    /**
-     * Generates a thumbnail URL.
-     */
     public String generateThumbnailUrl(String thumbnailKey) {
         return storageBaseUrl + "/files/thumbnails/" + thumbnailKey;
     }
 
-    /**
-     * Sets a file reference as the cover (thumbnail) for the resource.
-     * Only the owner can set the cover, and only on DRAFT resources.
-     */
+    public String generateAvatarUrl(String avatarKey) {
+        return storageBaseUrl + "/files/avatars/" + avatarKey;
+    }
+
     @Transactional
     public void setCover(UUID resourceId, UUID fileRefId, String email) {
         Resource resource = resourceRepository.findById(resourceId)
@@ -152,13 +184,28 @@ public class FileService {
             throw new ResourceNotFoundException("File reference not found on this resource");
         }
 
-        // Delete physical file
         try {
             Path filePath = Paths.get(uploadDir, fileRef.getS3Key());
             Files.deleteIfExists(filePath);
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
 
         fileReferenceRepository.delete(fileRef);
+    }
+
+    private void validateAvatarFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Avatar file must not be empty");
+        }
+
+        if (file.getSize() > MAX_AVATAR_SIZE_BYTES) {
+            throw new IllegalArgumentException("Avatar image must be smaller than 5MB");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !AVATAR_CONTENT_TYPES.contains(contentType)) {
+            throw new IllegalArgumentException("Only JPG, PNG, and WEBP images are allowed for avatars");
+        }
     }
 
     private void generateThumbnail(UUID resourceId, Path originalPath, String fileName) {
@@ -171,14 +218,12 @@ public class FileService {
                     .size(THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
                     .toFile(thumbPath.toFile());
 
-            // Update resource thumbnail key
             Resource resource = resourceRepository.findById(resourceId).orElse(null);
             if (resource != null) {
                 resource.setThumbnailS3Key(resourceId + "/" + fileName);
                 resourceRepository.save(resource);
             }
         } catch (IOException e) {
-            // Thumbnail generation failure is non-fatal
         }
     }
 

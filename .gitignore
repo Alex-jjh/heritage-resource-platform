@@ -61,3 +61,6 @@ infra/.terraform.lock.hcl
 # ========================
 *.log
 /coverage/
+
+.claude/
+backend/all_backend_code.txt

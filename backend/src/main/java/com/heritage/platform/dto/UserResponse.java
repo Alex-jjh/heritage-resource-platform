@@ -1,12 +1,10 @@
 package com.heritage.platform.dto;
 
-import com.heritage.platform.model.Resource;
 import com.heritage.platform.model.User;
 
-import java.util.List;
 import java.util.UUID;
 
-public class UserProfileResponse {
+public class UserResponse {
 
     private UUID id;
     private String email;
@@ -19,10 +17,11 @@ public class UserProfileResponse {
     private boolean showEmail;
     private String bio;
 
-    private List<ResourceResponse> publishedResources;
+    public UserResponse() {
+    }
 
-    public static UserProfileResponse fromEntity(User user, List<Resource> publishedResources) {
-        UserProfileResponse response = new UserProfileResponse();
+    public static UserResponse fromEntity(User user) {
+        UserResponse response = new UserResponse();
 
         response.id = user.getId();
         response.email = user.getEmail();
@@ -34,12 +33,6 @@ public class UserProfileResponse {
         response.profilePublic = user.isProfilePublic();
         response.showEmail = user.isShowEmail();
         response.bio = user.getBio();
-
-        response.publishedResources = publishedResources == null
-                ? List.of()
-                : publishedResources.stream()
-                        .map(ResourceResponse::fromEntity)
-                        .toList();
 
         return response;
     }
@@ -114,13 +107,5 @@ public class UserProfileResponse {
 
     public void setBio(String bio) {
         this.bio = bio;
-    }
-
-    public List<ResourceResponse> getPublishedResources() {
-        return publishedResources;
-    }
-
-    public void setPublishedResources(List<ResourceResponse> publishedResources) {
-        this.publishedResources = publishedResources;
     }
 }
