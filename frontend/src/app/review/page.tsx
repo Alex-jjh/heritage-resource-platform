@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api-client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiClient, ApiError } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
 import { PageContainer } from "@/components/page-container";
 import { StatusBadge } from "@/components/status-badge";
@@ -11,104 +13,125 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { ResourceResponse } from "@/types";
 
 function ReviewQueueContent() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [taskError, setTaskError] = useState<string | null>(null);
+  const [taskInfo, setTaskInfo] = useState<string | null>(null);
+
   const queueQuery = useQuery({
     queryKey: ["review-queue"],
-    queryFn: () => apiClient.get<ResourceResponse[]>("/api/reviews/queue"),
+    queryFn: () =>
+      apiClient.get<ResourceResponse[]>("/api/reviews/queue"),
+  });
+
+  const getNextTask = useMutation({
+    mutationFn: () => apiClient.post<ResourceResponse | undefined>("/api/tasks/next"),
+    onSuccess: (task) => {
+      setTaskError(null);
+      if (!task) {
+        setTaskInfo("No available tasks in the pool.");
+        queryClient.invalidateQueries({ queryKey: ["review-queue"] });
+        return;
+      }
+      setTaskInfo(null);
+      queryClient.invalidateQueries({ queryKey: ["review-queue"] });
+      router.push(`/review/${task.id}`);
+    },
+    onError: (err) => {
+      setTaskInfo(null);
+      setTaskError(err instanceof ApiError ? err.message : "Failed to get next task.");
+    },
   });
 
   return (
-    <main>
-      <PageContainer>
-        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h1 className="font-serif text-3xl font-bold">Review Queue</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Review pending submissions and manage publication decisions.
-            </p>
-          </div>
+    <main><PageContainer>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-serif text-3xl font-bold">Review Queue</h1>
+        <Button onClick={() => getNextTask.mutate()} disabled={getNextTask.isPending}>
+          {getNextTask.isPending ? "Assigning…" : "Get Next Task"}
+        </Button>
+      </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Link href="/review/history">
-              <Button variant="outline">Review History</Button>
-            </Link>
-            <Link href="/featured">
-              <Button variant="outline">Featured</Button>
-            </Link>
-          </div>
+      {taskError && (
+        <div role="alert" className="mb-4 rounded-md bg-destructive/10 p-4 text-sm text-destructive">
+          {taskError}
         </div>
+      )}
 
-        {queueQuery.isLoading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-16 w-full rounded-md" />
-            ))}
-          </div>
-        ) : queueQuery.isError ? (
-          <div
-            role="alert"
-            className="rounded-md bg-destructive/10 p-4 text-sm text-destructive"
-          >
-            Failed to load the review queue. Please try again.
-          </div>
-        ) : queueQuery.data && queueQuery.data.length === 0 ? (
-          <div className="py-16 text-center">
-            <p className="text-lg text-muted-foreground">
-              No resources pending review.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 text-left font-medium">Title</th>
-                  <th className="px-4 py-3 text-left font-medium">Category</th>
-                  <th className="px-4 py-3 text-left font-medium">Contributor</th>
-                  <th className="px-4 py-3 text-left font-medium">Submitted</th>
-                  <th className="px-4 py-3 text-left font-medium">Status</th>
-                  <th className="px-4 py-3 text-right font-medium">Action</th>
+      {taskInfo && (
+        <div className="mb-4 rounded-md bg-muted p-4 text-sm text-muted-foreground">
+          {taskInfo}
+        </div>
+      )}
+
+      {queueQuery.isLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-md" />
+          ))}
+        </div>
+      ) : queueQuery.isError ? (
+        <div
+          role="alert"
+          className="rounded-md bg-destructive/10 p-4 text-sm text-destructive"
+        >
+          Failed to load the review queue. Please try again.
+        </div>
+      ) : queueQuery.data && queueQuery.data.length === 0 ? (
+        <div className="py-16 text-center">
+          <p className="text-lg text-muted-foreground">
+            No resources pending review.
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="px-4 py-3 text-left font-medium">Title</th>
+                <th className="px-4 py-3 text-left font-medium">Category</th>
+                <th className="px-4 py-3 text-left font-medium">Contributor</th>
+                <th className="px-4 py-3 text-left font-medium">Submitted</th>
+                <th className="px-4 py-3 text-left font-medium">Status</th>
+                <th className="px-4 py-3 text-right font-medium">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {queueQuery.data?.map((resource) => (
+                <tr key={resource.id} className="border-b last:border-0 hover:bg-muted/30">
+                  <td className="px-4 py-3 font-medium">{resource.title}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {resource.category.name}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {resource.contributorName}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    <time dateTime={resource.updatedAt}>
+                      {new Date(resource.updatedAt).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </time>
+                  </td>
+                  <td className="px-4 py-3">
+                    <StatusBadge status={resource.status} />
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Link href={`/review/${resource.id}`}>
+                      <Button variant="outline" size="sm">
+                        Review
+                      </Button>
+                    </Link>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {queueQuery.data?.map((resource) => (
-                  <tr
-                    key={resource.id}
-                    className="border-b last:border-0 hover:bg-muted/30"
-                  >
-                    <td className="px-4 py-3 font-medium">{resource.title}</td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {resource.category.name}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {resource.contributorName}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      <time dateTime={resource.updatedAt}>
-                        {new Date(resource.updatedAt).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </time>
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={resource.status} />
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link href={`/review/${resource.id}`}>
-                        <Button variant="outline" size="sm">
-                          Review
-                        </Button>
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </PageContainer>
-    </main>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </PageContainer></main>
   );
 }
 

@@ -23,21 +23,6 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for {@link CommentService}.
- *
- * <p>Uses Mockito mocks for repository dependencies. Validates comment creation
- * rules and paginated retrieval on heritage resources.
- *
- * <p>Key scenarios covered:
- * <ul>
- *   <li>Adding a comment to an approved resource</li>
- *   <li>Rejection for non-approved statuses (DRAFT, PENDING_REVIEW, REJECTED, ARCHIVED)</li>
- *   <li>Null/blank body validation</li>
- *   <li>Resource-not-found and user-not-found error handling</li>
- *   <li>Paginated comment retrieval in descending timestamp order</li>
- * </ul>
- */
 @ExtendWith(MockitoExtension.class)
 class CommentServiceTest {
 
@@ -57,7 +42,7 @@ class CommentServiceTest {
 
         author = new User();
         author.setId(UUID.randomUUID());
-        author.setEmail("author@example.com");
+        author.setCognitoSub("author-sub");
         author.setDisplayName("Test Author");
         author.setRole(UserRole.REGISTERED_VIEWER);
 
@@ -83,14 +68,14 @@ class CommentServiceTest {
     @Test
     void addComment_toApprovedResource_succeeds() {
         when(resourceRepository.findById(approvedResource.getId())).thenReturn(Optional.of(approvedResource));
-        when(userRepository.findByEmail("author@example.com")).thenReturn(Optional.of(author));
+        when(userRepository.findByCognitoSub("author-sub")).thenReturn(Optional.of(author));
         when(commentRepository.save(any(Comment.class))).thenAnswer(inv -> {
             Comment c = inv.getArgument(0);
             c.setId(UUID.randomUUID());
             return c;
         });
 
-        Comment result = commentService.addComment(approvedResource.getId(), "author@example.com", "Great resource!");
+        Comment result = commentService.addComment(approvedResource.getId(), "author-sub", "Great resource!");
 
         assertThat(result).isNotNull();
         assertThat(result.getBody()).isEqualTo("Great resource!");
@@ -113,7 +98,7 @@ class CommentServiceTest {
         when(resourceRepository.findById(draftResource.getId())).thenReturn(Optional.of(draftResource));
 
         assertThatThrownBy(() ->
-                commentService.addComment(draftResource.getId(), "author@example.com", "A comment"))
+                commentService.addComment(draftResource.getId(), "author-sub", "A comment"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("approved");
     }
@@ -127,7 +112,7 @@ class CommentServiceTest {
         when(resourceRepository.findById(pendingResource.getId())).thenReturn(Optional.of(pendingResource));
 
         assertThatThrownBy(() ->
-                commentService.addComment(pendingResource.getId(), "author@example.com", "A comment"))
+                commentService.addComment(pendingResource.getId(), "author-sub", "A comment"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("approved");
     }
@@ -141,7 +126,7 @@ class CommentServiceTest {
         when(resourceRepository.findById(rejectedResource.getId())).thenReturn(Optional.of(rejectedResource));
 
         assertThatThrownBy(() ->
-                commentService.addComment(rejectedResource.getId(), "author@example.com", "A comment"))
+                commentService.addComment(rejectedResource.getId(), "author-sub", "A comment"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("approved");
     }
@@ -155,7 +140,7 @@ class CommentServiceTest {
         when(resourceRepository.findById(archivedResource.getId())).thenReturn(Optional.of(archivedResource));
 
         assertThatThrownBy(() ->
-                commentService.addComment(archivedResource.getId(), "author@example.com", "A comment"))
+                commentService.addComment(archivedResource.getId(), "author-sub", "A comment"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("approved");
     }
@@ -163,7 +148,7 @@ class CommentServiceTest {
     @Test
     void addComment_withNullBody_throwsIllegalArgument() {
         assertThatThrownBy(() ->
-                commentService.addComment(approvedResource.getId(), "author@example.com", null))
+                commentService.addComment(approvedResource.getId(), "author-sub", null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("empty");
     }
@@ -171,7 +156,7 @@ class CommentServiceTest {
     @Test
     void addComment_withBlankBody_throwsIllegalArgument() {
         assertThatThrownBy(() ->
-                commentService.addComment(approvedResource.getId(), "author@example.com", "   "))
+                commentService.addComment(approvedResource.getId(), "author-sub", "   "))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("empty");
     }
@@ -182,23 +167,22 @@ class CommentServiceTest {
         when(resourceRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
-                commentService.addComment(id, "author@example.com", "A comment"))
+                commentService.addComment(id, "author-sub", "A comment"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
     void addComment_userNotFound_throwsNotFound() {
         when(resourceRepository.findById(approvedResource.getId())).thenReturn(Optional.of(approvedResource));
-        when(userRepository.findByEmail("unknown@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByCognitoSub("unknown-sub")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
-                commentService.addComment(approvedResource.getId(), "unknown@example.com", "A comment"))
+                commentService.addComment(approvedResource.getId(), "unknown-sub", "A comment"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     // --- Get comments tests ---
 
-    // Comments should be returned newest-first for display in the UI
     @Test
     void getComments_returnsDescendingTimestampOrder() {
         Comment c1 = new Comment();

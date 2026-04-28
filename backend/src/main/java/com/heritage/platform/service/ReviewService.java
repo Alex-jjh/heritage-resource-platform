@@ -1,12 +1,8 @@
 package com.heritage.platform.service;
 
-import com.heritage.platform.dto.ReviewHistoryResponse;
 import com.heritage.platform.exception.InvalidStatusTransitionException;
 import com.heritage.platform.exception.ResourceNotFoundException;
-import com.heritage.platform.model.Resource;
-import com.heritage.platform.model.ResourceStatus;
-import com.heritage.platform.model.ReviewFeedback;
-import com.heritage.platform.model.User;
+import com.heritage.platform.model.*;
 import com.heritage.platform.repository.ResourceRepository;
 import com.heritage.platform.repository.ReviewFeedbackRepository;
 import com.heritage.platform.repository.UserRepository;
@@ -55,13 +51,13 @@ public class ReviewService {
      * Approves a resource. Only PENDING_REVIEW resources can be approved.
      */
     @Transactional
-    public Resource approveResource(UUID resourceId, String email) {
+    public Resource approveResource(UUID resourceId, String cognitoSub) {
         Resource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
 
         validatePendingReviewStatus(resource);
 
-        User reviewer = userRepository.findByEmail(email)
+        User reviewer = userRepository.findByCognitoSub(cognitoSub)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         ReviewFeedback feedback = new ReviewFeedback();
@@ -79,7 +75,7 @@ public class ReviewService {
      * Only PENDING_REVIEW resources can be rejected.
      */
     @Transactional
-    public Resource rejectResource(UUID resourceId, String email, String comments) {
+    public Resource rejectResource(UUID resourceId, String cognitoSub, String comments) {
         if (comments == null || comments.isBlank()) {
             throw new IllegalArgumentException("Feedback comments are required when rejecting a resource");
         }
@@ -89,7 +85,7 @@ public class ReviewService {
 
         validatePendingReviewStatus(resource);
 
-        User reviewer = userRepository.findByEmail(email)
+        User reviewer = userRepository.findByCognitoSub(cognitoSub)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         ReviewFeedback feedback = new ReviewFeedback();
@@ -108,33 +104,5 @@ public class ReviewService {
                     String.format("Resource is in %s status. Only PENDING_REVIEW resources can be reviewed.",
                             resource.getStatus()));
         }
-    }
-
-    @Transactional(readOnly = true)
-    public List<ReviewFeedback> searchReviewHistory(String reviewerEmail, String decision) {
-        List<ReviewFeedback> records = reviewFeedbackRepository.searchReviewHistory(reviewerEmail, decision);
-
-        
-        records.forEach(rf -> {
-            if (rf.getResource() != null) {
-                rf.getResource().getId();
-                rf.getResource().getTitle();
-            }
-            if (rf.getReviewer() != null) {
-                rf.getReviewer().getDisplayName();
-                rf.getReviewer().getEmail();
-            }
-        });
-
-        return records;
-    }
-
-    @Transactional(readOnly = true)
-    public List<ReviewHistoryResponse> getReviewHistory(String reviewerEmail, String decision) {
-        List<ReviewFeedback> records = searchReviewHistory(reviewerEmail, decision);
-
-        return records.stream()
-                .map(ReviewHistoryResponse::fromEntity)
-                .toList();
     }
 }
