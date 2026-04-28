@@ -1,6 +1,5 @@
 package com.heritage.platform.service;
 
-import com.heritage.platform.dto.MyCommentResponse;
 import com.heritage.platform.exception.ResourceNotFoundException;
 import com.heritage.platform.model.Comment;
 import com.heritage.platform.model.Resource;
@@ -19,27 +18,24 @@ import java.util.UUID;
 @Service
 public class CommentService {
 
-    private static final int RESOURCE_COMMENT_PAGE_SIZE = 10;
-
     private final CommentRepository commentRepository;
     private final ResourceRepository resourceRepository;
     private final UserRepository userRepository;
 
     public CommentService(CommentRepository commentRepository,
-            ResourceRepository resourceRepository,
-            UserRepository userRepository) {
+                          ResourceRepository resourceRepository,
+                          UserRepository userRepository) {
         this.commentRepository = commentRepository;
         this.resourceRepository = resourceRepository;
         this.userRepository = userRepository;
     }
 
+    /**
+     * Adds a comment to an approved resource.
+     * Rejects comments on non-approved resources and empty comment bodies.
+     */
     @Transactional
-    public Comment addComment(UUID resourceId, String email, String body) {
-        return addComment(resourceId, email, body, false);
-    }
-
-    @Transactional
-    public Comment addComment(UUID resourceId, String email, String body, boolean anonymous) {
+    public Comment addComment(UUID resourceId, String cognitoSub, String body) {
         if (body == null || body.isBlank()) {
             throw new IllegalArgumentException("Comment body must not be empty");
         }
@@ -51,64 +47,30 @@ public class CommentService {
             throw new IllegalStateException("Comments can only be added to approved resources");
         }
 
-        User author = userRepository.findByEmail(email)
+        User author = userRepository.findByCognitoSub(cognitoSub)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Comment comment = new Comment();
         comment.setResource(resource);
         comment.setAuthor(author);
-        comment.setBody(body.trim());
-        comment.setAnonymous(anonymous);
+        comment.setBody(body);
 
         return commentRepository.save(comment);
     }
 
     /**
-     * Returns paginated comments for a resource ordered by creation date
-     * descending.
+     * Returns paginated comments for a resource ordered by creation date descending.
      */
     @Transactional(readOnly = true)
     public Page<Comment> getComments(UUID resourceId, Pageable pageable) {
         if (!resourceRepository.existsById(resourceId)) {
             throw new ResourceNotFoundException("Resource not found");
         }
-
         Page<Comment> comments = commentRepository.findByResourceIdOrderByCreatedAtDesc(resourceId, pageable);
-
-        // Force-initialize lazy author association for DTO mapping
+        // Force-initialize lazy author association
         comments.getContent().forEach(c -> {
-            if (c.getAuthor() != null) {
-                c.getAuthor().getDisplayName();
-                c.getAuthor().getAvatarUrl();
-            }
+            if (c.getAuthor() != null) c.getAuthor().getDisplayName();
         });
-
         return comments;
-    }
-
-    @Transactional(readOnly = true)
-    public Page<MyCommentResponse> getMyComments(String email, Pageable pageable) {
-        // Validate current user exists
-        userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        Page<Comment> comments = commentRepository.findByAuthorEmailOrderByCreatedAtDesc(email, pageable);
-
-        return comments.map(comment -> {
-            // Force-init resource association for DTO mapping
-            if (comment.getResource() != null) {
-                comment.getResource().getId();
-                comment.getResource().getTitle();
-            }
-
-            long newerCommentsCount = commentRepository.countByResourceIdAndCreatedAtAfter(
-                    comment.getResource().getId(),
-                    comment.getCreatedAt()
-            );
-
-            int commentPage = (int) (newerCommentsCount / RESOURCE_COMMENT_PAGE_SIZE);
-
-            return MyCommentResponse.fromEntity(comment, commentPage);
-        });
     }
 }

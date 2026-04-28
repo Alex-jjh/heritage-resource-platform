@@ -5,7 +5,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Upload, X, FileIcon, Loader2 } from "lucide-react";
-import type { FileReferenceDto } from "@/types";
+import type {
+  FileReferenceDto,
+  UploadUrlResponse,
+  FileReferenceRequest,
+} from "@/types";
 
 interface FileUploaderProps {
   resourceId: string;
@@ -15,7 +19,7 @@ interface FileUploaderProps {
 
 interface UploadingFile {
   name: string;
-  progress: "uploading" | "done" | "error";
+  progress: "requesting-url" | "uploading" | "registering" | "done" | "error";
   error?: string;
 }
 
@@ -26,7 +30,10 @@ export function FileUploader({
 }: FileUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState<UploadingFile[]>([]);
+  const [globalError, setGlobalError] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
 
   const removeFileMutation = useMutation({
     mutationFn: (fileRefId: string) =>
@@ -38,7 +45,19 @@ export function FileUploader({
   });
 
   async function uploadFile(file: File) {
-    const entry: UploadingFile = { name: file.name, progress: "uploading" };
+    // PBI: When file size exceeds 100MB, stop and display a clear message.
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      const errorMsg = "File size exceeds 100MB";
+      const entry: UploadingFile = { name: file.name, progress: "error", error: errorMsg };
+      setUploading((prev) => [...prev, entry]);
+      setGlobalError(errorMsg);
+      return;
+    }
+
+    const entry: UploadingFile = {
+      name: file.name,
+      progress: "requesting-url",
+    };
     setUploading((prev) => [...prev, entry]);
 
     const updateEntry = (updates: Partial<UploadingFile>) => {
@@ -48,20 +67,37 @@ export function FileUploader({
     };
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      // 1. Get pre-signed URL
+      const urlResp = await apiClient.post<UploadUrlResponse>(
+        "/api/files/upload-url",
+        {
+          resourceId,
+          fileName: file.name,
+          contentType: file.type || "application/octet-stream",
+        }
+      );
 
-      const token = localStorage.getItem("accessToken");
-      const resp = await fetch(`/api/files/${resourceId}/upload`, {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
+      // 2. PUT file directly to S3 (raw fetch, no auth header)
+      updateEntry({ progress: "uploading" });
+      const putResp = await fetch(urlResp.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file,
       });
 
-      if (!resp.ok) {
-        const errBody = await resp.json().catch(() => null);
-        throw new Error(errBody?.message || `Upload failed: ${resp.status}`);
+      if (!putResp.ok) {
+        throw new Error(`S3 upload failed: ${putResp.status}`);
       }
+
+      // 3. Register file reference
+      updateEntry({ progress: "registering" });
+      const refBody: FileReferenceRequest = {
+        s3Key: urlResp.s3Key,
+        originalFileName: file.name,
+        contentType: file.type || "application/octet-stream",
+        fileSize: file.size,
+      };
+      await apiClient.post(`/api/files/${resourceId}/references`, refBody);
 
       updateEntry({ progress: "done" });
       queryClient.invalidateQueries({ queryKey: ["resource", resourceId] });
@@ -77,7 +113,9 @@ export function FileUploader({
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files) return;
+    setGlobalError(null);
     Array.from(files).forEach(uploadFile);
+    // Reset input so the same file can be selected again
     e.target.value = "";
   }
 
@@ -87,10 +125,18 @@ export function FileUploader({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  const activeUploads = uploading.filter((u) => u.progress !== "done");
+  // Remove completed uploads from the uploading list
+  const activeUploads = uploading.filter(
+    (u) => u.progress !== "done"
+  );
 
   return (
     <div className="space-y-3">
+      {globalError && (
+        <p role="alert" className="text-sm text-destructive">
+          {globalError}
+        </p>
+      )}
       <div className="flex items-center gap-2">
         <Button
           type="button"
@@ -111,10 +157,14 @@ export function FileUploader({
         />
       </div>
 
+      {/* Active uploads */}
       {activeUploads.length > 0 && (
         <ul className="space-y-2">
           {activeUploads.map((u) => (
-            <li key={u.name} className="flex items-center gap-2 rounded-md border p-2 text-sm">
+            <li
+              key={u.name}
+              className="flex items-center gap-2 rounded-md border p-2 text-sm"
+            >
               {u.progress === "error" ? (
                 <X className="size-4 text-destructive" />
               ) : (
@@ -122,7 +172,9 @@ export function FileUploader({
               )}
               <span className="flex-1 truncate">{u.name}</span>
               <span className="text-xs text-muted-foreground">
+                {u.progress === "requesting-url" && "Preparing…"}
                 {u.progress === "uploading" && "Uploading…"}
+                {u.progress === "registering" && "Registering…"}
                 {u.progress === "error" && (
                   <span className="text-destructive">{u.error}</span>
                 )}
@@ -132,14 +184,20 @@ export function FileUploader({
         </ul>
       )}
 
+      {/* Existing files */}
       {existingFiles.length > 0 && (
         <ul className="space-y-2">
           {existingFiles.map((file) => (
-            <li key={file.id} className="flex items-center justify-between rounded-md border p-2">
+            <li
+              key={file.id}
+              className="flex items-center justify-between rounded-md border p-2"
+            >
               <div className="flex items-center gap-2 min-w-0">
                 <FileIcon className="size-4 shrink-0 text-muted-foreground" />
                 <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{file.originalFileName}</p>
+                  <p className="text-sm font-medium truncate">
+                    {file.originalFileName}
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     {file.contentType} · {formatFileSize(file.fileSize)}
                   </p>

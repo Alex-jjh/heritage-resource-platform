@@ -1,15 +1,13 @@
 package com.heritage.platform.controller;
 
-import com.heritage.platform.dto.FileReferenceResponse;
-import com.heritage.platform.dto.MessageResponse;
+import com.heritage.platform.dto.*;
 import com.heritage.platform.model.FileReference;
 import com.heritage.platform.service.FileService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.security.Principal;
 import java.util.UUID;
 
@@ -24,14 +22,31 @@ public class FileController {
     }
 
     /**
-     * Upload a file directly to the server (multipart).
+     * Generate a pre-signed PUT URL for uploading a file to S3.
      */
-    @PostMapping("/{resourceId}/upload")
-    public ResponseEntity<FileReferenceResponse> uploadFile(
+    @PostMapping("/upload-url")
+    public ResponseEntity<UploadUrlResponse> generateUploadUrl(
+            Principal principal,
+            @Valid @RequestBody UploadUrlRequest request) {
+        String url = fileService.generateUploadUrl(
+                request.getResourceId(),
+                request.getFileName(),
+                request.getContentType(),
+                principal.getName());
+
+        String s3Key = fileService.buildUploadKey(request.getResourceId(), request.getFileName());
+        return ResponseEntity.ok(new UploadUrlResponse(url, s3Key, fileService.getUploadExpiryMinutes() * 60));
+    }
+
+    /**
+     * Register a file reference on a resource after upload completes.
+     */
+    @PostMapping("/{resourceId}/references")
+    public ResponseEntity<FileReferenceResponse> createFileReference(
             @PathVariable UUID resourceId,
-            @RequestParam("file") MultipartFile file,
-            Principal principal) throws IOException {
-        FileReference fileRef = fileService.uploadFile(resourceId, file, principal.getName());
+            Principal principal,
+            @Valid @RequestBody CreateFileReferenceRequest request) {
+        FileReference fileRef = fileService.createFileReference(resourceId, request, principal.getName());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(FileReferenceResponse.fromEntity(fileRef));
     }
@@ -46,17 +61,5 @@ public class FileController {
             Principal principal) {
         fileService.deleteFileReference(resourceId, fileRefId, principal.getName());
         return ResponseEntity.noContent().build();
-    }
-
-    /**
-     * Set a file as the cover image for the resource.
-     */
-    @PutMapping("/{resourceId}/references/{fileRefId}/cover")
-    public ResponseEntity<MessageResponse> setCover(
-            @PathVariable UUID resourceId,
-            @PathVariable UUID fileRefId,
-            Principal principal) {
-        fileService.setCover(resourceId, fileRefId, principal.getName());
-        return ResponseEntity.ok(new MessageResponse("Cover image updated"));
     }
 }
