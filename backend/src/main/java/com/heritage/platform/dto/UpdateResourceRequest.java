@@ -1,7 +1,6 @@
 package com.heritage.platform.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.Set;
@@ -9,19 +8,18 @@ import java.util.UUID;
 
 public class UpdateResourceRequest {
 
-    @NotBlank(message = "Title is required")
     private String title;
 
-    @NotNull(message = "Category is required")
     private UUID categoryId;
 
     private String place;
     private String description;
 
-    @NotBlank(message = "Copyright declaration is required")
     private String copyrightDeclaration;
 
     private Set<UUID> tagIds;
+
+    @Valid
     private List<CreateResourceRequest.ExternalLinkDto> externalLinks;
 
     public UpdateResourceRequest() {}

@@ -4,12 +4,35 @@ export type UserRole =
   | "REVIEWER"
   | "ADMINISTRATOR";
 
+export type FeaturedStatus = "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+
 export interface User {
   id: string;
   email: string;
   displayName: string;
   role: UserRole;
   contributorRequested: boolean;
+
+  avatarUrl?: string | null;
+  profilePublic?: boolean;
+  showEmail?: boolean;
+  bio?: string | null;
+  publishedResources?: ResourceResponse[];
+}
+
+export interface UserProfileResponse {
+  id: string;
+  email: string;
+  displayName: string;
+  role: UserRole;
+  contributorRequested: boolean;
+
+  avatarUrl?: string | null;
+  profilePublic: boolean;
+  showEmail: boolean;
+  bio?: string | null;
+
+  publishedResources: ResourceResponse[];
 }
 
 export interface AuthResponse {
@@ -29,10 +52,13 @@ export interface RegisterRequest {
 }
 
 export interface UpdateProfileRequest {
-  displayName: string;
+  displayName?: string;
+  avatarUrl?: string | null;
+  profilePublic?: boolean;
+  showEmail?: boolean;
+  bio?: string | null;
+  password?: string;
 }
-
-// Resource types
 
 export type ResourceStatus =
   | "DRAFT"
@@ -68,37 +94,71 @@ export interface ExternalLinkDto {
   label: string;
 }
 
+export interface ReviewFeedbackResponse {
+  id: string;
+  resourceId: string;
+  reviewerId: string;
+  comments: string;
+  decision: string;
+  createdAt: string;
+}
+
 export interface ResourceResponse {
   id: string;
-  title: string;
-  category: Category;
-  place: string;
-  description: string;
-  copyrightDeclaration: string;
+  title: string | null;
+  category: Category | null;
+  place: string | null;
+  description: string | null;
+  copyrightDeclaration: string | null;
   status: ResourceStatus;
   tags: Tag[];
   fileReferences: FileReferenceDto[];
   externalLinks: ExternalLinkDto[];
+
   contributorName: string;
   contributorId: string;
+  contributorAvatarUrl?: string | null;
+  contributorProfilePublic?: boolean;
+
   thumbnailS3Key: string | null;
   thumbnailUrl: string | null;
+
   createdAt: string;
   updatedAt: string;
   approvedAt: string | null;
+
   reviewFeedbacks?: ReviewFeedbackResponse[];
+
+  isFeatured: boolean;
+  featuredStatus: FeaturedStatus | null;
 }
 
 export interface CommentResponse {
   id: string;
   resourceId: string;
-  authorId: string;
+  authorId: string | null;
   authorName: string;
+  avatarUrl?: string | null;
+  anonymous: boolean;
+  profileClickable: boolean;
   body: string;
   createdAt: string;
 }
 
-// Spring Data Page response
+export interface MyCommentResponse {
+  commentId: string;
+  resourceId: string;
+  resourceTitle: string;
+  body: string;
+  createdAt: string;
+  anonymous: boolean;
+  commentPage: number;
+}
+
+export interface MessageResponse {
+  message: string;
+}
+
 export interface Page<T> {
   content: T[];
   totalElements: number;
@@ -110,31 +170,22 @@ export interface Page<T> {
   empty: boolean;
 }
 
-export interface ReviewFeedbackResponse {
-  id: string;
-  resourceId: string;
-  reviewerId: string;
-  comments: string;
-  decision: string;
-  createdAt: string;
-}
-
 export interface CreateResourceRequest {
-  title: string;
-  categoryId: string;
+  title?: string;
+  categoryId?: string;
   place?: string;
   description?: string;
-  copyrightDeclaration: string;
+  copyrightDeclaration?: string;
   tagIds?: string[];
   externalLinks?: { url: string; label: string }[];
 }
 
 export interface UpdateResourceRequest {
-  title: string;
-  categoryId: string;
+  title?: string;
+  categoryId?: string;
   place?: string;
   description?: string;
-  copyrightDeclaration: string;
+  copyrightDeclaration?: string;
   tagIds?: string[];
   externalLinks?: { url: string; label: string }[];
 }

@@ -16,11 +16,11 @@ public class Resource {
     @JoinColumn(name = "contributor_id", nullable = false)
     private User contributor;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String title;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
+    @JoinColumn(name = "category_id", nullable = true)
     private Category category;
 
     private String place;
@@ -28,7 +28,7 @@ public class Resource {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String copyrightDeclaration;
 
     @Enumerated(EnumType.STRING)
@@ -55,6 +55,13 @@ public class Resource {
 
     @OneToMany(mappedBy = "resource", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReviewFeedback> reviewFeedbacks = new ArrayList<>();
+
+    @Column(nullable = false)
+    private boolean isFeatured = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private FeaturedStatus featuredStatus = FeaturedStatus.NONE;
 
     private String thumbnailS3Key;
     private Instant createdAt;
@@ -111,4 +118,10 @@ public class Resource {
     public void setApprovedAt(Instant approvedAt) { this.approvedAt = approvedAt; }
     public Instant getArchivedAt() { return archivedAt; }
     public void setArchivedAt(Instant archivedAt) { this.archivedAt = archivedAt; }
+    public boolean isFeatured() { return isFeatured; }
+    public void setFeatured(boolean featured) { isFeatured = featured; }
+
+    public FeaturedStatus getFeaturedStatus() { return featuredStatus; }
+    public void setFeaturedStatus(FeaturedStatus featuredStatus) { this.featuredStatus = featuredStatus; }
+    
 }

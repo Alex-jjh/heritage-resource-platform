@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { FileUploader } from "@/components/file-uploader";
@@ -25,13 +25,13 @@ import type {
 } from "@/types";
 
 export interface ResourceFormData {
-  title: string;
-  categoryId: string;
-  place: string;
-  description: string;
-  copyrightDeclaration: string;
-  tagIds: string[];
-  externalLinks: { url: string; label: string }[];
+  title?: string;
+  categoryId?: string;
+  place?: string;
+  description?: string;
+  copyrightDeclaration?: string;
+  tagIds?: string[];
+  externalLinks?: { url: string; label: string }[];
 }
 
 interface ResourceFormProps {
@@ -91,22 +91,6 @@ export function ResourceForm({
     queryFn: () => apiClient.get<Tag[]>("/api/tags"),
   });
 
-  // Sync form when resource prop changes (e.g. after refetch)
-  useEffect(() => {
-    if (resource) {
-      setTitle(resource.title);
-      setCategoryId(resource.category?.id ?? "");
-      setPlace(resource.place ?? "");
-      setDescription(resource.description ?? "");
-      setCopyrightDeclaration(resource.copyrightDeclaration ?? "");
-      setSelectedTagIds(resource.tags?.map((t) => t.id) ?? []);
-      setExternalLinks(
-        resource.externalLinks?.map((l) => ({ url: l.url, label: l.label })) ??
-          []
-      );
-    }
-  }, [resource]);
-
   function toggleTag(tagId: string) {
     setSelectedTagIds((prev) =>
       prev.includes(tagId)
@@ -133,13 +117,33 @@ export function ResourceForm({
     setExternalLinks((prev) => prev.filter((_, i) => i !== index));
   }
 
+  function isValidExternalUrl(value: string) {
+    try {
+      const url = new URL(value);
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      return false;
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const errors: string[] = [];
-    if (!title.trim()) errors.push("Title is required");
-    if (!categoryId) errors.push("Category is required");
-    if (!copyrightDeclaration.trim())
-      errors.push("Copyright declaration is required");
+
+    const cleanedExternalLinks = externalLinks
+      .map((link) => ({
+        url: link.url.trim(),
+        label: link.label.trim(),
+      }))
+      .filter((link) => link.url.length > 0);
+
+    cleanedExternalLinks.forEach((link, index) => {
+      if (!isValidExternalUrl(link.url)) {
+        errors.push(
+          `External link ${index + 1} must be a valid http or https URL`
+        );
+      }
+    });
 
     if (errors.length > 0) {
       setValidationErrors(errors);
@@ -148,16 +152,13 @@ export function ResourceForm({
     setValidationErrors([]);
 
     await onSubmit({
-      title: title.trim(),
-      categoryId,
-      place: place.trim() || undefined!,
-      description: description.trim() || undefined!,
-      copyrightDeclaration: copyrightDeclaration.trim(),
-      tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined!,
-      externalLinks:
-        externalLinks.filter((l) => l.url.trim()).length > 0
-          ? externalLinks.filter((l) => l.url.trim())
-          : undefined!,
+      title: title.trim() || undefined,
+      categoryId: categoryId || undefined,
+      place: place.trim() || undefined,
+      description: description.trim() || undefined,
+      copyrightDeclaration: copyrightDeclaration.trim() || undefined,
+      tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
+      externalLinks: cleanedExternalLinks.length > 0 ? cleanedExternalLinks : undefined,
     });
   }
 
@@ -182,7 +183,7 @@ export function ResourceForm({
       {/* Title */}
       <div className="space-y-1.5">
         <Label htmlFor="title">
-          Title <span className="text-destructive">*</span>
+          Title
         </Label>
         <Input
           id="title"
@@ -195,7 +196,7 @@ export function ResourceForm({
       {/* Category */}
       <div className="space-y-1.5">
         <Label htmlFor="category">
-          Category <span className="text-destructive">*</span>
+          Category
         </Label>
         <Select value={categoryId} onValueChange={(val) => setCategoryId(val ?? "")}>
           <SelectTrigger className="w-full" id="category">
@@ -269,7 +270,7 @@ export function ResourceForm({
       {/* Copyright Declaration */}
       <div className="space-y-1.5">
         <Label htmlFor="copyright">
-          Copyright Declaration <span className="text-destructive">*</span>
+          Copyright Declaration
         </Label>
         <Textarea
           id="copyright"
@@ -287,7 +288,7 @@ export function ResourceForm({
           <FileUploader
             resourceId={resourceId}
             existingFiles={existingFiles}
-            onFilesChange={onFilesChange ?? (() => {})}
+            onFilesChange={onFilesChange ?? (() => { })}
           />
         </div>
       )}
