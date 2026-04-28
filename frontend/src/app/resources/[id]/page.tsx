@@ -14,12 +14,14 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { Archive, Undo2 } from "lucide-react";
+import { Archive, ImageIcon, Undo2 } from "lucide-react";
 import type {
   ResourceResponse,
   ResourceStatus,
   UserProfileResponse,
 } from "@/types";
+
+type FileReference = ResourceResponse["fileReferences"][number];
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -27,10 +29,10 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function formatEnglishDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString("en-US", {
+function formatApprovedDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString("en-GB", {
     year: "numeric",
-    month: "short",
+    month: "long",
     day: "numeric",
   });
 }
@@ -43,6 +45,12 @@ function getInitials(name: string) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
+}
+
+function isImageFile(file: FileReference) {
+  return Boolean(
+    file.downloadUrl && file.contentType?.toLowerCase().startsWith("image/")
+  );
 }
 
 function ContributorAvatar({
@@ -95,7 +103,7 @@ function ContributorSummary({
           <p className="mt-1 text-sm text-muted-foreground">
             Approved on{" "}
             <time dateTime={resource.approvedAt}>
-              {formatEnglishDate(resource.approvedAt)}
+              {formatApprovedDate(resource.approvedAt)}
             </time>
           </p>
         )}
@@ -114,6 +122,80 @@ function ContributorSummary({
     >
       {summary}
     </Link>
+  );
+}
+
+function ResourceImageGallery({ resource }: { resource: ResourceResponse }) {
+  const imageFiles = resource.fileReferences.filter(isImageFile);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [failedImageIds, setFailedImageIds] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  const visibleImageFiles = imageFiles.filter(
+    (file) => !failedImageIds.has(file.id)
+  );
+
+  if (visibleImageFiles.length === 0) {
+    return null;
+  }
+
+  const safeSelectedIndex =
+    selectedIndex >= visibleImageFiles.length ? 0 : selectedIndex;
+
+  const selectedImage = visibleImageFiles[safeSelectedIndex];
+
+  function markImageAsFailed(fileId: string) {
+    setFailedImageIds((current) => {
+      const next = new Set(current);
+      next.add(fileId);
+      return next;
+    });
+    setSelectedIndex(0);
+  }
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center gap-2">
+        <ImageIcon className="size-5 text-muted-foreground" />
+        <h2 className="text-lg font-semibold">Resource Images</h2>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border bg-muted">
+        <img
+          src={selectedImage.downloadUrl}
+          alt={selectedImage.originalFileName || resource.title}
+          className="max-h-[560px] w-full object-contain"
+          onError={() => markImageAsFailed(selectedImage.id)}
+        />
+      </div>
+
+      {visibleImageFiles.length > 1 && (
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
+          {visibleImageFiles.map((file, index) => {
+            const isSelected = index === safeSelectedIndex;
+
+            return (
+              <button
+                key={file.id}
+                type="button"
+                onClick={() => setSelectedIndex(index)}
+                className={`overflow-hidden rounded-md border bg-muted transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${isSelected ? "ring-2 ring-ring ring-offset-2" : ""
+                  }`}
+                aria-label={`View ${file.originalFileName}`}
+              >
+                <img
+                  src={file.downloadUrl}
+                  alt={file.originalFileName || resource.title}
+                  className="aspect-square w-full object-cover"
+                  onError={() => markImageAsFailed(file.id)}
+                />
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -237,6 +319,8 @@ function ResourceDetailContent({ id }: { id: string }) {
           />
         </div>
 
+        <ResourceImageGallery resource={resource} />
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <span className="text-xs font-medium uppercase text-muted-foreground">
@@ -293,7 +377,9 @@ function ResourceDetailContent({ id }: { id: string }) {
                   className="flex items-center justify-between rounded-md border p-3"
                 >
                   <div>
-                    <p className="text-sm font-medium">{file.originalFileName}</p>
+                    <p className="text-sm font-medium">
+                      {file.originalFileName}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {file.contentType} · {formatFileSize(file.fileSize)}
                     </p>
