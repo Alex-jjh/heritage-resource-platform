@@ -223,7 +223,11 @@ function ReviewDetailContent({ id }: { id: string }) {
               <span className="text-xs font-medium uppercase text-muted-foreground">
                 Category
               </span>
+
               <p className="text-sm">{resource.category?.name || "No category selected"}</p>
+
+             
+
             </div>
             {resource.place && (
               <div>
@@ -258,7 +262,11 @@ function ReviewDetailContent({ id }: { id: string }) {
             <span className="text-xs font-medium uppercase text-muted-foreground">
               Copyright
             </span>
+
             <p className="text-sm">{resource.copyrightDeclaration || "No copyright declaration provided yet."}</p>
+
+            <p className="text-sm">{resource.copyrightDeclaration}</p>
+
           </div>
 
           <Separator />

@@ -364,6 +364,7 @@ public class ResourceService {
     }
 
 
+
     private Category findCategoryIfProvided(UUID categoryId) {
         if (categoryId == null) {
             return null;

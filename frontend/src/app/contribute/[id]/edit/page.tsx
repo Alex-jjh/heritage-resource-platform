@@ -113,13 +113,15 @@ function EditResourceContent({ id }: { id: string }) {
           Resource saved successfully.
         </div>
       )}
+      
       <ResourceForm
+        key={resource.id}
         resource={resource}
         onSubmit={handleSubmit}
         isSubmitting={updateMutation.isPending}
         submitLabel="Save Changes"
         error={error}
-        resourceId={id}
+        resourceId={resource.id}
         onFilesChange={handleFilesChange}
       />
     </main>

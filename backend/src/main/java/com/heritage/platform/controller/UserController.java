@@ -3,11 +3,14 @@ package com.heritage.platform.controller;
 import com.heritage.platform.dto.MessageResponse;
 import com.heritage.platform.dto.UpdateProfileRequest;
 import com.heritage.platform.dto.UserProfileResponse;
+import com.heritage.platform.dto.UserResponse;
 import com.heritage.platform.model.User;
 import com.heritage.platform.service.UserService;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.security.Principal;
 import java.util.List;
@@ -24,9 +27,12 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UserProfileResponse> getProfile(Principal principal) {
+    public ResponseEntity<UserResponse> getProfile(Principal principal) {
         User user = userService.getUserByEmail(principal.getName());
-        return ResponseEntity.ok(UserProfileResponse.fromUser(user));
+
+        return ResponseEntity.ok(
+                UserResponse.fromEntity(user)
+        );
     }
 
     @PostMapping("/me/request-contributor")
@@ -36,28 +42,46 @@ public class UserController {
     }
 
     @PutMapping("/me")
-    public ResponseEntity<UserProfileResponse> updateProfile(
+    public ResponseEntity<UserResponse> updateProfile(
             Principal principal,
-            @Valid @RequestBody UpdateProfileRequest request) {
+            @Valid @RequestBody UpdateProfileRequest request
+    ) {
         User user = userService.updateProfile(principal.getName(), request);
-        return ResponseEntity.ok(UserProfileResponse.fromUser(user));
+
+        return ResponseEntity.ok(
+                UserResponse.fromEntity(user)
+        );
+    }
+
+    @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserResponse> uploadAvatar(
+            Principal principal,
+            @RequestParam("file") MultipartFile file
+    ) {
+        User user = userService.uploadAvatar(principal.getName(), file);
+
+        return ResponseEntity.ok(
+                UserResponse.fromEntity(user)
+        );
     }
 
     @GetMapping("/pending-contributors")
-    public ResponseEntity<List<UserProfileResponse>> getPendingContributors() {
-        List<UserProfileResponse> pending = userService.getPendingContributorRequests()
+    public ResponseEntity<List<UserResponse>> getPendingContributors() {
+        List<UserResponse> pending = userService.getPendingContributorRequests()
                 .stream()
-                .map(UserProfileResponse::fromUser)
+                .map(UserResponse::fromEntity)
                 .toList();
+
         return ResponseEntity.ok(pending);
     }
 
     @GetMapping("/all")
-    public ResponseEntity<List<UserProfileResponse>> getAllUsers() {
-        List<UserProfileResponse> users = userService.getAllUsers()
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
+        List<UserResponse> users = userService.getAllUsers()
                 .stream()
-                .map(UserProfileResponse::fromUser)
+                .map(UserResponse::fromEntity)
                 .toList();
+
         return ResponseEntity.ok(users);
     }
 
@@ -76,7 +100,8 @@ public class UserController {
     @PutMapping("/{userId}/role")
     public ResponseEntity<MessageResponse> changeRole(
             @PathVariable UUID userId,
-            @RequestBody java.util.Map<String, String> body) {
+            @RequestBody java.util.Map<String, String> body
+    ) {
         String role = body.get("role");
         userService.changeUserRole(userId, role);
         return ResponseEntity.ok(new MessageResponse("Role updated to " + role));
@@ -86,5 +111,10 @@ public class UserController {
     public ResponseEntity<MessageResponse> deleteUser(@PathVariable UUID userId) {
         userService.deleteUser(userId);
         return ResponseEntity.ok(new MessageResponse("User deleted"));
+    }
+
+    @GetMapping("/{userId}/profile")
+    public ResponseEntity<UserProfileResponse> getUserProfile(@PathVariable UUID userId) {
+        return ResponseEntity.ok(userService.getUserProfile(userId));
     }
 }

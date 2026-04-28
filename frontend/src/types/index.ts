@@ -57,7 +57,10 @@ export interface UpdateProfileRequest {
   profilePublic?: boolean;
   showEmail?: boolean;
   bio?: string | null;
+
   password?: string;
+
+
 }
 
 export type ResourceStatus =

@@ -1,6 +1,7 @@
 package com.heritage.platform.controller;
 
 import com.heritage.platform.dto.CreateResourceRequest;
+import com.heritage.platform.dto.MessageResponse;
 import com.heritage.platform.dto.ResourceResponse;
 import com.heritage.platform.dto.UpdateResourceRequest;
 import com.heritage.platform.model.Resource;
@@ -43,12 +44,12 @@ public class ResourceController {
             Principal principal) {
         Resource resource = resourceService.getResourceById(id, principal.getName());
 
-        // Generate pre-signed download URLs for file attachments on approved resources
         if (resource.getStatus() == ResourceStatus.APPROVED
                 && resource.getFileReferences() != null
                 && !resource.getFileReferences().isEmpty()) {
             return ResponseEntity.ok(
-                    ResourceResponse.fromEntityWithFileUrls(resource, fileService::generateDownloadUrl));
+                    ResourceResponse.fromEntityWithFileUrls(resource, fileService::generateDownloadUrl)
+            );
         }
 
         return ResponseEntity.ok(ResourceResponse.fromEntity(resource));
@@ -94,5 +95,31 @@ public class ResourceController {
                 .map(ResourceResponse::fromEntity)
                 .toList();
         return ResponseEntity.ok(resources);
+    }
+
+    @GetMapping("/featured")
+    public ResponseEntity<List<ResourceResponse>> getFeaturedResources() {
+        List<ResourceResponse> featured = resourceService.getFeaturedResources()
+                .stream()
+                .map(ResourceResponse::fromEntity)
+                .toList();
+        return ResponseEntity.ok(featured);
+    }
+
+    @GetMapping("/homepage-featured")
+    public ResponseEntity<List<ResourceResponse>> getHomepageFeaturedResources() {
+        List<ResourceResponse> homepageResources = resourceService.getHomepageFeaturedResources()
+                .stream()
+                .map(ResourceResponse::fromEntity)
+                .toList();
+        return ResponseEntity.ok(homepageResources);
+    }
+
+    @PostMapping("/{id}/apply-featured")
+    public ResponseEntity<MessageResponse> applyFeatured(
+            @PathVariable UUID id,
+            Principal principal) {
+        resourceService.applyForFeatured(id, principal.getName());
+        return ResponseEntity.ok(new MessageResponse("Featured application submitted"));
     }
 }

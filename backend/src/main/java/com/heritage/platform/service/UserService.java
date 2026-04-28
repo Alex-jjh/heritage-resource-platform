@@ -32,18 +32,24 @@ public class UserService {
     private final UserRepository userRepository;
     private final ResourceRepository resourceRepository;
     private final FileService fileService;
+
     private final PasswordEncoder passwordEncoder;
+
 
     public UserService(
             UserRepository userRepository,
             ResourceRepository resourceRepository,
+
             FileService fileService,
             PasswordEncoder passwordEncoder
+
     ) {
         this.userRepository = userRepository;
         this.resourceRepository = resourceRepository;
         this.fileService = fileService;
+
         this.passwordEncoder = passwordEncoder;
+
     }
 
     /**
@@ -97,9 +103,11 @@ public class UserService {
         if (request.getBio() != null) {
             user.setBio(request.getBio());
         }
+
         if (request.getPassword() != null) {
             user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         }
+
 
         return userRepository.save(user);
     }
