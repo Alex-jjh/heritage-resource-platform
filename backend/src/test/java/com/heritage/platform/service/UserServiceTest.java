@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +23,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,12 +39,21 @@ class UserServiceTest {
     @Mock
     private FileService fileService;
 
+    @Mock
+    private PasswordEncoder passwordEncoder;
     private UserService userService;
 
     @BeforeEach
-    void setUp() {
-        userService = new UserService(userRepository, resourceRepository, fileService, null);
-    }
+void setUp1() {
+    userService = new UserService(
+            userRepository,
+            resourceRepository,
+            fileService,
+            passwordEncoder
+    );
+
+    when(passwordEncoder.encode(anyString())).thenReturn("encoded-password");
+}
 
     private User createTestUser(UUID id, String email, UserRole role) {
         User user = new User();
@@ -298,5 +309,4 @@ class UserServiceTest {
                 ResourceNotFoundException.class,
                 () -> userService.getUserProfile(userId)
         );
-    }
-}
+    }}

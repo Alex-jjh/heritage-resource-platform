@@ -231,10 +231,6 @@ function ResourceDetailContent({ id }: { id: string }) {
             <h1 className="text-3xl font-bold">
               {resource.title || "Untitled draft"}
             </h1>
-
-           <h1 className="text-3xl font-bold">
-  {resource.title || "Untitled draft"}
-   </h1>
             <StatusBadge status={resource.status as ResourceStatus} />
           </div>
 
@@ -251,8 +247,8 @@ function ResourceDetailContent({ id }: { id: string }) {
             </span>
 
            <p className="text-sm">
-  {resource.category?.name || "No category selected"}
-</p>
+           {resource.category?.name || "No category selected"}
+           </p>
 
           </div>
 
@@ -293,9 +289,6 @@ function ResourceDetailContent({ id }: { id: string }) {
           <p className="text-sm">
             {resource.copyrightDeclaration || "No copyright declaration provided yet."}
           </p>
-
-          <p className="text-sm">{resource.copyrightDeclaration}</p>
-
         </div>
 
         <Separator />
