@@ -16,11 +16,11 @@ public class Resource {
     @JoinColumn(name = "contributor_id", nullable = false)
     private User contributor;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String title;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
+    @JoinColumn(name = "category_id", nullable = true)
     private Category category;
 
     private String place;
@@ -28,7 +28,7 @@ public class Resource {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String copyrightDeclaration;
 
     @Enumerated(EnumType.STRING)

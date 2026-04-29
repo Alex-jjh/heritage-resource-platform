@@ -46,7 +46,7 @@ public class ResourceResponse {
         ResourceResponse resp = new ResourceResponse();
         resp.id = resource.getId();
         resp.title = resource.getTitle();
-        resp.category = CategoryResponse.fromEntity(resource.getCategory());
+        resp.category = resource.getCategory() != null ? CategoryResponse.fromEntity(resource.getCategory()) : null;
         resp.place = resource.getPlace();
         resp.description = resource.getDescription();
         resp.copyrightDeclaration = resource.getCopyrightDeclaration();
@@ -82,7 +82,7 @@ public class ResourceResponse {
         ResourceResponse resp = new ResourceResponse();
         resp.id = resource.getId();
         resp.title = resource.getTitle();
-        resp.category = CategoryResponse.fromEntity(resource.getCategory());
+        resp.category = resource.getCategory() != null ? CategoryResponse.fromEntity(resource.getCategory()) : null;
         resp.place = resource.getPlace();
         resp.description = resource.getDescription();
         resp.copyrightDeclaration = resource.getCopyrightDeclaration();

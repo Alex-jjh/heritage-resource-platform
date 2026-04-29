@@ -74,6 +74,9 @@ function ProfileContent() {
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [bio, setBio] = useState("");
+
+  const [password, setPassword] = useState("");
+
   const [profilePublic, setProfilePublic] = useState(true);
   const [showEmail, setShowEmail] = useState(false);
 
@@ -94,6 +97,9 @@ function ProfileContent() {
       setDisplayName(user.displayName ?? "");
       setAvatarUrl(user.avatarUrl ?? "");
       setBio(user.bio ?? "");
+
+      setPassword("");
+
       setProfilePublic(user.profilePublic ?? true);
       setShowEmail(user.showEmail ?? false);
     }
@@ -202,6 +208,11 @@ function ProfileContent() {
       return;
     }
 
+    if (password && password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+
     setIsSaving(true);
 
     try {
@@ -209,6 +220,9 @@ function ProfileContent() {
         displayName: displayName.trim(),
         avatarUrl: avatarUrl.trim() || null,
         bio: bio.trim() || null,
+
+        password: password || undefined,
+
         profilePublic,
         showEmail,
       });
@@ -222,6 +236,9 @@ function ProfileContent() {
       }
 
       await refreshUser();
+
+      setPassword("");
+
       setSuccess("Profile updated successfully.");
       setIsEditing(false);
     } catch (err) {
@@ -266,6 +283,9 @@ function ProfileContent() {
     setDisplayName(user.displayName ?? "");
     setAvatarUrl(user.avatarUrl ?? "");
     setBio(user.bio ?? "");
+
+    setPassword("");
+
     setProfilePublic(user.profilePublic ?? true);
     setShowEmail(user.showEmail ?? false);
 
@@ -410,6 +430,21 @@ function ProfileContent() {
                 </div>
               </div>
 
+                            <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  placeholder="Leave blank to keep current password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={!isEditing || isSaving || isUploadingAvatar}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Password must be at least 8 characters.
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="bio">Bio</Label>
                 <Textarea
@@ -421,7 +456,6 @@ function ProfileContent() {
                   disabled={!isEditing || isSaving || isUploadingAvatar}
                 />
               </div>
-
               <div className="space-y-3 rounded-md border p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -464,7 +498,7 @@ function ProfileContent() {
             </div>
           </CardContent>
 
-          <CardFooter className="flex flex-wrap justify-between gap-3">
+                    <CardFooter className="flex flex-wrap justify-between gap-3">
             <div className="flex gap-2">
               {!isEditing ? (
                 <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>

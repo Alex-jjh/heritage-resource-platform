@@ -57,6 +57,10 @@ export interface UpdateProfileRequest {
   profilePublic?: boolean;
   showEmail?: boolean;
   bio?: string | null;
+
+  password?: string;
+
+
 }
 
 export type ResourceStatus =
@@ -104,11 +108,11 @@ export interface ReviewFeedbackResponse {
 
 export interface ResourceResponse {
   id: string;
-  title: string;
-  category: Category;
-  place: string;
-  description: string;
-  copyrightDeclaration: string;
+  title: string | null;
+  category: Category | null;
+  place: string | null;
+  description: string | null;
+  copyrightDeclaration: string | null;
   status: ResourceStatus;
   tags: Tag[];
   fileReferences: FileReferenceDto[];
@@ -170,21 +174,21 @@ export interface Page<T> {
 }
 
 export interface CreateResourceRequest {
-  title: string;
-  categoryId: string;
+  title?: string;
+  categoryId?: string;
   place?: string;
   description?: string;
-  copyrightDeclaration: string;
+  copyrightDeclaration?: string;
   tagIds?: string[];
   externalLinks?: { url: string; label: string }[];
 }
 
 export interface UpdateResourceRequest {
-  title: string;
-  categoryId: string;
+  title?: string;
+  categoryId?: string;
   place?: string;
   description?: string;
-  copyrightDeclaration: string;
+  copyrightDeclaration?: string;
   tagIds?: string[];
   externalLinks?: { url: string; label: string }[];
 }

@@ -14,7 +14,7 @@ export function ResourceCard({ resource }: { resource: ResourceResponse }) {
             {resource.thumbnailUrl ? (
               <img
                 src={resource.thumbnailUrl}
-                alt={resource.title}
+                alt={resource.title || "Untitled draft"}
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -24,9 +24,9 @@ export function ResourceCard({ resource }: { resource: ResourceResponse }) {
         </CardHeader>
         <CardContent className="space-y-2">
           <h3 className="font-serif text-lg font-semibold leading-tight line-clamp-2">
-            {resource.title}
+            {resource.title || "Untitled draft"}
           </h3>
-          <p className="text-sm text-muted-foreground">{resource.category.name}</p>
+          <p className="text-sm text-muted-foreground">{resource.category?.name || "No category selected"}</p>
           {resource.place && (
             <p className="text-xs text-muted-foreground">{resource.place}</p>
           )}

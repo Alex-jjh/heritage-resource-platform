@@ -203,7 +203,7 @@ function ReviewDetailContent({ id }: { id: string }) {
         <div className="lg:col-span-2 space-y-6">
           <div>
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-bold">{resource.title}</h1>
+              <h1 className="text-3xl font-bold">{resource.title || "Untitled draft"}</h1>
               <StatusBadge status={resource.status as ResourceStatus} />
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -223,7 +223,11 @@ function ReviewDetailContent({ id }: { id: string }) {
               <span className="text-xs font-medium uppercase text-muted-foreground">
                 Category
               </span>
-              <p className="text-sm">{resource.category.name}</p>
+
+              <p className="text-sm">{resource.category?.name || "No category selected"}</p>
+
+             
+
             </div>
             {resource.place && (
               <div>
@@ -258,7 +262,8 @@ function ReviewDetailContent({ id }: { id: string }) {
             <span className="text-xs font-medium uppercase text-muted-foreground">
               Copyright
             </span>
-            <p className="text-sm">{resource.copyrightDeclaration}</p>
+
+            <p className="text-sm">{resource.copyrightDeclaration || "No copyright declaration provided yet."}</p>
           </div>
 
           <Separator />

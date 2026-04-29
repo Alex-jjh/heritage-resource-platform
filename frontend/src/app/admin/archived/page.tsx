@@ -63,8 +63,8 @@ function ArchivedContent() {
             <tbody>
               {archivedQuery.data?.map((resource) => (
                 <tr key={resource.id} className="border-b last:border-0 hover:bg-muted/30">
-                  <td className="px-4 py-3 font-medium">{resource.title}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{resource.category.name}</td>
+                  <td className="px-4 py-3 font-medium">{resource.title || "Untitled draft"}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{resource.category?.name || "No category selected"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{resource.contributorName}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={resource.status} />

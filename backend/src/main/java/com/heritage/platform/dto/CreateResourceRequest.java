@@ -1,7 +1,8 @@
 package com.heritage.platform.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 
 import java.util.List;
 import java.util.Set;
@@ -9,19 +10,18 @@ import java.util.UUID;
 
 public class CreateResourceRequest {
 
-    @NotBlank(message = "Title is required")
     private String title;
 
-    @NotNull(message = "Category is required")
     private UUID categoryId;
 
     private String place;
     private String description;
 
-    @NotBlank(message = "Copyright declaration is required")
     private String copyrightDeclaration;
 
     private Set<UUID> tagIds;
+
+    @Valid
     private List<ExternalLinkDto> externalLinks;
 
     public CreateResourceRequest() {}
@@ -43,6 +43,10 @@ public class CreateResourceRequest {
 
     public static class ExternalLinkDto {
         @NotBlank(message = "URL is required")
+        @Pattern(
+                regexp = "^https?://[\\w.-]+(?:\\.[\\w.-]+)+(?:[\\w\\-._~:/?#\\[\\]@!$&'()*+,;=%]*)?$",
+                message = "URL must be a valid http or https address"
+        )
         private String url;
         private String label;
 
@@ -50,8 +54,16 @@ public class CreateResourceRequest {
         public ExternalLinkDto(String url, String label) { this.url = url; this.label = label; }
 
         public String getUrl() { return url; }
-        public void setUrl(String url) { this.url = url; }
+        public void setUrl(String url) { this.url = normalize(url); }
         public String getLabel() { return label; }
-        public void setLabel(String label) { this.label = label; }
+        public void setLabel(String label) { this.label = normalize(label); }
+
+        private String normalize(String value) {
+            if (value == null) {
+                return null;
+            }
+            String trimmed = value.trim();
+            return trimmed.isEmpty() ? null : trimmed;
+        }
     }
 }

@@ -17,6 +17,9 @@ public class UpdateProfileRequest {
     @Size(max = 1000, message = "Bio must be at most 1000 characters")
     private String bio;
 
+    @Size(min = 8, message = "Password must be at least 8 characters")
+    private String password;
+
     public String getDisplayName() {
         return displayName;
     }
@@ -55,6 +58,14 @@ public class UpdateProfileRequest {
 
     public void setBio(String bio) {
         this.bio = normalizeMultiline(bio);
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = normalize(password);
     }
 
     private String normalize(String value) {
