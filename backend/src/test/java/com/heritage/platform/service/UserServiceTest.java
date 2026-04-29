@@ -23,7 +23,6 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,6 +40,7 @@ class UserServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
     private UserService userService;
 
     @BeforeEach
@@ -51,8 +51,6 @@ class UserServiceTest {
                 fileService,
                 passwordEncoder
         );
-
-        when(passwordEncoder.encode(anyString())).thenReturn("encoded-password");
     }
 
     private User createTestUser(UUID id, String email, UserRole role) {

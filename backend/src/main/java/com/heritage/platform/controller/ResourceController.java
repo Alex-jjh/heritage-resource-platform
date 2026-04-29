@@ -24,7 +24,10 @@ public class ResourceController {
     private final ResourceService resourceService;
     private final FileService fileService;
 
-    public ResourceController(ResourceService resourceService, FileService fileService) {
+    public ResourceController(
+            ResourceService resourceService,
+            FileService fileService
+    ) {
         this.resourceService = resourceService;
         this.fileService = fileService;
     }
@@ -32,7 +35,8 @@ public class ResourceController {
     @PostMapping
     public ResponseEntity<ResourceResponse> create(
             Principal principal,
-            @Valid @RequestBody CreateResourceRequest request) {
+            @Valid @RequestBody CreateResourceRequest request
+    ) {
         Resource resource = resourceService.createResource(principal.getName(), request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ResourceResponse.fromEntity(resource));
@@ -41,14 +45,18 @@ public class ResourceController {
     @GetMapping("/{id}")
     public ResponseEntity<ResourceResponse> getById(
             @PathVariable UUID id,
-            Principal principal) {
+            Principal principal
+    ) {
         Resource resource = resourceService.getResourceById(id, principal.getName());
 
         if (resource.getStatus() == ResourceStatus.APPROVED
                 && resource.getFileReferences() != null
                 && !resource.getFileReferences().isEmpty()) {
             return ResponseEntity.ok(
-                    ResourceResponse.fromEntityWithFileUrls(resource, fileService::generateDownloadUrl)
+                    ResourceResponse.fromEntityWithFileUrls(
+                            resource,
+                            fileService::generateDownloadUrl
+                    )
             );
         }
 
@@ -59,7 +67,8 @@ public class ResourceController {
     public ResponseEntity<ResourceResponse> update(
             @PathVariable UUID id,
             Principal principal,
-            @Valid @RequestBody UpdateResourceRequest request) {
+            @Valid @RequestBody UpdateResourceRequest request
+    ) {
         Resource resource = resourceService.updateResource(id, principal.getName(), request);
         return ResponseEntity.ok(ResourceResponse.fromEntity(resource));
     }
@@ -67,7 +76,8 @@ public class ResourceController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @PathVariable UUID id,
-            Principal principal) {
+            Principal principal
+    ) {
         resourceService.deleteResource(id, principal.getName());
         return ResponseEntity.noContent().build();
     }
@@ -75,7 +85,8 @@ public class ResourceController {
     @PostMapping("/{id}/submit")
     public ResponseEntity<ResourceResponse> submitForReview(
             @PathVariable UUID id,
-            Principal principal) {
+            Principal principal
+    ) {
         Resource resource = resourceService.submitForReview(id, principal.getName());
         return ResponseEntity.ok(ResourceResponse.fromEntity(resource));
     }
@@ -83,7 +94,8 @@ public class ResourceController {
     @PostMapping("/{id}/revise")
     public ResponseEntity<ResourceResponse> revise(
             @PathVariable UUID id,
-            Principal principal) {
+            Principal principal
+    ) {
         Resource resource = resourceService.revise(id, principal.getName());
         return ResponseEntity.ok(ResourceResponse.fromEntity(resource));
     }
@@ -94,6 +106,7 @@ public class ResourceController {
                 .stream()
                 .map(ResourceResponse::fromEntity)
                 .toList();
+
         return ResponseEntity.ok(resources);
     }
 
@@ -101,25 +114,45 @@ public class ResourceController {
     public ResponseEntity<List<ResourceResponse>> getFeaturedResources() {
         List<ResourceResponse> featured = resourceService.getFeaturedResources()
                 .stream()
-                .map(ResourceResponse::fromEntity)
+                .map(resource -> ResourceResponse.fromEntityWithFileUrls(
+                resource,
+                fileService::generateDownloadUrl
+        ))
                 .toList();
+
         return ResponseEntity.ok(featured);
     }
 
     @GetMapping("/homepage-featured")
     public ResponseEntity<List<ResourceResponse>> getHomepageFeaturedResources() {
-        List<ResourceResponse> homepageResources = resourceService.getHomepageFeaturedResources()
+        List<ResourceResponse> featured = resourceService.getHomepageFeaturedResources()
                 .stream()
-                .map(ResourceResponse::fromEntity)
+                .map(resource -> ResourceResponse.fromEntityWithFileUrls(
+                resource,
+                fileService::generateDownloadUrl
+        ))
                 .toList();
-        return ResponseEntity.ok(homepageResources);
+
+        return ResponseEntity.ok(featured);
     }
 
     @PostMapping("/{id}/apply-featured")
     public ResponseEntity<MessageResponse> applyFeatured(
             @PathVariable UUID id,
-            Principal principal) {
+            Principal principal
+    ) {
         resourceService.applyForFeatured(id, principal.getName());
         return ResponseEntity.ok(new MessageResponse("Featured application submitted"));
+    }
+
+    @PostMapping("/{id}/approve-featured")
+    public ResponseEntity<MessageResponse> approveFeatured(
+            @PathVariable UUID id,
+            @RequestParam boolean approved,
+            Principal principal
+    ) {
+        resourceService.approveFeatured(id, approved, principal.getName());
+        String msg = approved ? "Resource is now featured" : "Featured application rejected";
+        return ResponseEntity.ok(new MessageResponse(msg));
     }
 }

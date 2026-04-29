@@ -33,8 +33,6 @@ import java.util.UUID;
 @Service
 public class ResourceService {
 
-    private static final int HOMEPAGE_FEATURED_LIMIT = 20;
-
     private final ResourceRepository resourceRepository;
     private final CategoryRepository categoryRepository;
     private final TagRepository tagRepository;
@@ -42,10 +40,10 @@ public class ResourceService {
     private final StatusTransitionRepository statusTransitionRepository;
 
     public ResourceService(ResourceRepository resourceRepository,
-                           CategoryRepository categoryRepository,
-                           TagRepository tagRepository,
-                           UserRepository userRepository,
-                           StatusTransitionRepository statusTransitionRepository) {
+            CategoryRepository categoryRepository,
+            TagRepository tagRepository,
+            UserRepository userRepository,
+            StatusTransitionRepository statusTransitionRepository) {
         this.resourceRepository = resourceRepository;
         this.categoryRepository = categoryRepository;
         this.tagRepository = tagRepository;
@@ -187,37 +185,18 @@ public class ResourceService {
 
     @Transactional(readOnly = true)
     public List<Resource> getFeaturedResources() {
-        List<Resource> resources = resourceRepository.findByIsFeaturedTrueAndStatusOrderByApprovedAtDesc(ResourceStatus.APPROVED);
+        List<Resource> resources = resourceRepository.findHomepageFeaturedResources(
+                ResourceStatus.APPROVED,
+                FeaturedStatus.APPROVED
+        );
+
         resources.forEach(this::initializeLazyAssociations);
         return resources;
     }
 
     @Transactional(readOnly = true)
     public List<Resource> getHomepageFeaturedResources() {
-        List<Resource> featured = resourceRepository.findByIsFeaturedTrueAndStatusOrderByApprovedAtDesc(ResourceStatus.APPROVED);
-        List<Resource> latestApproved = resourceRepository.findByStatusOrderByApprovedAtDesc(ResourceStatus.APPROVED);
-
-        LinkedHashMap<UUID, Resource> ordered = new LinkedHashMap<>();
-
-        for (Resource resource : featured) {
-            ordered.put(resource.getId(), resource);
-            if (ordered.size() == HOMEPAGE_FEATURED_LIMIT) {
-                break;
-            }
-        }
-
-        if (ordered.size() < HOMEPAGE_FEATURED_LIMIT) {
-            for (Resource resource : latestApproved) {
-                ordered.putIfAbsent(resource.getId(), resource);
-                if (ordered.size() == HOMEPAGE_FEATURED_LIMIT) {
-                    break;
-                }
-            }
-        }
-
-        List<Resource> result = new ArrayList<>(ordered.values());
-        result.forEach(this::initializeLazyAssociations);
-        return result;
+        return getFeaturedResources();
     }
 
     @Transactional(readOnly = true)
@@ -238,8 +217,7 @@ public class ResourceService {
         if (!currentStatus.canTransitionTo(targetStatus)) {
             throw new InvalidStatusTransitionException(
                     String.format("Cannot transition from %s to %s. Allowed transitions from %s: %s",
-                            currentStatus, targetStatus, currentStatus, getAllowedTargets(currentStatus)))
-                    ;
+                            currentStatus, targetStatus, currentStatus, getAllowedTargets(currentStatus)));
         }
 
         resource.setStatus(targetStatus);
@@ -320,7 +298,12 @@ public class ResourceService {
         Resource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
 
-        if (resource.getFeaturedStatus() != FeaturedStatus.PENDING) {
+        if (resource.getStatus() != ResourceStatus.APPROVED) {
+            throw new IllegalStateException("Only approved resources can be featured.");
+        }
+
+        if (resource.getFeaturedStatus() != FeaturedStatus.PENDING
+                && resource.getFeaturedStatus() != FeaturedStatus.APPROVED) {
             throw new IllegalStateException("This resource does not have a pending featured application.");
         }
 
@@ -388,12 +371,24 @@ public class ResourceService {
     }
 
     private void initializeLazyAssociations(Resource resource) {
-        if (resource.getCategory() != null) resource.getCategory().getName();
-        if (resource.getTags() != null) resource.getTags().size();
-        if (resource.getExternalLinks() != null) resource.getExternalLinks().size();
-        if (resource.getFileReferences() != null) resource.getFileReferences().size();
-        if (resource.getReviewFeedbacks() != null) resource.getReviewFeedbacks().size();
-        if (resource.getContributor() != null) resource.getContributor().getDisplayName();
+        if (resource.getCategory() != null) {
+            resource.getCategory().getName();
+        }
+        if (resource.getTags() != null) {
+            resource.getTags().size();
+        }
+        if (resource.getExternalLinks() != null) {
+            resource.getExternalLinks().size();
+        }
+        if (resource.getFileReferences() != null) {
+            resource.getFileReferences().size();
+        }
+        if (resource.getReviewFeedbacks() != null) {
+            resource.getReviewFeedbacks().size();
+        }
+        if (resource.getContributor() != null) {
+            resource.getContributor().getDisplayName();
+        }
     }
 
     private void validateOwnership(Resource resource, User user) {

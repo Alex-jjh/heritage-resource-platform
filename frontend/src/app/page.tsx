@@ -15,13 +15,11 @@ export default function Home() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   const featuredQuery = useQuery({
-    queryKey: ["homepage-featured-resources"],
+    queryKey: ["featured-resources"],
     queryFn: () =>
-      isAuthenticated
-        ? apiClient.get<ResourceResponse[]>("/api/resources/homepage-featured")
-        : apiClient.get<ResourceResponse[]>("/api/resources/homepage-featured", {
-          skipAuth: true,
-        }),
+      apiClient.get<ResourceResponse[]>("/api/resources/homepage-featured", {
+        skipAuth: true,
+      }),
   });
 
   const resources = (featuredQuery.data ?? []).slice(0, FEATURED_COUNT);
@@ -33,24 +31,27 @@ export default function Home() {
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/hero-bg.jpeg')" }}
         />
+
         <div className="absolute inset-0 bg-gradient-to-r from-stone-900/80 via-stone-900/60 to-stone-800/50" />
 
         <div className="relative px-6 sm:px-12 lg:px-16">
           <div className="max-w-2xl">
-            <h1 className="font-serif text-4xl font-bold tracking-tight text-white sm:text-5xl drop-shadow-lg">
+            <h1 className="font-serif text-4xl font-bold tracking-tight text-white drop-shadow-lg sm:text-5xl">
               Discover &amp; Preserve Cultural Heritage
             </h1>
+
             <p className="mt-4 text-lg text-stone-200/90 drop-shadow">
               A community platform for sharing images, stories, traditions,
               places, and educational materials that celebrate our shared
               cultural heritage.
             </p>
+
             <div className="mt-8 flex flex-wrap gap-3">
               {isAuthenticated ? (
                 <Link href="/browse">
                   <Button
                     size="lg"
-                    className="bg-amber-600 text-white hover:bg-amber-700 shadow-lg"
+                    className="bg-amber-600 text-white shadow-lg hover:bg-amber-700"
                   >
                     Browse Resources
                   </Button>
@@ -60,16 +61,17 @@ export default function Home() {
                   <Link href="/register">
                     <Button
                       size="lg"
-                      className="bg-amber-600 text-white hover:bg-amber-700 shadow-lg"
+                      className="bg-amber-600 text-white shadow-lg hover:bg-amber-700"
                     >
                       Get Started
                     </Button>
                   </Link>
+
                   <Link href="/login">
                     <Button
                       size="lg"
                       variant="outline"
-                      className="border-white/40 bg-white/10 text-white hover:bg-white/20 shadow-lg backdrop-blur-sm"
+                      className="border-white/40 bg-white/10 text-white shadow-lg backdrop-blur-sm hover:bg-white/20"
                     >
                       Sign In
                     </Button>
@@ -82,19 +84,20 @@ export default function Home() {
       </section>
 
       <section className="px-6 py-12 sm:px-12 lg:px-16">
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="font-serif text-2xl font-bold">Featured Resources</h2>
+            <h2 className="font-serif text-2xl font-bold">
+              Featured Resources
+            </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Administrator-selected resources appear first, followed by the most
-              recent approved heritage content.
+              Administrator-selected resources curated for the homepage.
             </p>
           </div>
 
           {isAuthenticated && (
             <Link href="/browse">
               <Button variant="link" className="text-accent">
-                View all →
+                Browse all →
               </Button>
             </Link>
           )}
@@ -119,13 +122,21 @@ export default function Home() {
               Unable to load featured resources. Please try again later.
             </div>
           ) : resources.length === 0 ? (
-            <div className="py-16 text-center">
-              <p className="text-lg text-muted-foreground">
-                No approved resources yet.
+            <div className="rounded-lg border bg-card px-6 py-16 text-center">
+              <p className="text-lg font-medium">
+                No featured resources have been selected yet.
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Be the first to contribute heritage content.
+              <p className="mt-2 text-sm text-muted-foreground">
+                Approved resources selected by administrators will appear here.
               </p>
+
+              <div className="mt-6">
+                <Link href={isAuthenticated ? "/browse" : "/login"}>
+                  <Button variant="outline">
+                    {isAuthenticated ? "Browse resources" : "Sign in to browse"}
+                  </Button>
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -160,6 +171,7 @@ export default function Home() {
                 heritage for future generations.
               </p>
             </div>
+
             <div className="text-center">
               <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-2xl">
                 ✅
@@ -170,6 +182,7 @@ export default function Home() {
                 are published.
               </p>
             </div>
+
             <div className="text-center">
               <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-2xl">
                 🔍
