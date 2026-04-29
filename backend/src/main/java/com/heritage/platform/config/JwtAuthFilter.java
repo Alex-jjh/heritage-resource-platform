@@ -40,11 +40,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             if (jwtService.validateToken(token)) {
                 String email = jwtService.getEmailFromToken(token);
+                String userId = jwtService.getUserIdFromToken(token);
                 String role = jwtService.getRoleFromToken(token);
 
                 SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
+                // Use userId as principal for easier UUID conversion
                 UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(email, null, List.of(authority));
+                        new UsernamePasswordAuthenticationToken(userId, null, List.of(authority));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }

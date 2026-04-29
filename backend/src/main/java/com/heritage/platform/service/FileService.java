@@ -1,6 +1,7 @@
 package com.heritage.platform.service;
 
 import com.heritage.platform.exception.AccessDeniedException;
+import com.heritage.platform.exception.FileSizeLimitExceededException;
 import com.heritage.platform.exception.ResourceNotFoundException;
 import com.heritage.platform.model.FileReference;
 import com.heritage.platform.model.Resource;
@@ -25,7 +26,7 @@ import java.util.UUID;
 @Service
 public class FileService {
 
-    private static final long MAX_FILE_SIZE_BYTES = 50L * 1024 * 1024; // 50 MB
+    private static final long MAX_FILE_SIZE_BYTES = 100L * 1024 * 1024; // 100 MB
     private static final long MAX_AVATAR_SIZE_BYTES = 5L * 1024 * 1024; // 5 MB
     private static final int MAX_FILES_PER_RESOURCE = 10;
 
@@ -77,7 +78,7 @@ public class FileService {
         }
 
         if (file.getSize() > MAX_FILE_SIZE_BYTES) {
-            throw new IllegalArgumentException("File size exceeds maximum of 50MB");
+            throw new FileSizeLimitExceededException("File size exceeds 100MB");
         }
 
         int currentCount = fileReferenceRepository.countByResourceId(resourceId);

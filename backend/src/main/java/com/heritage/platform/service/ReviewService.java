@@ -3,6 +3,7 @@ package com.heritage.platform.service;
 import com.heritage.platform.dto.ReviewHistoryResponse;
 import com.heritage.platform.exception.InvalidStatusTransitionException;
 import com.heritage.platform.exception.ResourceNotFoundException;
+import com.heritage.platform.exception.TaskLockedByAnotherUserException;
 import com.heritage.platform.model.Resource;
 import com.heritage.platform.model.ResourceStatus;
 import com.heritage.platform.model.ReviewFeedback;
@@ -52,17 +53,19 @@ public class ReviewService {
     }
 
     /**
-     * Approves a resource. Only PENDING_REVIEW resources can be approved.
+     * Approves a resource. Supports both PENDING_REVIEW and IN_REVIEW resources.
+     * For IN_REVIEW resources, validates that the current user is the locked reviewer.
      */
     @Transactional
     public Resource approveResource(UUID resourceId, String email) {
         Resource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
 
-        validatePendingReviewStatus(resource);
-
         User reviewer = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Validate status and lock ownership
+        validateReviewStatusAndLock(resource, reviewer);
 
         ReviewFeedback feedback = new ReviewFeedback();
         feedback.setResource(resource);
@@ -71,12 +74,16 @@ public class ReviewService {
         feedback.setDecision("APPROVED");
         reviewFeedbackRepository.save(feedback);
 
+        // Clear lock if resource was locked
+        clearResourceLock(resource);
+
         return resourceService.transitionStatus(resourceId, ResourceStatus.APPROVED, reviewer);
     }
 
     /**
      * Rejects a resource with required feedback comments.
-     * Only PENDING_REVIEW resources can be rejected.
+     * Supports both PENDING_REVIEW and IN_REVIEW resources.
+     * For IN_REVIEW resources, validates that the current user is the locked reviewer.
      */
     @Transactional
     public Resource rejectResource(UUID resourceId, String email, String comments) {
@@ -87,10 +94,11 @@ public class ReviewService {
         Resource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found"));
 
-        validatePendingReviewStatus(resource);
-
         User reviewer = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Validate status and lock ownership
+        validateReviewStatusAndLock(resource, reviewer);
 
         ReviewFeedback feedback = new ReviewFeedback();
         feedback.setResource(resource);
@@ -99,14 +107,36 @@ public class ReviewService {
         feedback.setDecision("REJECTED");
         reviewFeedbackRepository.save(feedback);
 
+        // Clear lock if resource was locked
+        clearResourceLock(resource);
+
         return resourceService.transitionStatus(resourceId, ResourceStatus.REJECTED, reviewer);
     }
 
-    private void validatePendingReviewStatus(Resource resource) {
-        if (resource.getStatus() != ResourceStatus.PENDING_REVIEW) {
+    /**
+     * Validates that the resource can be reviewed by the current user.
+     * Supports PENDING_REVIEW (unlocked) and IN_REVIEW (locked by current user) statuses.
+     */
+    private void validateReviewStatusAndLock(Resource resource, User currentReviewer) {
+        ResourceStatus status = resource.getStatus();
+        
+        // Check if status is valid for review
+        if (status != ResourceStatus.PENDING_REVIEW && status != ResourceStatus.IN_REVIEW) {
             throw new InvalidStatusTransitionException(
-                    String.format("Resource is in %s status. Only PENDING_REVIEW resources can be reviewed.",
-                            resource.getStatus()));
+                    String.format("Resource is in %s status. Only PENDING_REVIEW or IN_REVIEW resources can be reviewed.",
+                            status));
+        }
+        
+        // For IN_REVIEW resources, verify the current user is the locked reviewer
+        if (status == ResourceStatus.IN_REVIEW) {
+            if (resource.getLockedBy() == null) {
+                throw new InvalidStatusTransitionException("Resource is IN_REVIEW but not locked by any user");
+            }
+            
+            if (!resource.getLockedBy().getId().equals(currentReviewer.getId())) {
+                throw new TaskLockedByAnotherUserException(
+                        "Access denied: This task has been claimed by another user");
+            }
         }
     }
 
@@ -136,5 +166,14 @@ public class ReviewService {
         return records.stream()
                 .map(ReviewHistoryResponse::fromEntity)
                 .toList();
+    }
+
+    /**
+     * Clears the lock fields from a resource.
+     */
+    private void clearResourceLock(Resource resource) {
+        resource.setLockedBy(null);
+        resource.setLockedAt(null);
+        resourceRepository.save(resource);
     }
 }
