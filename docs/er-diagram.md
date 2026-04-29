@@ -111,7 +111,7 @@ erDiagram
     resources ||--o{ external_links : "has"
     resources ||--o{ comments : "has"
     resources ||--o{ review_feedback : "has"
-    resources ||--o{ statu  s_transitions : "tracks"
+    resources ||--o{ status_transitions : "tracks"
     users ||--o{ comments : "authors"
     users ||--o{ review_feedback : "reviews"
     users ||--o{ status_transitions : "performs"

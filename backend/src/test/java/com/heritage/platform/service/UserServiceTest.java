@@ -44,16 +44,16 @@ class UserServiceTest {
     private UserService userService;
 
     @BeforeEach
-void setUp1() {
-    userService = new UserService(
-            userRepository,
-            resourceRepository,
-            fileService,
-            passwordEncoder
-    );
+    void setUp() {
+        userService = new UserService(
+                userRepository,
+                resourceRepository,
+                fileService,
+                passwordEncoder
+        );
 
-    when(passwordEncoder.encode(anyString())).thenReturn("encoded-password");
-}
+        when(passwordEncoder.encode(anyString())).thenReturn("encoded-password");
+    }
 
     private User createTestUser(UUID id, String email, UserRole role) {
         User user = new User();
@@ -309,4 +309,5 @@ void setUp1() {
                 ResourceNotFoundException.class,
                 () -> userService.getUserProfile(userId)
         );
-    }}
+    }
+}

@@ -264,9 +264,6 @@ function ReviewDetailContent({ id }: { id: string }) {
             </span>
 
             <p className="text-sm">{resource.copyrightDeclaration || "No copyright declaration provided yet."}</p>
-
-            <p className="text-sm">{resource.copyrightDeclaration}</p>
-
           </div>
 
           <Separator />
