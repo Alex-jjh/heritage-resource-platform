@@ -3,10 +3,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 import type { FileReferenceDto, ResourceResponse } from "@/types";
 
-function isImageFile(file: FileReferenceDto) {
-  return file.contentType?.toLowerCase().startsWith("image/");
+function isImageFile(file: FileReferenceDto): boolean {
+  return Boolean(file.contentType?.toLowerCase().startsWith("image/"));
 }
 
 function getResourceImageUrl(resource: ResourceResponse): string | null {
@@ -29,19 +35,20 @@ function ResourceImage({
   imageUrl: string | null;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
+  const title = resource.title || "Untitled draft";
 
   if (!imageUrl || imageFailed) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-muted text-4xl text-muted-foreground">
+      <span className="text-3xl text-muted-foreground" aria-hidden="true">
         🏛️
-      </div>
+      </span>
     );
   }
 
   return (
     <img
       src={imageUrl}
-      alt={resource.title}
+      alt={title}
       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
       loading="lazy"
       onError={() => setImageFailed(true)}
@@ -52,43 +59,48 @@ function ResourceImage({
 export function ResourceCard({ resource }: { resource: ResourceResponse }) {
   const imageUrl = getResourceImageUrl(resource);
   const tags = resource.tags ?? [];
+  const title = resource.title || "Untitled draft";
+  const categoryName = resource.category?.name || "No category selected";
 
   return (
-    <Link
-      href={`/resources/${resource.id}`}
-      className="group block overflow-hidden rounded-lg border bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-    >
-      <div className="aspect-[4/3] overflow-hidden bg-muted">
-        <ResourceImage resource={resource} imageUrl={imageUrl} />
-      </div>
+    <Link href={`/resources/${resource.id}`} className="group block h-full">
+      <Card className="h-full overflow-hidden transition-shadow group-hover:shadow-md">
+        <CardHeader className="p-4 pb-2">
+          <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-md bg-muted">
+            <ResourceImage resource={resource} imageUrl={imageUrl} />
+          </div>
+        </CardHeader>
 
-      <div className="space-y-2 p-4">
-        <h3 className="line-clamp-2 font-serif text-lg font-semibold leading-tight">
-          {resource.title}
-        </h3>
+        <CardContent className="space-y-2 px-4 pb-2 pt-0">
+          <h3 className="line-clamp-2 font-serif text-lg font-semibold leading-tight">
+            {title}
+          </h3>
 
-        <div className="space-y-1 text-sm text-muted-foreground">
-          <p>{resource.category?.name ?? "Uncategorized"}</p>
+          <p className="text-sm text-muted-foreground">{categoryName}</p>
 
-          {resource.place && <p className="line-clamp-1">{resource.place}</p>}
-        </div>
-      </div>
-
-      {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 border-t bg-muted/30 px-4 py-3">
-          {tags.slice(0, 3).map((tag) => (
-            <Badge key={tag.id} variant="secondary" className="text-xs">
-              {tag.name}
-            </Badge>
-          ))}
-
-          {tags.length > 3 && (
-            <Badge variant="outline" className="text-xs">
-              +{tags.length - 3}
-            </Badge>
+          {resource.place && (
+            <p className="line-clamp-1 text-xs text-muted-foreground">
+              {resource.place}
+            </p>
           )}
-        </div>
-      )}
+        </CardContent>
+
+        {tags.length > 0 && (
+          <CardFooter className="flex flex-wrap gap-1 px-4 pb-4 pt-2">
+            {tags.slice(0, 3).map((tag) => (
+              <Badge key={tag.id} variant="outline" className="text-xs">
+                {tag.name}
+              </Badge>
+            ))}
+
+            {tags.length > 3 && (
+              <Badge variant="outline" className="text-xs">
+                +{tags.length - 3}
+              </Badge>
+            )}
+          </CardFooter>
+        )}
+      </Card>
     </Link>
   );
 }

@@ -309,7 +309,10 @@ function ResourceDetailContent({ id }: { id: string }) {
       <div className="mt-4 space-y-6">
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-bold">{resource.title}</h1>
+
+            <h1 className="text-3xl font-bold">
+              {resource.title || "Untitled draft"}
+            </h1>
             <StatusBadge status={resource.status as ResourceStatus} />
           </div>
 
@@ -326,7 +329,11 @@ function ResourceDetailContent({ id }: { id: string }) {
             <span className="text-xs font-medium uppercase text-muted-foreground">
               Category
             </span>
-            <p className="text-sm">{resource.category.name}</p>
+
+           <p className="text-sm">
+           {resource.category?.name || "No category selected"}
+           </p>
+
           </div>
 
           {resource.place && (
@@ -362,7 +369,10 @@ function ResourceDetailContent({ id }: { id: string }) {
           <span className="text-xs font-medium uppercase text-muted-foreground">
             Copyright
           </span>
-          <p className="text-sm">{resource.copyrightDeclaration}</p>
+
+          <p className="text-sm">
+            {resource.copyrightDeclaration || "No copyright declaration provided yet."}
+          </p>
         </div>
 
         <Separator />

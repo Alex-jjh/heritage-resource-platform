@@ -9,6 +9,7 @@ import com.heritage.platform.model.User;
 import com.heritage.platform.model.UserRole;
 import com.heritage.platform.repository.ResourceRepository;
 import com.heritage.platform.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -32,14 +33,23 @@ public class UserService {
     private final ResourceRepository resourceRepository;
     private final FileService fileService;
 
+    private final PasswordEncoder passwordEncoder;
+
+
     public UserService(
             UserRepository userRepository,
             ResourceRepository resourceRepository,
-            FileService fileService
+
+            FileService fileService,
+            PasswordEncoder passwordEncoder
+
     ) {
         this.userRepository = userRepository;
         this.resourceRepository = resourceRepository;
         this.fileService = fileService;
+
+        this.passwordEncoder = passwordEncoder;
+
     }
 
     /**
@@ -93,6 +103,11 @@ public class UserService {
         if (request.getBio() != null) {
             user.setBio(request.getBio());
         }
+
+        if (request.getPassword() != null) {
+            user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        }
+
 
         return userRepository.save(user);
     }

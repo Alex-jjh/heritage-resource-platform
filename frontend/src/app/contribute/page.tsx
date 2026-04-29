@@ -242,9 +242,11 @@ function ResourceListItem({
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <CardTitle className="font-serif">{resource.title}</CardTitle>
+            <CardTitle className="font-serif">
+              {resource.title || "Untitled draft"}
+            </CardTitle>
             <CardDescription>
-              {resource.category.name}
+              {resource.category?.name || "No category selected"}
               {resource.place && <> · {resource.place}</>}
               {" · "}
               Updated {formatEnglishDate(resource.updatedAt)}

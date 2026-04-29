@@ -56,16 +56,15 @@ public class ResourceService {
         User contributor = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+        Category category = findCategoryIfProvided(request.getCategoryId());
 
         Resource resource = new Resource();
         resource.setContributor(contributor);
-        resource.setTitle(request.getTitle());
+        resource.setTitle(normalize(request.getTitle()));
         resource.setCategory(category);
-        resource.setPlace(request.getPlace());
-        resource.setDescription(request.getDescription());
-        resource.setCopyrightDeclaration(request.getCopyrightDeclaration());
+        resource.setPlace(normalize(request.getPlace()));
+        resource.setDescription(normalize(request.getDescription()));
+        resource.setCopyrightDeclaration(normalize(request.getCopyrightDeclaration()));
         resource.setStatus(ResourceStatus.DRAFT);
 
         if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
@@ -75,8 +74,8 @@ public class ResourceService {
         if (request.getExternalLinks() != null) {
             for (CreateResourceRequest.ExternalLinkDto linkDto : request.getExternalLinks()) {
                 ExternalLink link = new ExternalLink();
-                link.setUrl(linkDto.getUrl());
-                link.setLabel(linkDto.getLabel());
+                link.setUrl(normalize(linkDto.getUrl()));
+                link.setLabel(normalize(linkDto.getLabel()));
                 link.setResource(resource);
                 resource.getExternalLinks().add(link);
             }
@@ -131,14 +130,13 @@ public class ResourceService {
             throw new IllegalStateException("Resource can only be edited in DRAFT status");
         }
 
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+        Category category = findCategoryIfProvided(request.getCategoryId());
 
-        resource.setTitle(request.getTitle());
+        resource.setTitle(normalize(request.getTitle()));
         resource.setCategory(category);
-        resource.setPlace(request.getPlace());
-        resource.setDescription(request.getDescription());
-        resource.setCopyrightDeclaration(request.getCopyrightDeclaration());
+        resource.setPlace(normalize(request.getPlace()));
+        resource.setDescription(normalize(request.getDescription()));
+        resource.setCopyrightDeclaration(normalize(request.getCopyrightDeclaration()));
 
         if (request.getTagIds() != null) {
             resource.setTags(new HashSet<>(tagRepository.findAllById(request.getTagIds())));
@@ -148,8 +146,8 @@ public class ResourceService {
             resource.getExternalLinks().clear();
             for (CreateResourceRequest.ExternalLinkDto linkDto : request.getExternalLinks()) {
                 ExternalLink link = new ExternalLink();
-                link.setUrl(linkDto.getUrl());
-                link.setLabel(linkDto.getLabel());
+                link.setUrl(normalize(linkDto.getUrl()));
+                link.setLabel(normalize(linkDto.getLabel()));
                 link.setResource(resource);
                 resource.getExternalLinks().add(link);
             }
@@ -346,6 +344,24 @@ public class ResourceService {
         resource.setFeatured(false);
         resource.setFeaturedStatus(FeaturedStatus.NONE);
         resourceRepository.save(resource);
+    }
+
+
+
+    private Category findCategoryIfProvided(UUID categoryId) {
+        if (categoryId == null) {
+            return null;
+        }
+        return categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private Resource saveAndInitialize(Resource resource) {
