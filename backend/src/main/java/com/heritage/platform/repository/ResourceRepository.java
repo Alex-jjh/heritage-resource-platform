@@ -22,6 +22,17 @@ public interface ResourceRepository extends JpaRepository<Resource, UUID> {
 
     List<Resource> findByStatusOrderByApprovedAtDesc(ResourceStatus status);
 
+    // ============================================================
+    // 首页精选核心逻辑修复：确保只有被勾选 isFeatured 且已审核通过的才能出现
+    // ============================================================
+    
+    /**
+     * 获取首页展示的精选资源。
+     * 自动过滤：isFeatured = true 且 status = APPROVED
+     * 排序：按审核时间 (approvedAt) 倒序排列，确保最新审核的排在前面
+     */
+    List<Resource> findTop4ByIsFeaturedTrueAndStatusOrderByApprovedAtDesc(ResourceStatus status);
+
     List<Resource> findByIsFeaturedTrueOrderByCreatedAtDesc();
 
     List<Resource> findByFeaturedStatus(FeaturedStatus status);
@@ -39,6 +50,10 @@ public interface ResourceRepository extends JpaRepository<Resource, UUID> {
             @Param("status") ResourceStatus status,
             @Param("featuredStatus") FeaturedStatus featuredStatus
     );
+
+    // ============================================================
+    // 搜索与分页逻辑（保持不变）
+    // ============================================================
 
     @Query("SELECT r FROM Resource r WHERE r.status = :status AND "
             + "(r.title LIKE %:query% OR r.description LIKE %:query%)")
