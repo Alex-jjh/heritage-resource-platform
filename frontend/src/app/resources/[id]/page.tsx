@@ -23,7 +23,8 @@ import type {
 
 type FileReference = ResourceResponse["fileReferences"][number];
 
-function formatFileSize(bytes: number): string {
+function formatFileSize(bytes?: number | null): string {
+  if (bytes == null) return "Unknown size";
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -45,6 +46,14 @@ function getInitials(name: string) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
+}
+
+function getResourceTitle(resource: ResourceResponse) {
+  return resource.title || "Untitled draft";
+}
+
+function getFileDisplayName(file: FileReference, fallback: string) {
+  return file.originalFileName || fallback;
 }
 
 function isImageFile(file: FileReference) {
@@ -90,7 +99,9 @@ function ContributorSummary({
     contributorProfile?.avatarUrl ?? resource.contributorAvatarUrl ?? null;
 
   const displayName =
-    contributorProfile?.displayName ?? resource.contributorName;
+    contributorProfile?.displayName ??
+    resource.contributorName ??
+    "Unknown contributor";
 
   const canOpenProfile = Boolean(resource.contributorId);
 
@@ -126,7 +137,9 @@ function ContributorSummary({
 }
 
 function ResourceImageGallery({ resource }: { resource: ResourceResponse }) {
-  const imageFiles = resource.fileReferences.filter(isImageFile);
+  const resourceTitle = getResourceTitle(resource);
+  const imageFiles = (resource.fileReferences ?? []).filter(isImageFile);
+
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [failedImageIds, setFailedImageIds] = useState<Set<string>>(
     () => new Set()
@@ -144,6 +157,14 @@ function ResourceImageGallery({ resource }: { resource: ResourceResponse }) {
     selectedIndex >= visibleImageFiles.length ? 0 : selectedIndex;
 
   const selectedImage = visibleImageFiles[safeSelectedIndex];
+
+  if (!selectedImage) {
+    return null;
+  }
+
+  const selectedImageUrl = selectedImage.downloadUrl ?? "";
+  const selectedImageAlt =
+    selectedImage.originalFileName || resourceTitle || "Resource image";
 
   function markImageAsFailed(fileId: string) {
     setFailedImageIds((current) => {
@@ -163,8 +184,8 @@ function ResourceImageGallery({ resource }: { resource: ResourceResponse }) {
 
       <div className="overflow-hidden rounded-xl border bg-muted">
         <img
-          src={selectedImage.downloadUrl}
-          alt={selectedImage.originalFileName || resource.title}
+          src={selectedImageUrl}
+          alt={selectedImageAlt}
           className="max-h-[560px] w-full object-contain"
           onError={() => markImageAsFailed(selectedImage.id)}
         />
@@ -174,6 +195,8 @@ function ResourceImageGallery({ resource }: { resource: ResourceResponse }) {
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
           {visibleImageFiles.map((file, index) => {
             const isSelected = index === safeSelectedIndex;
+            const fileName = getFileDisplayName(file, resourceTitle);
+            const fileUrl = file.downloadUrl ?? "";
 
             return (
               <button
@@ -182,11 +205,11 @@ function ResourceImageGallery({ resource }: { resource: ResourceResponse }) {
                 onClick={() => setSelectedIndex(index)}
                 className={`overflow-hidden rounded-md border bg-muted transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${isSelected ? "ring-2 ring-ring ring-offset-2" : ""
                   }`}
-                aria-label={`View ${file.originalFileName}`}
+                aria-label={`View ${fileName}`}
               >
                 <img
-                  src={file.downloadUrl}
-                  alt={file.originalFileName || resource.title}
+                  src={fileUrl}
+                  alt={fileName || "Resource image"}
                   className="aspect-square w-full object-cover"
                   onError={() => markImageAsFailed(file.id)}
                 />
@@ -299,6 +322,10 @@ function ResourceDetailContent({ id }: { id: string }) {
 
   const resource = resourceQuery.data!;
   const contributorProfile = contributorProfileQuery.data ?? null;
+  const resourceTitle = getResourceTitle(resource);
+  const tags = resource.tags ?? [];
+  const fileReferences = resource.fileReferences ?? [];
+  const externalLinks = resource.externalLinks ?? [];
 
   return (
     <main className="px-6 py-8 sm:px-10 lg:px-20 xl:px-32">
@@ -309,10 +336,7 @@ function ResourceDetailContent({ id }: { id: string }) {
       <div className="mt-4 space-y-6">
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
-
-            <h1 className="text-3xl font-bold">
-              {resource.title || "Untitled draft"}
-            </h1>
+            <h1 className="text-3xl font-bold">{resourceTitle}</h1>
             <StatusBadge status={resource.status as ResourceStatus} />
           </div>
 
@@ -329,11 +353,9 @@ function ResourceDetailContent({ id }: { id: string }) {
             <span className="text-xs font-medium uppercase text-muted-foreground">
               Category
             </span>
-
-           <p className="text-sm">
-           {resource.category?.name || "No category selected"}
-           </p>
-
+            <p className="text-sm">
+              {resource.category?.name || "No category selected"}
+            </p>
           </div>
 
           {resource.place && (
@@ -346,9 +368,9 @@ function ResourceDetailContent({ id }: { id: string }) {
           )}
         </div>
 
-        {resource.tags.length > 0 && (
+        {tags.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {resource.tags.map((tag) => (
+            {tags.map((tag) => (
               <Badge key={tag.id} variant="outline">
                 {tag.name}
               </Badge>
@@ -369,52 +391,56 @@ function ResourceDetailContent({ id }: { id: string }) {
           <span className="text-xs font-medium uppercase text-muted-foreground">
             Copyright
           </span>
-
           <p className="text-sm">
-            {resource.copyrightDeclaration || "No copyright declaration provided yet."}
+            {resource.copyrightDeclaration ||
+              "No copyright declaration provided yet."}
           </p>
         </div>
 
         <Separator />
 
-        {resource.fileReferences.length > 0 && (
+        {fileReferences.length > 0 && (
           <div>
             <h2 className="mb-3 text-lg font-semibold">File Attachments</h2>
             <ul className="space-y-2">
-              {resource.fileReferences.map((file) => (
-                <li
-                  key={file.id}
-                  className="flex items-center justify-between rounded-md border p-3"
-                >
-                  <div>
-                    <p className="text-sm font-medium">
-                      {file.originalFileName}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {file.contentType} · {formatFileSize(file.fileSize)}
-                    </p>
-                  </div>
-                  {file.downloadUrl && (
-                    <a
-                      href={file.downloadUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex h-7 items-center rounded-md border border-border bg-background px-2.5 text-sm font-medium hover:bg-muted"
-                    >
-                      Download
-                    </a>
-                  )}
-                </li>
-              ))}
+              {fileReferences.map((file) => {
+                const fileName = getFileDisplayName(file, "Untitled file");
+                const fileType = file.contentType || "Unknown type";
+
+                return (
+                  <li
+                    key={file.id}
+                    className="flex items-center justify-between rounded-md border p-3"
+                  >
+                    <div>
+                      <p className="text-sm font-medium">{fileName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {fileType} · {formatFileSize(file.fileSize)}
+                      </p>
+                    </div>
+
+                    {file.downloadUrl && (
+                      <a
+                        href={file.downloadUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex h-7 items-center rounded-md border border-border bg-background px-2.5 text-sm font-medium hover:bg-muted"
+                      >
+                        Download
+                      </a>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
 
-        {resource.externalLinks.length > 0 && (
+        {externalLinks.length > 0 && (
           <div>
             <h2 className="mb-3 text-lg font-semibold">External Links</h2>
             <ul className="space-y-2">
-              {resource.externalLinks.map((link) => (
+              {externalLinks.map((link) => (
                 <li key={link.id}>
                   <a
                     href={link.url}
@@ -486,6 +512,7 @@ function ResourceDetailContent({ id }: { id: string }) {
                   onChange={(e) => setUnpublishReason(e.target.value)}
                   rows={3}
                 />
+
                 <div className="flex gap-2">
                   <Button
                     variant="destructive"
@@ -499,6 +526,7 @@ function ResourceDetailContent({ id }: { id: string }) {
                       ? "Unpublishing…"
                       : "Confirm Unpublish"}
                   </Button>
+
                   <Button
                     variant="outline"
                     size="sm"
