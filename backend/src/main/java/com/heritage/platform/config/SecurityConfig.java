@@ -39,6 +39,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Public authentication endpoints
                 .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                .requestMatchers("/api/tasks/health").permitAll()
+                .requestMatchers("/api/tasks/**").hasAnyRole("REVIEWER", "ADMINISTRATOR")
                 // Public discovery endpoints
                 .requestMatchers("/api/search/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()

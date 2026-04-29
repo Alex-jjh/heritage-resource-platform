@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: local
   application:
     name: heritage-platform
   jpa:
@@ -11,8 +13,8 @@ spring:
     enabled: true
   servlet:
     multipart:
-      max-file-size: 50MB
-      max-request-size: 55MB
+      max-file-size: 100MB
+      max-request-size: 105MB
 
 app:
   jwt:
