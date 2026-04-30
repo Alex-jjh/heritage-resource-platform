@@ -54,12 +54,8 @@ async function handleResponse<T>(
   }
 
   if (response.status === 403) {
-    const errorBody = await response.json().catch(() => null);
-    throw new ApiError(
-      errorBody?.message ?? "Access denied",
-      403,
-      errorBody
-    );
+    const message = await parseErrorMessage(response);
+    throw new ApiError(message || "Access denied", 403);
   }
 
   if (!response.ok) {

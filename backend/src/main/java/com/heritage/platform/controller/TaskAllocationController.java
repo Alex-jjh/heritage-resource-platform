@@ -2,11 +2,7 @@ package com.heritage.platform.controller;
 
 import com.heritage.platform.dto.ResourceResponse;
 import com.heritage.platform.model.Resource;
-import com.heritage.platform.model.User;
 import com.heritage.platform.service.TaskAllocationService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import org.springframework.web.bind.annotation.*;
@@ -16,11 +12,13 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/tasks")
-@Profile("!test")
 public class TaskAllocationController {
 
-    @Autowired
-    private TaskAllocationService taskAllocationService;
+    private final TaskAllocationService taskAllocationService;
+
+    public TaskAllocationController(TaskAllocationService taskAllocationService) {
+        this.taskAllocationService = taskAllocationService;
+    }
 
     /**
      * Health check endpoint (no auth required)
@@ -35,8 +33,7 @@ public class TaskAllocationController {
      */
     @PostMapping("/next")
     public ResponseEntity<ResourceResponse> getNextTask(Principal principal) {
-        UUID reviewerId = UUID.fromString(principal.getName());
-        Resource resource = taskAllocationService.getNextTask(reviewerId);
+        Resource resource = taskAllocationService.getNextTask(principal.getName());
         
         if (resource == null) {
             return ResponseEntity.noContent().build();
@@ -52,7 +49,7 @@ public class TaskAllocationController {
     public ResponseEntity<Void> releaseTask(
             @PathVariable UUID resourceId,
             Principal principal) {
-        taskAllocationService.releaseTask(resourceId);
+        taskAllocationService.releaseTask(resourceId, principal.getName());
         return ResponseEntity.ok().build();
     }
 }
