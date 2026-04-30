@@ -37,9 +37,9 @@ The first release covers the complete resource lifecycle from creation to public
 | UC1 | Register / Login | All Users | Self-service registration with email/password; JWT-based login with 1-hour token expiry and 30-minute idle timeout |
 | UC2 | Browse & Search | Registered Viewer+ | Full-text search across approved resources with category and tag filters; paginated results |
 | UC3 | View Resource Detail | Registered Viewer+ | View resource metadata, file attachments (with download), external links, and comments |
-| UC4 | Comment on Resource | Registered Viewer+ | Add comments to approved resources |
+| UC4 | Comment on Resource | Registered Viewer+ | Add comments to approved resources; optional anonymous posting |
 | UC5 | Create Resource | Contributor+ | Create draft resource with title, category, description, copyright declaration, tags, external links |
-| UC6 | Upload Files | Contributor+ | Attach files (up to 50 MB each) to draft resources; automatic thumbnail generation for images |
+| UC6 | Upload Files | Contributor+ | Attach files (up to 50 MB each, max 10 per resource) to draft resources; automatic thumbnail generation for images |
 | UC7 | Edit / Delete Draft | Contributor+ | Modify or delete resources in DRAFT status |
 | UC8 | Submit for Review | Contributor+ | Transition a complete draft to PENDING_REVIEW status |
 | UC9 | Revise Rejected Resource | Contributor+ | Move a REJECTED resource back to DRAFT for editing |
@@ -47,7 +47,11 @@ The first release covers the complete resource lifecycle from creation to public
 | UC11 | Manage Users | Administrator | View all users, change roles, grant/revoke contributor status, delete users |
 | UC12 | Manage Categories & Tags | Administrator | CRUD operations on categories and tags (deletion blocked if resources are associated) |
 | UC13 | Archive / Unpublish / Restore | Administrator | Archive approved resources, unpublish with reason, restore archived resources |
-| UC14 | View Profile | All Authenticated | View and update display name |
+| UC14 | View Profile | All Authenticated | View and update display name, avatar, bio, privacy settings; optional password change (min 8 chars) |
+| UC15 | Featured Resources | Contributor+ / Admin | Contributors apply for featured status; admins approve/reject; homepage displays strictly approved featured resources |
+| UC16 | Review History | Reviewer / Admin | View past review decisions with filtering by reviewer email and decision type |
+| UC17 | My Comments | Registered Viewer+ | View personal comment history with links back to the resource and comment page |
+| UC18 | Public Contributor Profile | All Authenticated | View a contributor's public profile and their published resources |
 
 ### 1.4 User Characteristics
 
@@ -130,6 +134,9 @@ The system follows a three-tier architecture deployed on a single Alibaba Cloud 
 │  │  Nginx :80                                        │  │
 │  │  /api/*       → Spring Boot :8080                 │  │
 │  │  /files/*     → local disk (static serving)       │  │
+│  │    /files/uploads/     → /opt/heritage/uploads/    │  │
+│  │    /files/thumbnails/  → /opt/heritage/thumbnails/ │  │
+│  │    /files/avatars/     → /opt/heritage/avatars/    │  │
 │  │  /*           → Next.js :3000                     │  │
 │  └─────────────┬─────────────────┬───────────────────┘  │
 │                │                 │                       │
@@ -149,6 +156,7 @@ The system follows a three-tier architecture deployed on a single Alibaba Cloud 
 │                                                         │
 │  /opt/heritage/uploads/      ← user-uploaded files      │
 │  /opt/heritage/thumbnails/   ← auto-generated thumbs    │
+│  /opt/heritage/avatars/      ← user avatar images       │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -163,7 +171,7 @@ The system follows a three-tier architecture deployed on a single Alibaba Cloud 
 
 ### 2.3 High-Level Database Design (ERD)
 
-The database consists of 10 application tables plus the Flyway schema history table. All primary keys are UUIDs stored as `BINARY(16)` for compactness and global uniqueness. The schema is managed by two Flyway migrations: `V1__initial_schema.sql` (core tables) and `V2__replace_cognito_with_local_auth.sql` (local auth columns).
+The database consists of 10 application tables plus the Flyway schema history table. All primary keys are UUIDs stored as `BINARY(16)` for compactness and global uniqueness. The schema is managed by five Flyway migrations: `V1__initial_schema.sql` (core tables), `V2__replace_cognito_with_local_auth.sql` (local auth columns), `V3__seed_data.sql` (sample data), `V4__add_featured_profile_comment_fields.sql` (user profile, featured resources, anonymous comments), and `V5__allow_incomplete_drafts.sql` (nullable draft fields).
 
 ```
 ┌──────────┐       ┌────────────┐       ┌──────────┐
@@ -234,6 +242,10 @@ See Appendix B for the full Mermaid ERD with all columns and data types.
 - **`review_feedback` table** — stores reviewer comments and decisions separately from status transitions, enabling multiple rounds of feedback.
 - **Cascade deletes** on `file_references`, `external_links` — when a resource is deleted, its attachments are automatically cleaned up.
 - **`cognito_sub` column retained as nullable** — legacy from AWS Cognito migration; new users do not use it. Kept to avoid complex migration on existing data.
+- **User profile fields** (`avatar_url`, `profile_public`, `show_email`, `bio`) — added in V4 migration to support public contributor profiles and avatar display.
+- **Featured resource fields** (`is_featured`, `featured_status`) — added in V4 to support the featured resource application/approval workflow with states: NONE → PENDING → APPROVED/REJECTED.
+- **Anonymous comment support** (`anonymous` boolean on `comments`) — added in V4 to allow users to post comments without revealing their identity.
+- **Nullable draft fields** (`title`, `category_id`, `copyright_declaration`) — made nullable in V5 to allow saving incomplete drafts; submission for review still validates required metadata at the service layer.
 
 ### 2.4 Architectural Trade-offs and Support for Incremental Development
 
@@ -270,22 +282,22 @@ The backend is organised into seven packages under `com.heritage.platform`:
 | Package | Responsibility | Key Classes |
 |---------|---------------|-------------|
 | `config` | Security filter chain, CORS policy, JWT filter, OpenAPI config | `SecurityConfig`, `JwtAuthFilter`, `CorsConfig`, `OpenApiConfig` |
-| `controller` | REST endpoint definitions, request validation, response mapping | `AuthController`, `ResourceController`, `ReviewController`, `AdminController`, `SearchController`, `FileController`, `UserController`, `CategoryController`, `TagController`, `CommentController` |
-| `service` | Business logic, transaction management, status machine enforcement | `AuthService`, `ResourceService`, `ReviewService`, `AdminService`, `SearchService`, `FileService`, `JwtService`, `UserService`, `CommentService`, `CategoryService`, `TagService` |
+| `controller` | REST endpoint definitions, request validation, response mapping | `AuthController`, `ResourceController`, `ReviewController`, `AdminController`, `SearchController`, `FileController`, `UserController`, `CategoryController`, `TagController`, `CommentController` (10 controllers) |
+| `service` | Business logic, transaction management, status machine enforcement | `AuthService`, `ResourceService`, `ReviewService`, `AdminService`, `SearchService`, `FileService`, `JwtService`, `UserService`, `CommentService`, `CategoryService`, `TagService`, `PredefinedFeedbackService` (12 services) |
 | `repository` | Spring Data JPA interfaces with custom JPQL queries | `ResourceRepository`, `UserRepository`, `CategoryRepository`, `TagRepository`, `FileReferenceRepository`, `ReviewFeedbackRepository`, `CommentRepository`, `StatusTransitionRepository` |
-| `model` | JPA entity classes and enums | `User`, `Resource`, `Category`, `Tag`, `FileReference`, `ExternalLink`, `Comment`, `ReviewFeedback`, `StatusTransition`, `UserRole`, `ResourceStatus` |
-| `dto` | Request/Response data transfer objects | `CreateResourceRequest`, `ResourceResponse`, `LoginRequest`, `AuthResponse`, `ErrorResponse`, etc. (18 DTOs total) |
+| `model` | JPA entity classes and enums | `User`, `Resource`, `Category`, `Tag`, `FileReference`, `ExternalLink`, `Comment`, `ReviewFeedback`, `StatusTransition`, `UserRole`, `ResourceStatus`, `FeaturedStatus` |
+| `dto` | Request/Response data transfer objects | `CreateResourceRequest`, `ResourceResponse`, `LoginRequest`, `AuthResponse`, `ErrorResponse`, `UserResponse`, `UserProfileResponse`, `CommentResponse`, `MyCommentResponse`, `ReviewHistoryResponse`, `PredefinedFeedbackResponse`, etc. (22 DTOs total) |
 | `exception` | Custom exception classes and global handler | `GlobalExceptionHandler`, `ResourceNotFoundException`, `AccessDeniedException`, `InvalidStatusTransitionException`, `AuthenticationException`, `DuplicateEmailException`, `DuplicateNameException`, `AssociatedResourcesException` |
 
 The frontend is organised into four directories under `src/`:
 
 | Directory | Responsibility | Key Files |
 |-----------|---------------|-----------|
-| `app/` | Next.js App Router pages (file-based routing) | `page.tsx` (home), `browse/`, `contribute/`, `review/`, `admin/`, `login/`, `register/`, `profile/`, `resources/[id]/` |
+| `app/` | Next.js App Router pages (file-based routing) | `page.tsx` (home), `browse/`, `contribute/`, `review/`, `review/history/`, `admin/`, `login/`, `register/`, `profile/`, `resources/[id]/`, `featured/`, `my-comments/`, `users/[id]/` |
 | `components/` | Reusable UI components | `navbar.tsx`, `resource-card.tsx`, `resource-form.tsx`, `file-uploader.tsx`, `search-bar.tsx`, `protected-route.tsx`, `status-badge.tsx`, `comment-section.tsx`, `admin-nav.tsx`, `page-container.tsx` |
 | `components/ui/` | shadcn/ui primitive components | `button.tsx`, `input.tsx`, `card.tsx`, `badge.tsx`, `select.tsx`, `textarea.tsx`, `skeleton.tsx`, `separator.tsx` |
 | `lib/` | Shared utilities and context | `api-client.ts` (typed fetch wrapper with JWT), `auth-context.tsx` (React Context for auth state), `utils.ts` (Tailwind `cn` helper) |
-| `types/` | TypeScript type definitions | `index.ts` (all shared interfaces: `User`, `ResourceResponse`, `ResourceStatus`, etc.) |
+| `types/` | TypeScript type definitions | `index.ts` (all shared interfaces: `User`, `ResourceResponse`, `ResourceStatus`, `FeaturedStatus`, `UserProfileResponse`, `MyCommentResponse`, `UploadUrlResponse`, etc.), `review-history.ts` |
 
 **Module Dependencies:**
 - Controllers depend only on Services (never on Repositories directly).
@@ -365,7 +377,7 @@ User                           System
 | **GitHub Actions** | CI/CD pipeline | Automated build (Maven + npm) and deployment (SCP + SSH restart) on push to feature branch (see `.github/workflows/deploy-backend.yml`) |
 | **Maven** | Backend build and dependency management | `pom.xml` manages all Java dependencies; `mvn test` runs JUnit + jqwik tests; `mvn package` produces deployable JAR; JaCoCo plugin for coverage reports |
 | **npm** | Frontend build and dependency management | `package.json` manages React/Next.js dependencies; `npm run build` produces standalone output; `npm run lint` for ESLint checks |
-| **Flyway** | Database schema migration | Versioned SQL scripts (`V1__initial_schema.sql`, `V2__replace_cognito_with_local_auth.sql`) applied automatically on application startup; ensures schema consistency across environments |
+| **Flyway** | Database schema migration | 5 versioned SQL scripts (V1: initial schema, V2: auth migration, V3: seed data, V4: featured/profile/comment fields, V5: nullable draft fields) applied automatically on startup; ensures schema consistency across environments |
 | **SpringDoc OpenAPI** | API documentation | Auto-generates interactive Swagger UI at `/swagger-ui.html` from controller annotations; used by frontend developers as living API reference |
 | **Nginx** | Reverse proxy and static file serving | Routes `/api/*` to Spring Boot, `/files/*` to local disk, `/*` to Next.js; configuration in `scripts/nginx-heritage.conf` |
 | **systemd** | Process management | `heritage-backend` and `heritage-frontend` services with auto-restart on failure |
@@ -456,7 +468,9 @@ User                           System
 - Role-based access control enforced at both API level (Spring Security) and UI level (`ProtectedRoute` component).
 - CSRF protection is disabled (appropriate for stateless JWT APIs where tokens are sent via `Authorization` header).
 - CORS is restricted to the configured frontend origin.
-- File upload size limited to 50 MB per file, 55 MB per request.
+- File upload size limited to 50 MB per file (max 10 files per resource), 55 MB per request.
+- External link URLs validated with regex pattern on backend (`@Pattern`) and URL constructor check on frontend — only `http://` and `https://` allowed.
+- Password updates require minimum 8 characters, enforced on both frontend and backend; passwords hashed with bcrypt before storage.
 - Input validation via Jakarta Bean Validation prevents malformed data from reaching the database.
 - SQL injection prevented by JPA parameterised queries (no raw SQL string concatenation).
 - **Future improvement:** Migrate JWT storage from localStorage to HttpOnly cookies; add rate limiting; enable HTTPS.
@@ -484,7 +498,9 @@ Unit tests are located in `backend/src/test/java/com/heritage/platform/` and mir
 | `ResourceServiceTest` | `ResourceService` | 15 | Create resource, get by ID (owner, admin, reviewer, viewer access control), update (success, non-owner, non-draft), delete (success, non-draft), submit for review (success, missing metadata), revise, list contributor resources |
 | `ReviewServiceTest` | `ReviewService` | 11 | Approve (success, non-pending), reject (success, empty feedback, non-pending), review queue retrieval, feedback recording |
 | `AdminServiceTest` | `AdminService` | 11 | Archive (success, non-approved), unpublish (with/without reason, non-approved), restore (success, non-archived), archived list |
-| `UserServiceTest` | `UserService` | 14 | Get by email, update profile, change role, delete user, grant/revoke contributor, pending requests |
+| `UserServiceTest` | `UserService` | 14 | Get by email, update profile (extended fields: avatar, bio, privacy), change role, delete user, grant/revoke contributor, pending requests, get user profile (filters approved resources only) |
+| `UserServicePasswordUpdateTests` | `UserService` | 1 | Password update hashes with bcrypt before saving |
+| `UserResourceValidationTests` | DTO validation | 6 | Password min length, blank password kept, incomplete draft allowed, invalid URL rejected, valid URL accepted, draft without category |
 | `FileServiceTest` | `FileService` | 11 | Upload (success, oversized, non-owner, non-draft), delete file reference, thumbnail generation, download URL generation |
 | `CommentServiceTest` | `CommentService` | 8 | Add comment (success, empty body, non-approved resource), get comments pagination |
 | `TagServiceTest` | `TagService` | 9 | CRUD operations, duplicate name, delete with associated resources |
@@ -493,7 +509,7 @@ Unit tests are located in `backend/src/test/java/com/heritage/platform/` and mir
 | `JwtAuthFilterTest` | `JwtAuthFilter` | 7 | Valid token sets SecurityContext, invalid token passes through, missing header, public endpoints skipped |
 | `SecurityConfigTest` | `SecurityConfig` | 19 | Public endpoints accessible, unauthenticated returns 401, role-based access for admin/reviewer/contributor/viewer endpoints |
 
-**Total: 162 tests, all passing.**
+**Total: 169+ tests, all passing.**
 
 **Property-Based Testing (jqwik):**
 
@@ -572,6 +588,13 @@ Acceptance testing was conducted manually against the deployed system at `http:/
 | D3 | Frontend `ProtectedRoute` on contribute pages only allowed CONTRIBUTOR role — admin/reviewer redirected to home | Medium | Peer review testing | Updated `requiredRoles` to include all three content-creating roles |
 | D4 | `findByCognitoSub()` method still defined in `UserRepository` after Cognito migration | Low | Code review | Identified as dead code; no service calls it. Retained for now, cleanup planned |
 | D5 | File upload only available in edit mode, not during initial resource creation | Low (by design) | Peer review | Confirmed as intentional — resource must exist before files can be associated. UI shows "You can upload files after saving" hint |
+| D6 | Missing Flyway migration for new DB fields (user profile, featured, anonymous comments) | High | PR #26 code review | Added `V4__add_featured_profile_comment_fields.sql` migration script |
+| D7 | SecurityConfig not updated for new public endpoints (featured, user profile) | High | PR #26 code review | Added `permitAll()` rules for `GET /api/resources/featured`, `GET /api/resources/homepage-featured`, `GET /api/users/*/profile` |
+| D8 | Duplicate HTML rendering (title shown twice, copyright shown twice) | Medium | PR #27 code review | Removed duplicate `<h1>` and `<p>` tags from resource detail and review pages |
+| D9 | PR #28 developed against wrong architecture branch (AWS instead of Alibaba) | Critical | PR #28 code review | PR rejected; developer instructed to rebase on current main |
+| D10 | Flyway V4 version conflict between parallel PRs | High | PR #30 code review | Renamed to V6 to avoid duplicate version numbers |
+| D11 | JWT principal changed from email to userId, breaking all controllers | Critical | PR #30 code review | Reverted; kept email as principal identity |
+| D12 | Nginx missing `/files/avatars/` location block — avatars uploaded but not displayed | Medium | Issue #31 (peer testing) | Added avatar location block to `nginx-heritage.conf`; CI/CD auto-deploys config |
 
 **How Testing Informed Improvements:**
 - The peer review feedback (D1, D2, D3) directly led to code fixes committed before the first release.
@@ -647,7 +670,7 @@ See `docs/class-diagram.md` for the complete Mermaid class diagram including ent
 ### Appendix D: Test Results Summary
 
 ```
-[INFO] Tests run: 162, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 169+, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 
 Breakdown by test class:
@@ -656,6 +679,8 @@ Breakdown by test class:
   ReviewServiceTest ............... 11 tests  ✅
   AdminServiceTest ................ 11 tests  ✅
   UserServiceTest ................. 14 tests  ✅
+  UserServicePasswordUpdateTests .. 1 test   ✅
+  UserResourceValidationTests ..... 6 tests  ✅
   FileServiceTest ................. 11 tests  ✅
   CommentServiceTest .............. 8 tests   ✅
   TagServiceTest .................. 9 tests   ✅
@@ -680,3 +705,6 @@ See `scripts/nginx-heritage.conf` for the production Nginx reverse proxy configu
 
 - `V1__initial_schema.sql` — Creates all 10 application tables with indexes and foreign keys.
 - `V2__replace_cognito_with_local_auth.sql` — Adds `password_hash` column and makes `cognito_sub` nullable for the AWS-to-local-auth migration.
+- `V3__seed_data.sql` — Seeds sample users, categories, and tags for development and demo.
+- `V4__add_featured_profile_comment_fields.sql` — Adds user profile fields (avatar, bio, privacy settings), featured resource fields (isFeatured, featuredStatus), and anonymous comment support.
+- `V5__allow_incomplete_drafts.sql` — Makes title, category_id, and copyright_declaration nullable to support saving incomplete drafts.
