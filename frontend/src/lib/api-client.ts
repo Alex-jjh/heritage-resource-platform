@@ -1,8 +1,12 @@
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "";
+const BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
 
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
+  skipAuth?: boolean;
+};
+
+type FormRequestOptions = Omit<RequestInit, "body" | "headers"> & {
+  headers?: HeadersInit;
   skipAuth?: boolean;
 };
 
@@ -17,40 +21,32 @@ function getAccessToken(): string | null {
   return localStorage.getItem("accessToken");
 }
 
-async function request<T>(
-  path: string,
-  options: RequestOptions = {}
-): Promise<T> {
-  const { body, headers: customHeaders, skipAuth, ...rest } = options;
+function buildUrl(path: string): string {
+  return `${BASE_URL}${path}`;
+}
 
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(customHeaders as Record<string, string>),
-  };
+async function parseErrorMessage(response: Response): Promise<string> {
+  const fallback = `Request failed with status ${response.status}`;
+  const contentType = response.headers.get("content-type") ?? "";
 
-  // Track whether this request actually carried a token so we can
-  // distinguish "token was sent but rejected" (→ clear session) from
-  // "no token was sent" (→ expected 401, don't nuke the session).
-  let sentWithToken = false;
-  if (!skipAuth) {
-    const token = getAccessToken();
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-      sentWithToken = true;
+  try {
+    if (contentType.includes("application/json")) {
+      const errorBody = await response.json();
+      return errorBody?.message ?? fallback;
     }
+
+    const text = await response.text();
+    return text || fallback;
+  } catch {
+    return fallback;
   }
+}
 
-  const response = await fetch(`${BASE_URL}${path}`, {
-    ...rest,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-
+async function handleResponse<T>(
+  response: Response,
+  sentWithToken: boolean
+): Promise<T> {
   if (response.status === 401) {
-    // Only clear the session when the request actually carried a token
-    // that the server rejected.  A 401 on a request that never had a
-    // token (e.g. fired before login stored it) is expected and must
-    // not wipe a valid session that was established in the meantime.
     if (sentWithToken) {
       onUnauthorized?.();
     }
@@ -62,12 +58,8 @@ async function request<T>(
   }
 
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => null);
-    throw new ApiError(
-      errorBody?.message ?? `Request failed with status ${response.status}`,
-      response.status,
-      errorBody
-    );
+    const message = await parseErrorMessage(response);
+    throw new ApiError(message, response.status);
   }
 
   if (response.status === 204) {
@@ -75,6 +67,67 @@ async function request<T>(
   }
 
   return response.json();
+}
+
+async function request<T>(
+  path: string,
+  options: RequestOptions = {}
+): Promise<T> {
+  const { body, headers: customHeaders, skipAuth, ...rest } = options;
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(customHeaders as Record<string, string>),
+  };
+
+  let sentWithToken = false;
+
+  if (!skipAuth) {
+    const token = getAccessToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+      sentWithToken = true;
+    }
+  }
+
+  const response = await fetch(buildUrl(path), {
+    ...rest,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+
+  return handleResponse<T>(response, sentWithToken);
+}
+
+async function uploadForm<T>(
+  path: string,
+  formData: FormData,
+  options: FormRequestOptions = {}
+): Promise<T> {
+  const { headers: customHeaders, skipAuth, ...rest } = options;
+
+  const headers: Record<string, string> = {
+    ...(customHeaders as Record<string, string>),
+  };
+
+  let sentWithToken = false;
+
+  if (!skipAuth) {
+    const token = getAccessToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+      sentWithToken = true;
+    }
+  }
+
+  const response = await fetch(buildUrl(path), {
+    ...rest,
+    method: rest.method ?? "POST",
+    headers,
+    body: formData,
+  });
+
+  return handleResponse<T>(response, sentWithToken);
 }
 
 export class ApiError extends Error {
@@ -100,4 +153,6 @@ export const apiClient = {
 
   delete: <T>(path: string, options?: RequestOptions) =>
     request<T>(path, { ...options, method: "DELETE" }),
+
+  uploadForm,
 };

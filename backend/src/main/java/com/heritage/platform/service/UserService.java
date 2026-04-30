@@ -32,28 +32,22 @@ public class UserService {
     private final UserRepository userRepository;
     private final ResourceRepository resourceRepository;
     private final FileService fileService;
-
     private final PasswordEncoder passwordEncoder;
-
 
     public UserService(
             UserRepository userRepository,
             ResourceRepository resourceRepository,
-
             FileService fileService,
             PasswordEncoder passwordEncoder
-
     ) {
         this.userRepository = userRepository;
         this.resourceRepository = resourceRepository;
         this.fileService = fileService;
-
         this.passwordEncoder = passwordEncoder;
-
     }
 
     /**
-     * Retrieves a user by their email (the principal name from the JWT).
+     * Retrieves a user by their email.
      */
     @Transactional(readOnly = true)
     public User getUserByEmail(String email) {
@@ -62,8 +56,7 @@ public class UserService {
     }
 
     /**
-     * Allows a REGISTERED_VIEWER to request contributor status. The request is
-     * stored and visible to administrators for approval.
+     * Allows a REGISTERED_VIEWER to request contributor status.
      */
     @Transactional
     public void requestContributorStatus(String email) {
@@ -91,15 +84,19 @@ public class UserService {
         if (request.getDisplayName() != null) {
             user.setDisplayName(request.getDisplayName());
         }
+
         if (request.getAvatarUrl() != null) {
             user.setAvatarUrl(request.getAvatarUrl());
         }
+
         if (request.getProfilePublic() != null) {
             user.setProfilePublic(request.getProfilePublic());
         }
+
         if (request.getShowEmail() != null) {
             user.setShowEmail(request.getShowEmail());
         }
+
         if (request.getBio() != null) {
             user.setBio(request.getBio());
         }
@@ -108,16 +105,12 @@ public class UserService {
             user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         }
 
-
         return userRepository.save(user);
     }
 
     /**
      * Uploads a new avatar image for the current user and stores the resolved
      * URL.
-     *
-     * This method assumes FileService provides: String
-     * uploadAvatar(MultipartFile file, UUID userId)
      */
     @Transactional
     public User uploadAvatar(String email, MultipartFile file) {
@@ -189,6 +182,7 @@ public class UserService {
 
         user.setRole(UserRole.CONTRIBUTOR);
         user.setContributorRequested(false);
+
         return userRepository.save(user);
     }
 
@@ -202,6 +196,7 @@ public class UserService {
 
         user.setRole(UserRole.REGISTERED_VIEWER);
         user.setContributorRequested(false);
+
         return userRepository.save(user);
     }
 

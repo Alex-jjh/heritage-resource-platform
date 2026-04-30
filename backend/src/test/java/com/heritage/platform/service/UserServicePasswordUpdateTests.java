@@ -34,8 +34,10 @@ class UserServicePasswordUpdateTests {
         user.setRole(UserRole.REGISTERED_VIEWER);
         user.setPasswordHash("old-hash");
 
-        when(userRepository.findByEmail("viewer@heritage.demo")).thenReturn(Optional.of(user));
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userRepository.findByEmail("viewer@heritage.demo"))
+                .thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         UserService userService = new UserService(
                 userRepository,

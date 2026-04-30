@@ -26,6 +26,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const MAX_AVATAR_SIZE_BYTES = 5 * 1024 * 1024;
+
 const ALLOWED_AVATAR_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -74,14 +75,17 @@ function ProfileContent() {
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [bio, setBio] = useState("");
-
   const [password, setPassword] = useState("");
 
   const [profilePublic, setProfilePublic] = useState(true);
   const [showEmail, setShowEmail] = useState(false);
 
-  const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
-  const [selectedAvatarPreviewUrl, setSelectedAvatarPreviewUrl] = useState<string | null>(null);
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(
+    null
+  );
+  const [selectedAvatarPreviewUrl, setSelectedAvatarPreviewUrl] = useState<
+    string | null
+  >(null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -97,9 +101,7 @@ function ProfileContent() {
       setDisplayName(user.displayName ?? "");
       setAvatarUrl(user.avatarUrl ?? "");
       setBio(user.bio ?? "");
-
       setPassword("");
-
       setProfilePublic(user.profilePublic ?? true);
       setShowEmail(user.showEmail ?? false);
     }
@@ -117,6 +119,7 @@ function ProfileContent() {
 
   const previewName = displayName.trim() || user.displayName || "User";
   const roleLabel = ROLE_LABELS[user.role] ?? user.role;
+
   const avatarPreviewToShow =
     selectedAvatarPreviewUrl || avatarUrl || user.avatarUrl || null;
 
@@ -124,8 +127,10 @@ function ProfileContent() {
     if (selectedAvatarPreviewUrl) {
       URL.revokeObjectURL(selectedAvatarPreviewUrl);
     }
+
     setSelectedAvatarFile(null);
     setSelectedAvatarPreviewUrl(null);
+
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -136,6 +141,7 @@ function ProfileContent() {
     setSuccess(null);
 
     const file = e.target.files?.[0];
+
     if (!file) {
       clearSelectedAvatar();
       return;
@@ -158,45 +164,16 @@ function ProfileContent() {
     }
 
     const previewUrl = URL.createObjectURL(file);
+
     setSelectedAvatarFile(file);
     setSelectedAvatarPreviewUrl(previewUrl);
   }
 
   async function uploadAvatarFile(file: File): Promise<User> {
-    const token = localStorage.getItem("accessToken");
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
-
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch(`${apiBaseUrl}/api/users/me/avatar`, {
-      method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: formData,
-    });
-
-    if (!response.ok) {
-      let message = "Failed to upload avatar.";
-      const contentType = response.headers.get("content-type") ?? "";
-
-      try {
-        if (contentType.includes("application/json")) {
-          const data = (await response.json()) as { message?: string };
-          message = data.message || message;
-        } else {
-          const text = await response.text();
-          if (text) {
-            message = text;
-          }
-        }
-      } catch {
-        // keep fallback message
-      }
-
-      throw new Error(message);
-    }
-
-    return (await response.json()) as User;
+    return apiClient.uploadForm<User>("/api/users/me/avatar", formData);
   }
 
   async function handleSave() {
@@ -220,25 +197,25 @@ function ProfileContent() {
         displayName: displayName.trim(),
         avatarUrl: avatarUrl.trim() || null,
         bio: bio.trim() || null,
-
         password: password || undefined,
-
         profilePublic,
         showEmail,
       });
 
       if (selectedAvatarFile) {
         setIsUploadingAvatar(true);
+
         const uploadedProfile = await uploadAvatarFile(selectedAvatarFile);
+
         setAvatarUrl(uploadedProfile.avatarUrl ?? "");
         clearSelectedAvatar();
+
         setIsUploadingAvatar(false);
       }
 
       await refreshUser();
 
       setPassword("");
-
       setSuccess("Profile updated successfully.");
       setIsEditing(false);
     } catch (err) {
@@ -268,7 +245,9 @@ function ProfileContent() {
     } catch (err) {
       if (err instanceof ApiError) {
         const body = err.body as { message?: string } | undefined;
-        setError(body?.message || err.message || "Failed to request contributor status.");
+        setError(
+          body?.message || err.message || "Failed to request contributor status."
+        );
       } else {
         setError("An unexpected error occurred.");
       }
@@ -283,9 +262,7 @@ function ProfileContent() {
     setDisplayName(user.displayName ?? "");
     setAvatarUrl(user.avatarUrl ?? "");
     setBio(user.bio ?? "");
-
     setPassword("");
-
     setProfilePublic(user.profilePublic ?? true);
     setShowEmail(user.showEmail ?? false);
 
@@ -410,7 +387,8 @@ function ProfileContent() {
                   </div>
 
                   <p className="text-xs text-muted-foreground">
-                    Choose a JPG, PNG, or WEBP image from your computer. Maximum size: 5MB.
+                    Choose a JPG, PNG, or WEBP image from your computer. Maximum
+                    size: 5MB.
                   </p>
                 </div>
 
@@ -424,13 +402,14 @@ function ProfileContent() {
                     disabled={!isEditing || isSaving || isUploadingAvatar}
                   />
                   <p className="text-xs text-muted-foreground">
-                    You can still set an avatar by URL. If you also choose a local file,
-                    the uploaded file will take precedence when you save.
+                    You can still set an avatar by URL. If you also choose a
+                    local file, the uploaded file will take precedence when you
+                    save.
                   </p>
                 </div>
               </div>
 
-                            <div className="space-y-2">
+              <div className="space-y-2">
                 <Label htmlFor="new-password">New Password</Label>
                 <Input
                   id="new-password"
@@ -456,13 +435,14 @@ function ProfileContent() {
                   disabled={!isEditing || isSaving || isUploadingAvatar}
                 />
               </div>
+
               <div className="space-y-3 rounded-md border p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-medium">Public contributor profile</p>
                     <p className="text-sm text-muted-foreground">
-                      When enabled, other users can open your contributor page from
-                      resources and comments.
+                      When enabled, other users can open your contributor page
+                      from resources and comments.
                     </p>
                   </div>
                   <input
@@ -478,7 +458,8 @@ function ProfileContent() {
                   <div>
                     <p className="font-medium">Show email on public profile</p>
                     <p className="text-sm text-muted-foreground">
-                      Your email will only be shown if your public profile is visible.
+                      Your email will only be shown if your public profile is
+                      visible.
                     </p>
                   </div>
                   <input
@@ -498,14 +479,19 @@ function ProfileContent() {
             </div>
           </CardContent>
 
-                    <CardFooter className="flex flex-wrap justify-between gap-3">
+          <CardFooter className="flex flex-wrap justify-between gap-3">
             <div className="flex gap-2">
               {!isEditing ? (
                 <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
               ) : (
                 <>
-                  <Button onClick={handleSave} disabled={isSaving || isUploadingAvatar}>
-                    {isSaving || isUploadingAvatar ? "Saving..." : "Save Changes"}
+                  <Button
+                    onClick={handleSave}
+                    disabled={isSaving || isUploadingAvatar}
+                  >
+                    {isSaving || isUploadingAvatar
+                      ? "Saving..."
+                      : "Save Changes"}
                   </Button>
                   <Button
                     variant="outline"
