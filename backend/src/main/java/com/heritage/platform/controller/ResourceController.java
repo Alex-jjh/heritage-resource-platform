@@ -145,14 +145,4 @@ public class ResourceController {
         return ResponseEntity.ok(new MessageResponse("Featured application submitted"));
     }
 
-    @PostMapping("/{id}/approve-featured")
-    public ResponseEntity<MessageResponse> approveFeatured(
-            @PathVariable UUID id,
-            @RequestParam boolean approved,
-            Principal principal
-    ) {
-        resourceService.approveFeatured(id, approved, principal.getName());
-        String msg = approved ? "Resource is now featured" : "Featured application rejected";
-        return ResponseEntity.ok(new MessageResponse(msg));
-    }
 }
