@@ -35,6 +35,15 @@ public class Resource {
     @Column(nullable = false)
     private ResourceStatus status;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "locked_by")
+    private User lockedBy;
+
+    private Instant lockedAt;
+
+    @Column(nullable = false)
+    private Integer reviewPriority = 0;
+
     @ManyToMany
     @JoinTable(name = "resource_tags",
         joinColumns = @JoinColumn(name = "resource_id"),
@@ -96,6 +105,12 @@ public class Resource {
     public void setCopyrightDeclaration(String copyrightDeclaration) { this.copyrightDeclaration = copyrightDeclaration; }
     public ResourceStatus getStatus() { return status; }
     public void setStatus(ResourceStatus status) { this.status = status; }
+    public User getLockedBy() { return lockedBy; }
+    public void setLockedBy(User lockedBy) { this.lockedBy = lockedBy; }
+    public Instant getLockedAt() { return lockedAt; }
+    public void setLockedAt(Instant lockedAt) { this.lockedAt = lockedAt; }
+    public Integer getReviewPriority() { return reviewPriority; }
+    public void setReviewPriority(Integer reviewPriority) { this.reviewPriority = reviewPriority; }
     public Set<Tag> getTags() { return tags; }
     public void setTags(Set<Tag> tags) { this.tags = tags; }
     public List<FileReference> getFileReferences() { return fileReferences; }

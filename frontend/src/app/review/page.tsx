@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
 import { PageContainer } from "@/components/page-container";
@@ -11,9 +13,29 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { ResourceResponse } from "@/types";
 
 function ReviewQueueContent() {
+  const router = useRouter();
+  const [nextTaskError, setNextTaskError] = useState<string | null>(null);
+
   const queueQuery = useQuery({
     queryKey: ["review-queue"],
     queryFn: () => apiClient.get<ResourceResponse[]>("/api/reviews/queue"),
+  });
+
+  const nextTaskMutation = useMutation({
+    mutationFn: () => apiClient.post<ResourceResponse | undefined>("/api/tasks/next"),
+    onSuccess: (task) => {
+      if (!task) {
+        setNextTaskError("No available review tasks right now.");
+        return;
+      }
+      setNextTaskError(null);
+      router.push(`/review/${task.id}`);
+    },
+    onError: (error) => {
+      setNextTaskError(
+        error instanceof Error ? error.message : "Failed to get next task."
+      );
+    },
   });
 
   return (
@@ -28,6 +50,12 @@ function ReviewQueueContent() {
           </div>
 
           <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => nextTaskMutation.mutate()}
+              disabled={nextTaskMutation.isPending}
+            >
+              {nextTaskMutation.isPending ? "Loading..." : "Get Next Task"}
+            </Button>
             <Link href="/review/history">
               <Button variant="outline">Review History</Button>
             </Link>
@@ -36,6 +64,15 @@ function ReviewQueueContent() {
             </Link>
           </div>
         </div>
+
+        {nextTaskError && (
+          <div
+            role="alert"
+            className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+          >
+            {nextTaskError}
+          </div>
+        )}
 
         {queueQuery.isLoading ? (
           <div className="space-y-3">

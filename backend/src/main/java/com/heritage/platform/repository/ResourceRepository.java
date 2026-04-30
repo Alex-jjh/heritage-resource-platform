@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -123,4 +124,13 @@ public interface ResourceRepository extends JpaRepository<Resource, UUID> {
             @Param("tagId") UUID tagId,
             Pageable pageable
     );
+
+    // Task allocation queries
+    Resource findFirstByStatusAndLockedByIsNullOrderByReviewPriorityDescCreatedAtAsc(ResourceStatus status);
+    
+    List<Resource> findByStatusAndLockedById(ResourceStatus status, UUID lockedById);
+    
+    List<Resource> findByStatusAndLockedByIsNull(ResourceStatus status);
+    
+    List<Resource> findByStatusAndLockedAtBefore(ResourceStatus status, Instant lockedAt);
 }
