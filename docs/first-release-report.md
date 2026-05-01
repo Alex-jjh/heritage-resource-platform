@@ -171,7 +171,7 @@ The system follows a three-tier architecture deployed on a single Alibaba Cloud 
 
 ### 2.3 High-Level Database Design (ERD)
 
-The database consists of 10 application tables plus the Flyway schema history table. All primary keys are UUIDs stored as `BINARY(16)` for compactness and global uniqueness. The schema is managed by five Flyway migrations: `V1__initial_schema.sql` (core tables), `V2__replace_cognito_with_local_auth.sql` (local auth columns), `V3__seed_data.sql` (sample data), `V4__add_featured_profile_comment_fields.sql` (user profile, featured resources, anonymous comments), and `V5__allow_incomplete_drafts.sql` (nullable draft fields).
+The database consists of 10 application tables plus the Flyway schema history table. All primary keys are UUIDs stored as `BINARY(16)` for compactness and global uniqueness. The schema is managed by six Flyway migrations: `V1__initial_schema.sql` (core tables), `V2__replace_cognito_with_local_auth.sql` (local auth columns), `V3__seed_data.sql` (sample data), `V4__add_featured_profile_comment_fields.sql` (user profile, featured resources, anonymous comments), `V5__allow_incomplete_drafts.sql` (nullable draft fields), and `V6__add_task_lock_fields.sql` (review task allocation lock).
 
 ```
 ┌──────────┐       ┌────────────┐       ┌──────────┐
@@ -246,6 +246,7 @@ See Appendix B for the full Mermaid ERD with all columns and data types.
 - **Featured resource fields** (`is_featured`, `featured_status`) — added in V4 to support the featured resource application/approval workflow with states: NONE → PENDING → APPROVED/REJECTED.
 - **Anonymous comment support** (`anonymous` boolean on `comments`) — added in V4 to allow users to post comments without revealing their identity.
 - **Nullable draft fields** (`title`, `category_id`, `copyright_declaration`) — made nullable in V5 to allow saving incomplete drafts; submission for review still validates required metadata at the service layer.
+- **Task lock fields** (`locked_by` FK, `locked_at`, `review_priority`) — added in V6 to support review task allocation with pessimistic locking. `locked_by` references `users` with a foreign key. Composite index on `(status, review_priority DESC, created_at ASC)` optimises the "get next task" query. Locks expire after 30 minutes via a scheduled cleanup job.
 
 ### 2.4 Architectural Trade-offs and Support for Incremental Development
 
@@ -377,7 +378,7 @@ User                           System
 | **GitHub Actions** | CI/CD pipeline | Automated build (Maven + npm) and deployment (SCP + SSH restart) on push to feature branch (see `.github/workflows/deploy-backend.yml`) |
 | **Maven** | Backend build and dependency management | `pom.xml` manages all Java dependencies; `mvn test` runs JUnit + jqwik tests; `mvn package` produces deployable JAR; JaCoCo plugin for coverage reports |
 | **npm** | Frontend build and dependency management | `package.json` manages React/Next.js dependencies; `npm run build` produces standalone output; `npm run lint` for ESLint checks |
-| **Flyway** | Database schema migration | 5 versioned SQL scripts (V1: initial schema, V2: auth migration, V3: seed data, V4: featured/profile/comment fields, V5: nullable draft fields) applied automatically on startup; ensures schema consistency across environments |
+| **Flyway** | Database schema migration | 6 versioned SQL scripts (V1: initial schema, V2: auth migration, V3: seed data, V4: featured/profile/comment fields, V5: nullable draft fields, V6: task lock fields) applied automatically on startup; ensures schema consistency across environments |
 | **SpringDoc OpenAPI** | API documentation | Auto-generates interactive Swagger UI at `/swagger-ui.html` from controller annotations; used by frontend developers as living API reference |
 | **Nginx** | Reverse proxy and static file serving | Routes `/api/*` to Spring Boot, `/files/*` to local disk, `/*` to Next.js; configuration in `scripts/nginx-heritage.conf` |
 | **systemd** | Process management | `heritage-backend` and `heritage-frontend` services with auto-restart on failure |
@@ -708,3 +709,4 @@ See `scripts/nginx-heritage.conf` for the production Nginx reverse proxy configu
 - `V3__seed_data.sql` — Seeds sample users, categories, and tags for development and demo.
 - `V4__add_featured_profile_comment_fields.sql` — Adds user profile fields (avatar, bio, privacy settings), featured resource fields (isFeatured, featuredStatus), and anonymous comment support.
 - `V5__allow_incomplete_drafts.sql` — Makes title, category_id, and copyright_declaration nullable to support saving incomplete drafts.
+- `V6__add_task_lock_fields.sql` — Adds `locked_by` (FK to users), `locked_at`, and `review_priority` columns to resources table for review task allocation. Creates composite index for priority-based task queue queries.
