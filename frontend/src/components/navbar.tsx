@@ -205,12 +205,12 @@ function Navbar() {
           ) : (
             <>
               <Link href="/login">
-                <Button variant="ghost" size="sm" className="text-foreground hover:bg-transparent hover:text-foreground/70">
+                <Button variant="ghost" size="sm">
                   Login
                 </Button>
               </Link>
               <Link href="/register">
-                <Button size="sm" className="rounded-full">Register</Button>
+                <Button size="sm">Register</Button>
               </Link>
             </>
           )}
