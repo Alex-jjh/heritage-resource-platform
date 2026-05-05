@@ -205,7 +205,7 @@ function Navbar() {
           ) : (
             <>
               <Link href="/login">
-                <Button variant="ghost" size="sm" className="text-foreground">
+                <Button variant="ghost" size="sm" className="text-foreground hover:bg-transparent hover:text-foreground/70">
                   Login
                 </Button>
               </Link>
