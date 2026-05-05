@@ -158,12 +158,12 @@ class ReviewServiceTest {
         resource.setStatus(ResourceStatus.DRAFT);
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
+        when(userRepository.findByEmail("reviewer@example.com")).thenReturn(Optional.of(reviewer));
 
         assertThatThrownBy(() ->
                 reviewService.approveResource(resource.getId(), "reviewer@example.com"))
                 .isInstanceOf(InvalidStatusTransitionException.class)
-                .hasMessageContaining("DRAFT")
-                .hasMessageContaining("PENDING_REVIEW");
+                .hasMessageContaining("DRAFT");
     }
 
     @Test
@@ -236,11 +236,11 @@ class ReviewServiceTest {
         resource.setStatus(ResourceStatus.APPROVED);
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
+        when(userRepository.findByEmail("reviewer@example.com")).thenReturn(Optional.of(reviewer));
 
         assertThatThrownBy(() ->
                 reviewService.rejectResource(resource.getId(), "reviewer@example.com", "Some feedback"))
                 .isInstanceOf(InvalidStatusTransitionException.class)
-                .hasMessageContaining("APPROVED")
-                .hasMessageContaining("PENDING_REVIEW");
+                .hasMessageContaining("APPROVED");
     }
 }

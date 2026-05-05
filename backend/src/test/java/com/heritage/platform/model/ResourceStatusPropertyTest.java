@@ -24,7 +24,8 @@ class ResourceStatusPropertyTest {
     // The canonical allowed transitions from the design document
     private static final Map<ResourceStatus, Set<ResourceStatus>> ALLOWED_TRANSITIONS = Map.of(
         ResourceStatus.DRAFT, Set.of(ResourceStatus.PENDING_REVIEW),
-        ResourceStatus.PENDING_REVIEW, Set.of(ResourceStatus.APPROVED, ResourceStatus.REJECTED),
+        ResourceStatus.PENDING_REVIEW, Set.of(ResourceStatus.IN_REVIEW, ResourceStatus.APPROVED, ResourceStatus.REJECTED),
+        ResourceStatus.IN_REVIEW, Set.of(ResourceStatus.APPROVED, ResourceStatus.REJECTED, ResourceStatus.PENDING_REVIEW),
         ResourceStatus.APPROVED, Set.of(ResourceStatus.ARCHIVED, ResourceStatus.DRAFT),
         ResourceStatus.REJECTED, Set.of(ResourceStatus.DRAFT),
         ResourceStatus.ARCHIVED, Set.of(ResourceStatus.APPROVED)
