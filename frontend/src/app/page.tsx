@@ -26,34 +26,32 @@ export default function Home() {
 
   return (
     <main>
-      <section className="relative overflow-hidden py-28 sm:py-36">
+      <section className="relative overflow-hidden py-24 sm:py-32">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/hero-bg.jpeg')" }}
         />
 
-        <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-stone-900/80 via-stone-900/60 to-stone-800/50" />
 
         <div className="relative px-6 sm:px-12 lg:px-16">
           <div className="max-w-2xl">
-            <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-              Discover &amp; Preserve
-              <br />
-              Cultural Heritage
+            <h1 className="font-serif text-4xl font-bold tracking-tight text-white drop-shadow-lg sm:text-5xl">
+              Discover &amp; Preserve Cultural Heritage
             </h1>
 
-            <p className="mt-5 text-lg leading-relaxed text-white/80">
+            <p className="mt-4 text-lg text-stone-200/90 drop-shadow">
               A community platform for sharing images, stories, traditions,
               places, and educational materials that celebrate our shared
               cultural heritage.
             </p>
 
-            <div className="mt-10 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap gap-3">
               {isAuthenticated ? (
                 <Link href="/browse">
                   <Button
                     size="lg"
-                    className="rounded-full bg-[#0071e3] px-8 text-white shadow-lg hover:bg-[#0077ED]"
+                    className="bg-amber-600 text-white shadow-lg hover:bg-amber-700"
                   >
                     Browse Resources
                   </Button>
@@ -63,7 +61,7 @@ export default function Home() {
                   <Link href="/register">
                     <Button
                       size="lg"
-                      className="rounded-full bg-[#0071e3] px-8 text-white shadow-lg hover:bg-[#0077ED]"
+                      className="bg-amber-600 text-white shadow-lg hover:bg-amber-700"
                     >
                       Get Started
                     </Button>
@@ -73,7 +71,7 @@ export default function Home() {
                     <Button
                       size="lg"
                       variant="outline"
-                      className="rounded-full border-white/60 px-8 text-white hover:border-white hover:bg-white/10"
+                      className="border-white/40 bg-white/10 text-white shadow-lg backdrop-blur-sm hover:bg-white/20"
                     >
                       Sign In
                     </Button>
@@ -88,11 +86,11 @@ export default function Home() {
       <section className="px-6 py-12 sm:px-12 lg:px-16">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight">
+            <h2 className="font-serif text-2xl font-bold">
               Featured Resources
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Curated selections from our community.
+              Administrator-selected resources curated for the homepage.
             </p>
           </div>
 
@@ -161,27 +159,36 @@ export default function Home() {
       </section>
 
       {!authLoading && !isAuthenticated && (
-        <section className="border-t px-6 py-20 sm:px-12 lg:px-16">
-          <div className="grid gap-12 sm:grid-cols-3">
-            <div>
-              <h3 className="text-lg font-semibold">Share</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+        <section className="px-6 py-16 sm:px-12 lg:px-16">
+          <div className="grid gap-8 sm:grid-cols-3">
+            <div className="text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-2xl">
+                📸
+              </div>
+              <h3 className="font-serif text-lg font-semibold">Share</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
                 Upload images, stories, and materials that preserve cultural
                 heritage for future generations.
               </p>
             </div>
 
-            <div>
-              <h3 className="text-lg font-semibold">Curate</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            <div className="text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-2xl">
+                ✅
+              </div>
+              <h3 className="font-serif text-lg font-semibold">Curate</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
                 Community reviewers ensure quality and accuracy before resources
                 are published.
               </p>
             </div>
 
-            <div>
-              <h3 className="text-lg font-semibold">Discover</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            <div className="text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-2xl">
+                🔍
+              </div>
+              <h3 className="font-serif text-lg font-semibold">Discover</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
                 Browse and search a growing collection of heritage resources
                 organized by category and tags.
               </p>
