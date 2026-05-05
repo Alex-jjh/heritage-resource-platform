@@ -36,11 +36,17 @@ public class ReviewService {
     }
 
     /**
-     * Returns all PENDING_REVIEW resources ordered by submission date ascending.
+     * Returns all reviewable resources (PENDING_REVIEW and IN_REVIEW)
+     * ordered by submission date ascending.
      */
     @Transactional(readOnly = true)
     public List<Resource> getReviewQueue() {
-        List<Resource> resources = resourceRepository.findByStatusOrderByCreatedAtAsc(ResourceStatus.PENDING_REVIEW);
+        List<Resource> pending = resourceRepository.findByStatusOrderByCreatedAtAsc(ResourceStatus.PENDING_REVIEW);
+        List<Resource> inReview = resourceRepository.findByStatusOrderByCreatedAtAsc(ResourceStatus.IN_REVIEW);
+
+        List<Resource> resources = new java.util.ArrayList<>(pending);
+        resources.addAll(inReview);
+
         resources.forEach(r -> {
             if (r.getCategory() != null) r.getCategory().getName();
             if (r.getTags() != null) r.getTags().size();
