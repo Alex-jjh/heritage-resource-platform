@@ -53,7 +53,7 @@ export default function Home() {
                 <Link href="/browse">
                   <Button
                     size="lg"
-                    className="rounded-full bg-white px-8 text-black shadow-lg hover:bg-white/90"
+                    className="rounded-full bg-[#0071e3] px-8 text-white shadow-lg hover:bg-[#0077ED]"
                   >
                     Browse Resources
                   </Button>
@@ -63,7 +63,7 @@ export default function Home() {
                   <Link href="/register">
                     <Button
                       size="lg"
-                      className="rounded-full bg-white px-8 text-black shadow-lg hover:bg-white/90"
+                      className="rounded-full bg-[#0071e3] px-8 text-white shadow-lg hover:bg-[#0077ED]"
                     >
                       Get Started
                     </Button>
@@ -73,7 +73,7 @@ export default function Home() {
                     <Button
                       size="lg"
                       variant="outline"
-                      className="rounded-full border-white/30 px-8 text-white hover:bg-white/10"
+                      className="rounded-full border-white/60 px-8 text-white hover:border-white hover:bg-white/10"
                     >
                       Sign In
                     </Button>
