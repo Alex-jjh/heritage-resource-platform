@@ -71,7 +71,17 @@ public class TaskAllocationService {
         resource.setLockedBy(reviewer);
         resource.setLockedAt(Instant.now());
         
-        return resourceRepository.save(resource);
+        Resource saved = resourceRepository.save(resource);
+
+        // Force-initialize lazy associations for DTO conversion
+        if (saved.getCategory() != null) saved.getCategory().getName();
+        if (saved.getTags() != null) saved.getTags().size();
+        if (saved.getFileReferences() != null) saved.getFileReferences().size();
+        if (saved.getExternalLinks() != null) saved.getExternalLinks().size();
+        if (saved.getReviewFeedbacks() != null) saved.getReviewFeedbacks().size();
+        if (saved.getContributor() != null) saved.getContributor().getDisplayName();
+
+        return saved;
     }
 
     /**

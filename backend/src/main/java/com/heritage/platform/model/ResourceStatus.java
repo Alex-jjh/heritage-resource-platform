@@ -13,7 +13,7 @@ public enum ResourceStatus {
 
     private static final Map<ResourceStatus, Set<ResourceStatus>> ALLOWED_TRANSITIONS = Map.of(
         DRAFT, Set.of(PENDING_REVIEW),
-        PENDING_REVIEW, Set.of(IN_REVIEW),
+        PENDING_REVIEW, Set.of(IN_REVIEW, APPROVED, REJECTED),
         IN_REVIEW, Set.of(APPROVED, REJECTED, PENDING_REVIEW),
         APPROVED, Set.of(ARCHIVED, DRAFT),
         REJECTED, Set.of(DRAFT),
