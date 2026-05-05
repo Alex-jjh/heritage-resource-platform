@@ -121,7 +121,7 @@ public class ReviewService {
 
     /**
      * Validates that the resource can be reviewed by the current user.
-     * Supports PENDING_REVIEW (unlocked) and IN_REVIEW (locked by current user) statuses.
+     * Supports PENDING_REVIEW (unlocked) and IN_REVIEW (locked by current user or admin) statuses.
      */
     private void validateReviewStatusAndLock(Resource resource, User currentReviewer) {
         ResourceStatus status = resource.getStatus();
@@ -133,10 +133,16 @@ public class ReviewService {
                             status));
         }
         
+        // Administrators can always review regardless of lock
+        if (currentReviewer.getRole() == com.heritage.platform.model.UserRole.ADMINISTRATOR) {
+            return;
+        }
+
         // For IN_REVIEW resources, verify the current user is the locked reviewer
         if (status == ResourceStatus.IN_REVIEW) {
             if (resource.getLockedBy() == null) {
-                throw new InvalidStatusTransitionException("Resource is IN_REVIEW but not locked by any user");
+                // No lock holder — allow any reviewer to proceed
+                return;
             }
             
             if (!resource.getLockedBy().getId().equals(currentReviewer.getId())) {
