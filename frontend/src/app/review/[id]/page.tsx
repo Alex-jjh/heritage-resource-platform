@@ -190,7 +190,7 @@ function ReviewDetailContent({ id }: { id: string }) {
   }
 
   const resource = resourceQuery.data!;
-  const isPending = resource.status === "PENDING_REVIEW";
+  const isPending = resource.status === "PENDING_REVIEW" || resource.status === "IN_REVIEW";
   const isActing = approveMutation.isPending || rejectMutation.isPending;
 
   return (
