@@ -40,7 +40,7 @@ function ResourceImage({
   if (!imageUrl || imageFailed) {
     return (
       <span className="text-3xl text-muted-foreground" aria-hidden="true">
-        🏛️
+        ◻
       </span>
     );
   }

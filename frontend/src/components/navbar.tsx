@@ -118,10 +118,7 @@ function Navbar() {
       <div className="flex h-14 items-center px-4 sm:px-6">
         <div className="flex items-center gap-1">
           <Link href="/" className="flex items-center gap-2 mr-4 shrink-0">
-            <span className="text-2xl" aria-hidden="true">
-              🏛️
-            </span>
-            <span className="hidden sm:inline font-serif text-lg font-bold text-primary">
+            <span className="hidden sm:inline text-lg font-semibold tracking-tight text-primary">
               Heritage Platform
             </span>
           </Link>

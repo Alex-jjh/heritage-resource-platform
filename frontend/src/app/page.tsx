@@ -36,7 +36,7 @@ export default function Home() {
 
         <div className="relative px-6 sm:px-12 lg:px-16">
           <div className="max-w-2xl">
-            <h1 className="font-serif text-4xl font-bold tracking-tight text-white drop-shadow-lg sm:text-5xl">
+            <h1 className="text-4xl font-bold tracking-tight text-white drop-shadow-lg sm:text-5xl">
               Discover &amp; Preserve Cultural Heritage
             </h1>
 
@@ -86,7 +86,7 @@ export default function Home() {
       <section className="px-6 py-12 sm:px-12 lg:px-16">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="font-serif text-2xl font-bold">
+            <h2 className="text-2xl font-bold">
               Featured Resources
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -162,10 +162,7 @@ export default function Home() {
         <section className="px-6 py-16 sm:px-12 lg:px-16">
           <div className="grid gap-8 sm:grid-cols-3">
             <div className="text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-2xl">
-                📸
-              </div>
-              <h3 className="font-serif text-lg font-semibold">Share</h3>
+              <h3 className="text-lg font-semibold">Share</h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 Upload images, stories, and materials that preserve cultural
                 heritage for future generations.
@@ -173,10 +170,7 @@ export default function Home() {
             </div>
 
             <div className="text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-2xl">
-                ✅
-              </div>
-              <h3 className="font-serif text-lg font-semibold">Curate</h3>
+              <h3 className="text-lg font-semibold">Curate</h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 Community reviewers ensure quality and accuracy before resources
                 are published.
@@ -184,10 +178,7 @@ export default function Home() {
             </div>
 
             <div className="text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-2xl">
-                🔍
-              </div>
-              <h3 className="font-serif text-lg font-semibold">Discover</h3>
+              <h3 className="text-lg font-semibold">Discover</h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 Browse and search a growing collection of heritage resources
                 organized by category and tags.
