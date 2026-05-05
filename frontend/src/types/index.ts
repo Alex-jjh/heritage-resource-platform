@@ -66,6 +66,7 @@ export interface UpdateProfileRequest {
 export type ResourceStatus =
   | "DRAFT"
   | "PENDING_REVIEW"
+  | "IN_REVIEW"
   | "APPROVED"
   | "REJECTED"
   | "ARCHIVED";
