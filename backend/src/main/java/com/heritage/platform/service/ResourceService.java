@@ -103,7 +103,8 @@ public class ResourceService {
         }
 
         if (user.getRole() == UserRole.REVIEWER
-                && resource.getStatus() == ResourceStatus.PENDING_REVIEW) {
+                && (resource.getStatus() == ResourceStatus.PENDING_REVIEW
+                    || resource.getStatus() == ResourceStatus.IN_REVIEW)) {
             initializeLazyAssociations(resource);
             return resource;
         }
