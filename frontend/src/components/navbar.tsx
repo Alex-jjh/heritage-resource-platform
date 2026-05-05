@@ -114,7 +114,7 @@ function Navbar() {
       : [];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-white/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-white/95 backdrop-blur-md">
       <div className="flex h-12 items-center px-4 sm:px-6">
         <div className="flex items-center gap-1">
           <Link href="/" className="flex items-center gap-2 mr-4 shrink-0">
