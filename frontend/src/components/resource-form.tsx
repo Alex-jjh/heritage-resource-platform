@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { LinkIcon, Plus, Trash2 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { FileUploader } from "@/components/file-uploader";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,6 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2 } from "lucide-react";
 import type {
   Category,
   Tag,
@@ -61,13 +61,9 @@ export function ResourceForm({
   onFilesChange,
 }: ResourceFormProps) {
   const [title, setTitle] = useState(resource?.title ?? "");
-  const [categoryId, setCategoryId] = useState(
-    resource?.category?.id ?? ""
-  );
+  const [categoryId, setCategoryId] = useState(resource?.category?.id ?? "");
   const [place, setPlace] = useState(resource?.place ?? "");
-  const [description, setDescription] = useState(
-    resource?.description ?? ""
-  );
+  const [description, setDescription] = useState(resource?.description ?? "");
   const [copyrightDeclaration, setCopyrightDeclaration] = useState(
     resource?.copyrightDeclaration ?? ""
   );
@@ -158,7 +154,8 @@ export function ResourceForm({
       description: description.trim() || undefined,
       copyrightDeclaration: copyrightDeclaration.trim() || undefined,
       tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
-      externalLinks: cleanedExternalLinks.length > 0 ? cleanedExternalLinks : undefined,
+      externalLinks:
+        cleanedExternalLinks.length > 0 ? cleanedExternalLinks : undefined,
     });
   }
 
@@ -167,11 +164,14 @@ export function ResourceForm({
   const existingFiles: FileReferenceDto[] = resource?.fileReferences ?? [];
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-6 rounded-2xl border border-border bg-white p-8 shadow-[var(--shadow-heritage-card)] lg:p-10"
+    >
       {(validationErrors.length > 0 || error) && (
         <div
           role="alert"
-          className="rounded-md bg-destructive/10 p-3 text-sm text-destructive space-y-1"
+          className="space-y-1 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700"
         >
           {validationErrors.map((err) => (
             <p key={err}>{err}</p>
@@ -180,11 +180,8 @@ export function ResourceForm({
         </div>
       )}
 
-      {/* Title */}
-      <div className="space-y-1.5">
-        <Label htmlFor="title">
-          Title
-        </Label>
+      <div>
+        <Label htmlFor="title">Title</Label>
         <Input
           id="title"
           value={title}
@@ -193,54 +190,51 @@ export function ResourceForm({
         />
       </div>
 
-      {/* Category */}
-      <div className="space-y-1.5">
-        <Label htmlFor="category">
-          Category
-        </Label>
-        <Select value={categoryId} onValueChange={(val) => setCategoryId(val ?? "")}>
-          <SelectTrigger className="w-full" id="category">
-            <SelectValue>
-              {categoryId
-                ? categories.find((c) => c.id === categoryId)?.name ?? "Select a category"
-                : "Select a category"}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {categories.map((cat) => (
-              <SelectItem key={cat.id} value={cat.id}>
-                {cat.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="grid gap-5 md:grid-cols-2">
+        <div>
+          <Label htmlFor="category">Category</Label>
+          <Select value={categoryId} onValueChange={(val) => setCategoryId(val ?? "")}>
+            <SelectTrigger className="w-full" id="category">
+              <SelectValue>
+                {categoryId
+                  ? categories.find((c) => c.id === categoryId)?.name ??
+                    "Select a category"
+                  : "Select a category"}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="place">Place</Label>
+          <Input
+            id="place"
+            value={place}
+            onChange={(e) => setPlace(e.target.value)}
+            placeholder="Location or place of origin"
+          />
+        </div>
       </div>
 
-      {/* Place */}
-      <div className="space-y-1.5">
-        <Label htmlFor="place">Place</Label>
-        <Input
-          id="place"
-          value={place}
-          onChange={(e) => setPlace(e.target.value)}
-          placeholder="Location or place of origin"
-        />
-      </div>
-
-      {/* Description */}
-      <div className="space-y-1.5">
+      <div>
         <Label htmlFor="description">Description</Label>
         <Textarea
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe this heritage resource…"
-          rows={5}
+          placeholder="Describe this heritage resource..."
+          rows={6}
         />
       </div>
 
-      {/* Tags */}
-      <div className="space-y-1.5">
+      <div>
         <Label>Tags</Label>
         <div className="flex flex-wrap gap-2">
           {tags.map((tag) => {
@@ -250,11 +244,15 @@ export function ResourceForm({
                 key={tag.id}
                 type="button"
                 onClick={() => toggleTag(tag.id)}
-                className="focus:outline-none"
+                className="rounded-full focus:outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
               >
                 <Badge
                   variant={selected ? "default" : "outline"}
-                  className="cursor-pointer"
+                  className={
+                    selected
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-white text-foreground/80 hover:bg-secondary/60"
+                  }
                 >
                   {tag.name}
                 </Badge>
@@ -267,49 +265,49 @@ export function ResourceForm({
         </div>
       </div>
 
-      {/* Copyright Declaration */}
-      <div className="space-y-1.5">
-        <Label htmlFor="copyright">
-          Copyright Declaration
-        </Label>
+      <div>
+        <Label htmlFor="copyright">Copyright Declaration</Label>
         <Textarea
           id="copyright"
           value={copyrightDeclaration}
           onChange={(e) => setCopyrightDeclaration(e.target.value)}
-          placeholder="Declare copyright ownership or licensing…"
-          rows={3}
+          placeholder="Declare copyright ownership or licensing..."
+          rows={4}
         />
       </div>
 
-      {/* File Attachments (only in edit mode when resourceId is available) */}
       {resourceId && (
-        <div className="space-y-1.5">
-          <Label>File Attachments</Label>
+        <div>
+          <p className="mb-3 text-[0.65rem] font-medium uppercase tracking-[0.25em] text-muted-foreground">
+            File Attachments
+          </p>
           <FileUploader
             resourceId={resourceId}
             existingFiles={existingFiles}
-            onFilesChange={onFilesChange ?? (() => { })}
+            onFilesChange={onFilesChange ?? (() => {})}
           />
         </div>
       )}
 
-      {/* External Links */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <Label>External Links</Label>
+        <div className="flex items-center justify-between gap-3">
+          <Label className="mb-0">External Links</Label>
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={addExternalLink}
+            className="text-accent hover:text-accent"
           >
-            <Plus className="mr-1 size-3.5" />
+            <Plus className="size-3.5" />
             Add Link
           </Button>
         </div>
+
         {externalLinks.map((link, index) => (
-          <div key={index} className="flex items-start gap-2">
-            <div className="flex-1 space-y-1.5">
+          <div key={index} className="grid gap-2 rounded-xl border border-border p-3 md:grid-cols-[1fr_1fr_auto]">
+            <div className="relative">
+              <LinkIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={link.url}
                 onChange={(e) =>
@@ -317,22 +315,24 @@ export function ResourceForm({
                 }
                 placeholder="https://example.com"
                 aria-label={`External link URL ${index + 1}`}
-              />
-              <Input
-                value={link.label}
-                onChange={(e) =>
-                  updateExternalLink(index, "label", e.target.value)
-                }
-                placeholder="Link label (optional)"
-                aria-label={`External link label ${index + 1}`}
+                className="pl-9"
               />
             </div>
+            <Input
+              value={link.label}
+              onChange={(e) =>
+                updateExternalLink(index, "label", e.target.value)
+              }
+              placeholder="Link label (optional)"
+              aria-label={`External link label ${index + 1}`}
+            />
             <Button
               type="button"
               variant="ghost"
               size="icon-sm"
               onClick={() => removeExternalLink(index)}
               aria-label={`Remove link ${index + 1}`}
+              className="text-rose-600 hover:border-rose-200 hover:bg-rose-50"
             >
               <Trash2 className="size-3.5" />
             </Button>
@@ -340,9 +340,11 @@ export function ResourceForm({
         ))}
       </div>
 
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Saving…" : submitLabel}
-      </Button>
+      <div className="flex justify-end border-t border-border pt-4">
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Saving..." : submitLabel}
+        </Button>
+      </div>
     </form>
   );
 }

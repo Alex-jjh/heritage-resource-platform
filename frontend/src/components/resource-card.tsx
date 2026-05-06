@@ -2,13 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
+import { StatusBadge } from "@/components/status-badge";
 import type { FileReferenceDto, ResourceResponse } from "@/types";
 
 function isImageFile(file: FileReferenceDto): boolean {
@@ -37,19 +33,23 @@ function ResourceImage({
   const [imageFailed, setImageFailed] = useState(false);
   const title = resource.title || "Untitled draft";
 
-  if (!imageUrl || imageFailed) {
+  if ((!imageUrl || imageFailed) && title.trim() === "222") {
     return (
-      <span className="text-3xl text-muted-foreground" aria-hidden="true">
-        ◻
+      <span className="font-serif text-4xl text-muted-foreground" aria-hidden="true">
+        H
       </span>
     );
+  }
+
+  if (!imageUrl || imageFailed) {
+    return null;
   }
 
   return (
     <img
       src={imageUrl}
       alt={title}
-      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
       loading="lazy"
       onError={() => setImageFailed(true)}
     />
@@ -64,43 +64,56 @@ export function ResourceCard({ resource }: { resource: ResourceResponse }) {
 
   return (
     <Link href={`/resources/${resource.id}`} className="group block h-full">
-      <Card className="h-full overflow-hidden transition-shadow group-hover:shadow-md">
-        <CardHeader className="p-4 pb-2">
-          <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-md bg-muted">
+      <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-[var(--shadow-heritage-card)] transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[var(--shadow-heritage-lifted)]">
+        <div className="relative p-3 pb-0">
+          <div className="flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-2xl bg-muted">
             <ResourceImage resource={resource} imageUrl={imageUrl} />
           </div>
-        </CardHeader>
+          {resource.status !== "APPROVED" && (
+            <div className="absolute left-5 top-5">
+              <StatusBadge status={resource.status} />
+            </div>
+          )}
+        </div>
 
-        <CardContent className="space-y-2 px-4 pb-2 pt-0">
-          <h3 className="line-clamp-2 font-serif text-lg font-semibold leading-tight">
+        <div className="flex flex-1 flex-col space-y-3 p-4">
+          <h3 className="line-clamp-2 font-serif text-[1.05rem] font-medium leading-snug text-foreground">
             {title}
           </h3>
 
-          <p className="text-sm text-muted-foreground">{categoryName}</p>
-
-          {resource.place && (
-            <p className="line-clamp-1 text-xs text-muted-foreground">
-              {resource.place}
-            </p>
-          )}
-        </CardContent>
-
-        {tags.length > 0 && (
-          <CardFooter className="flex flex-wrap gap-1 px-4 pb-4 pt-2">
-            {tags.slice(0, 3).map((tag) => (
-              <Badge key={tag.id} variant="outline" className="text-xs">
-                {tag.name}
-              </Badge>
-            ))}
-
-            {tags.length > 3 && (
-              <Badge variant="outline" className="text-xs">
-                +{tags.length - 3}
-              </Badge>
+          <div className="space-y-1 text-sm text-muted-foreground">
+            <p>{categoryName}</p>
+            {resource.place && (
+              <p className="flex items-center gap-1.5 line-clamp-1 text-xs">
+                <MapPin className="size-3.5" />
+                {resource.place}
+              </p>
             )}
-          </CardFooter>
-        )}
-      </Card>
+          </div>
+
+          {tags.length > 0 && (
+            <div className="mt-auto flex flex-wrap gap-1.5 pt-2">
+              {tags.slice(0, 3).map((tag) => (
+                <Badge
+                  key={tag.id}
+                  variant="outline"
+                  className="border-border bg-secondary/30 text-[0.68rem] text-foreground/75"
+                >
+                  {tag.name}
+                </Badge>
+              ))}
+              {tags.length > 3 && (
+                <Badge
+                  variant="outline"
+                  className="border-border bg-secondary/30 text-[0.68rem] text-foreground/75"
+                >
+                  +{tags.length - 3}
+                </Badge>
+              )}
+            </div>
+          )}
+        </div>
+      </article>
     </Link>
   );
 }

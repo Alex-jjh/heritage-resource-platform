@@ -11,10 +11,9 @@ import { StatusBadge } from "@/components/status-badge";
 import { CommentSection } from "@/components/comment-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { Archive, ImageIcon, Undo2 } from "lucide-react";
+import { Archive, ArrowLeft, Download, FileIcon, ImageIcon, Undo2 } from "lucide-react";
 import type {
   ResourceResponse,
   ResourceStatus,
@@ -30,7 +29,8 @@ function formatFileSize(bytes?: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function formatApprovedDate(dateString: string) {
+function formatDate(dateString?: string | null) {
+  if (!dateString) return "-";
   return new Date(dateString).toLocaleDateString("en-GB", {
     year: "numeric",
     month: "long",
@@ -76,13 +76,13 @@ function ContributorAvatar({
       <img
         src={avatarUrl}
         alt={name}
-        className="h-10 w-10 rounded-full border object-cover"
+        className="h-10 w-10 rounded-full border border-border object-cover"
       />
     );
   }
 
   return (
-    <div className="flex h-10 w-10 items-center justify-center rounded-full border bg-muted text-sm font-semibold text-foreground">
+    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-secondary/60 font-serif text-sm font-semibold text-foreground">
       {initials}
     </div>
   );
@@ -114,7 +114,7 @@ function ContributorSummary({
           <p className="mt-1 text-sm text-muted-foreground">
             Approved on{" "}
             <time dateTime={resource.approvedAt}>
-              {formatApprovedDate(resource.approvedAt)}
+              {formatDate(resource.approvedAt)}
             </time>
           </p>
         )}
@@ -129,7 +129,7 @@ function ContributorSummary({
   return (
     <Link
       href={`/users/${resource.contributorId}`}
-      className="inline-block rounded-md transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+      className="inline-block rounded-full transition hover:text-accent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
     >
       {summary}
     </Link>
@@ -150,7 +150,11 @@ function ResourceImageGallery({ resource }: { resource: ResourceResponse }) {
   );
 
   if (visibleImageFiles.length === 0) {
-    return null;
+    return (
+      <div className="mt-10 flex aspect-[16/9] items-center justify-center rounded-2xl bg-muted">
+        <ImageIcon className="size-10 text-muted-foreground" />
+      </div>
+    );
   }
 
   const safeSelectedIndex =
@@ -176,17 +180,12 @@ function ResourceImageGallery({ resource }: { resource: ResourceResponse }) {
   }
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-center gap-2">
-        <ImageIcon className="size-5 text-muted-foreground" />
-        <h2 className="text-lg font-semibold">Resource Images</h2>
-      </div>
-
-      <div className="overflow-hidden rounded-xl border bg-muted">
+    <section className="mt-10 space-y-4">
+      <div className="overflow-hidden rounded-2xl border border-border bg-muted">
         <img
           src={selectedImageUrl}
           alt={selectedImageAlt}
-          className="max-h-[560px] w-full object-contain"
+          className="max-h-[640px] w-full object-cover"
           onError={() => markImageAsFailed(selectedImage.id)}
         />
       </div>
@@ -203,8 +202,9 @@ function ResourceImageGallery({ resource }: { resource: ResourceResponse }) {
                 key={file.id}
                 type="button"
                 onClick={() => setSelectedIndex(index)}
-                className={`overflow-hidden rounded-md border bg-muted transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${isSelected ? "ring-2 ring-ring ring-offset-2" : ""
-                  }`}
+                className={`overflow-hidden rounded-xl border border-border bg-muted transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                  isSelected ? "ring-2 ring-ring ring-offset-2" : ""
+                }`}
                 aria-label={`View ${fileName}`}
               >
                 <img
@@ -293,28 +293,29 @@ function ResourceDetailContent({ id }: { id: string }) {
 
   if (resourceQuery.isLoading) {
     return (
-      <main className="space-y-6 px-6 py-8 sm:px-10 lg:px-20 xl:px-32">
+      <main className="mx-auto max-w-[1200px] space-y-6 px-6 py-12 lg:px-10">
         <Skeleton className="h-8 w-2/3" />
         <Skeleton className="h-5 w-1/3" />
-        <Skeleton className="h-40 w-full" />
+        <Skeleton className="aspect-[16/9] w-full rounded-2xl" />
       </main>
     );
   }
 
   if (resourceQuery.isError) {
     return (
-      <main className="px-6 py-8 sm:px-10 lg:px-20 xl:px-32">
+      <main className="mx-auto max-w-[1200px] px-6 py-12 lg:px-10">
         <div
           role="alert"
-          className="rounded-md bg-destructive/10 p-4 text-sm text-destructive"
+          className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700"
         >
           Resource not found or you don&apos;t have permission to view it.
         </div>
         <Link
           href="/browse"
-          className="mt-4 inline-block text-sm text-accent hover:underline"
+          className="mt-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-accent"
         >
-          ← Back to browse
+          <ArrowLeft className="size-4" />
+          Back to Browse
         </Link>
       </main>
     );
@@ -328,229 +329,267 @@ function ResourceDetailContent({ id }: { id: string }) {
   const externalLinks = resource.externalLinks ?? [];
 
   return (
-    <main className="px-6 py-8 sm:px-10 lg:px-20 xl:px-32">
-      <Link href="/browse" className="text-sm text-accent hover:underline">
-        ← Back to browse
+    <main className="relative z-[2] mx-auto max-w-[1200px] px-6 py-12 lg:px-10">
+      <Link
+        href="/browse"
+        className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-accent"
+      >
+        <ArrowLeft className="size-4" />
+        Back to Browse
       </Link>
 
-      <div className="mt-4 space-y-6">
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-bold">{resourceTitle}</h1>
-            <StatusBadge status={resource.status as ResourceStatus} />
-          </div>
+      <div className="flex items-center gap-3">
+        <span className="h-px flex-1 bg-border" />
+        <p className="text-[0.7rem] uppercase tracking-[0.25em] text-muted-foreground">
+          {resource.category?.name || "No category selected"}
+          {resource.approvedAt && <> / {new Date(resource.approvedAt).getFullYear()}</>}
+        </p>
+      </div>
 
-          <ContributorSummary
-            resource={resource}
-            contributorProfile={contributorProfile}
-          />
+      <div className="mt-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1
+            className="font-serif"
+            style={{
+              fontSize: "clamp(2.25rem, 5vw, 4rem)",
+              fontWeight: 500,
+              lineHeight: 1.05,
+              letterSpacing: "-0.015em",
+            }}
+          >
+            {resourceTitle}
+          </h1>
+          <div className="mt-5">
+            <ContributorSummary
+              resource={resource}
+              contributorProfile={contributorProfile}
+            />
+          </div>
         </div>
+        <StatusBadge status={resource.status as ResourceStatus} />
+      </div>
 
-        <ResourceImageGallery resource={resource} />
+      <ResourceImageGallery resource={resource} />
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <span className="text-xs font-medium uppercase text-muted-foreground">
-              Category
-            </span>
-            <p className="text-sm">
-              {resource.category?.name || "No category selected"}
-            </p>
-          </div>
-
-          {resource.place && (
-            <div>
-              <span className="text-xs font-medium uppercase text-muted-foreground">
-                Place
-              </span>
-              <p className="text-sm">{resource.place}</p>
-            </div>
-          )}
-        </div>
-
-        {tags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => (
-              <Badge key={tag.id} variant="outline">
-                {tag.name}
-              </Badge>
-            ))}
-          </div>
-        )}
-
-        {resource.description && (
-          <div>
-            <h2 className="mb-2 text-lg font-semibold">Description</h2>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed">
+      <div className="mt-14 grid grid-cols-1 gap-12 lg:grid-cols-12">
+        <article className="lg:col-span-8">
+          {resource.description && (
+            <p className="whitespace-pre-wrap font-serif text-[1.4rem] leading-[1.6] tracking-[-0.005em] text-foreground/85">
               {resource.description}
             </p>
-          </div>
-        )}
+          )}
 
-        <div>
-          <span className="text-xs font-medium uppercase text-muted-foreground">
-            Copyright
-          </span>
-          <p className="text-sm">
-            {resource.copyrightDeclaration ||
-              "No copyright declaration provided yet."}
-          </p>
-        </div>
+          <section className="mt-10">
+            <p className="heritage-eyebrow">- Copyright</p>
+            <p className="mt-4 text-[1.05rem] leading-8 text-foreground/80">
+              {resource.copyrightDeclaration ||
+                "No copyright declaration provided yet."}
+            </p>
+          </section>
 
-        <Separator />
+          {fileReferences.length > 0 && (
+            <section className="mt-10">
+              <p className="heritage-eyebrow">- File Attachments</p>
+              <ul className="mt-4 space-y-2">
+                {fileReferences.map((file) => {
+                  const fileName = getFileDisplayName(file, "Untitled file");
+                  const fileType = file.contentType || "Unknown type";
 
-        {fileReferences.length > 0 && (
-          <div>
-            <h2 className="mb-3 text-lg font-semibold">File Attachments</h2>
-            <ul className="space-y-2">
-              {fileReferences.map((file) => {
-                const fileName = getFileDisplayName(file, "Untitled file");
-                const fileType = file.contentType || "Unknown type";
+                  return (
+                    <li
+                      key={file.id}
+                      className="flex items-center justify-between rounded-xl border border-border bg-white p-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <FileIcon className="size-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">{fileName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {fileType} / {formatFileSize(file.fileSize)}
+                          </p>
+                        </div>
+                      </div>
 
-                return (
-                  <li
-                    key={file.id}
-                    className="flex items-center justify-between rounded-md border p-3"
-                  >
-                    <div>
-                      <p className="text-sm font-medium">{fileName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {fileType} · {formatFileSize(file.fileSize)}
-                      </p>
-                    </div>
+                      {file.downloadUrl && (
+                        <a
+                          href={file.downloadUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex h-8 items-center rounded-full border border-border bg-white px-3 text-sm font-medium hover:bg-secondary/60"
+                        >
+                          Download
+                        </a>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
 
-                    {file.downloadUrl && (
-                      <a
-                        href={file.downloadUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex h-7 items-center rounded-md border border-border bg-background px-2.5 text-sm font-medium hover:bg-muted"
-                      >
-                        Download
-                      </a>
-                    )}
+          {externalLinks.length > 0 && (
+            <section className="mt-10">
+              <p className="heritage-eyebrow">- External Links</p>
+              <ul className="mt-4 space-y-2">
+                {externalLinks.map((link) => (
+                  <li key={link.id}>
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-accent hover:underline"
+                    >
+                      {link.label || link.url}
+                    </a>
                   </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
+                ))}
+              </ul>
+            </section>
+          )}
 
-        {externalLinks.length > 0 && (
-          <div>
-            <h2 className="mb-3 text-lg font-semibold">External Links</h2>
-            <ul className="space-y-2">
-              {externalLinks.map((link) => (
-                <li key={link.id}>
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-accent hover:underline"
-                  >
-                    {link.label || link.url}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+          {isAdmin && resource.status === "APPROVED" && (
+            <section className="mt-10 rounded-2xl border border-border bg-white p-5 shadow-[var(--shadow-heritage-card)]">
+              <h2 className="font-serif text-[1.25rem] font-medium">
+                Admin Actions
+              </h2>
 
-        <Separator />
-
-        {isAdmin && resource.status === "APPROVED" && (
-          <div className="space-y-3 rounded-lg border p-4">
-            <h2 className="text-lg font-semibold">Admin Actions</h2>
-
-            {adminError && (
-              <div
-                role="alert"
-                className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
-              >
-                {adminError}
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => archiveMutation.mutate()}
-                disabled={
-                  archiveMutation.isPending || unpublishMutation.isPending
-                }
-              >
-                <Archive className="mr-1 size-3.5" />
-                {archiveMutation.isPending ? "Archiving…" : "Archive"}
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowUnpublishForm(!showUnpublishForm)}
-                disabled={
-                  archiveMutation.isPending || unpublishMutation.isPending
-                }
-              >
-                <Undo2 className="mr-1 size-3.5" />
-                Unpublish
-              </Button>
-            </div>
-
-            {showUnpublishForm && (
-              <div className="mt-3 space-y-2 rounded-md border border-amber-200 bg-amber-50 p-3">
-                <label
-                  htmlFor="unpublish-reason"
-                  className="text-sm font-medium text-amber-800"
+              {adminError && (
+                <div
+                  role="alert"
+                  className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700"
                 >
-                  Reason for unpublishing (visible to contributor)
-                </label>
-                <Textarea
-                  id="unpublish-reason"
-                  placeholder="Explain why this resource is being unpublished…"
-                  value={unpublishReason}
-                  onChange={(e) => setUnpublishReason(e.target.value)}
-                  rows={3}
-                />
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() =>
-                      unpublishMutation.mutate(unpublishReason.trim())
-                    }
-                    disabled={unpublishMutation.isPending}
-                  >
-                    {unpublishMutation.isPending
-                      ? "Unpublishing…"
-                      : "Confirm Unpublish"}
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setShowUnpublishForm(false);
-                      setUnpublishReason("");
-                    }}
-                  >
-                    Cancel
-                  </Button>
+                  {adminError}
                 </div>
+              )}
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => archiveMutation.mutate()}
+                  disabled={
+                    archiveMutation.isPending || unpublishMutation.isPending
+                  }
+                >
+                  <Archive className="size-3.5" />
+                  {archiveMutation.isPending ? "Archiving..." : "Archive"}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowUnpublishForm(!showUnpublishForm)}
+                  disabled={
+                    archiveMutation.isPending || unpublishMutation.isPending
+                  }
+                >
+                  <Undo2 className="size-3.5" />
+                  Unpublish
+                </Button>
+              </div>
+
+              {showUnpublishForm && (
+                <div className="mt-4 space-y-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+                  <label
+                    htmlFor="unpublish-reason"
+                    className="text-sm font-medium text-amber-800"
+                  >
+                    Reason for unpublishing (visible to contributor)
+                  </label>
+                  <Textarea
+                    id="unpublish-reason"
+                    placeholder="Explain why this resource is being unpublished..."
+                    value={unpublishReason}
+                    onChange={(e) => setUnpublishReason(e.target.value)}
+                    rows={3}
+                  />
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() =>
+                        unpublishMutation.mutate(unpublishReason.trim())
+                      }
+                      disabled={unpublishMutation.isPending}
+                    >
+                      {unpublishMutation.isPending
+                        ? "Unpublishing..."
+                        : "Confirm Unpublish"}
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowUnpublishForm(false);
+                        setUnpublishReason("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+        </article>
+
+        <aside className="lg:col-span-4">
+          <div className="sticky top-24 rounded-2xl border border-border bg-white p-6 shadow-[var(--shadow-heritage-card)]">
+            <p className="text-[0.65rem] uppercase tracking-[0.25em] text-muted-foreground">
+              Archive Record
+            </p>
+            <dl className="mt-5 space-y-4">
+              {[
+                ["Category", resource.category?.name || "No category selected"],
+                ["Place", resource.place || "Unknown"],
+                ["Status", resource.status.replace("_", " ").toLowerCase()],
+                ["Updated", formatDate(resource.updatedAt)],
+              ].map(([label, value]) => (
+                <div key={label} className="flex justify-between gap-4 border-b border-border pb-3 last:border-0">
+                  <dt className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                    {label}
+                  </dt>
+                  <dd className="text-right text-sm font-medium capitalize">
+                    {value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+
+            {tags.length > 0 && (
+              <div className="mt-5 flex flex-wrap gap-2">
+                {tags.map((tag) => (
+                  <Badge key={tag.id} variant="outline" className="border-border bg-secondary/30">
+                    {tag.name}
+                  </Badge>
+                ))}
               </div>
             )}
-          </div>
-        )}
 
-        {resource.status === "APPROVED" && (
-          <CommentSection
-            resourceId={resource.id}
-            initialPage={initialCommentPage}
-            highlightCommentId={highlightCommentId}
-          />
-        )}
+            {fileReferences.some((file) => file.downloadUrl) && (
+              <a
+                href={fileReferences.find((file) => file.downloadUrl)?.downloadUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-6 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                <Download className="size-4" />
+                Download files
+              </a>
+            )}
+          </div>
+        </aside>
       </div>
+
+      {resource.status === "APPROVED" && (
+        <CommentSection
+          resourceId={resource.id}
+          initialPage={initialCommentPage}
+          highlightCommentId={highlightCommentId}
+        />
+      )}
     </main>
   );
 }

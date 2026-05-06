@@ -77,9 +77,13 @@ function BrowseContent() {
   const data = resourcesQuery.data;
 
   return (
-    <main><PageContainer>
-      <h1 className="text-3xl font-bold mb-6">Browse Heritage Resources</h1>
-
+    <main>
+      <PageContainer
+        wide
+        eyebrow="The Archive / 2026"
+        title="Browse Resources"
+        lede="Search the living archive by title, description, category, and tag."
+      >
       <SearchBar
         query={query}
         onQueryChange={setQuery}
@@ -95,22 +99,22 @@ function BrowseContent() {
 
       <div className="mt-8">
         {resourcesQuery.isLoading ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="space-y-3">
-                <Skeleton className="aspect-[4/3] w-full rounded-md" />
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="space-y-3">
+                  <Skeleton className="aspect-[16/10] w-full rounded-2xl" />
                 <Skeleton className="h-5 w-3/4" />
                 <Skeleton className="h-4 w-1/2" />
               </div>
             ))}
           </div>
         ) : resourcesQuery.isError ? (
-          <div role="alert" className="rounded-md bg-destructive/10 p-4 text-sm text-destructive">
+          <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
             Failed to load resources. Please try again.
           </div>
         ) : data && data.content.length === 0 ? (
-          <div className="py-16 text-center">
-            <p className="text-lg text-muted-foreground">No resources found.</p>
+          <div className="rounded-2xl border border-border bg-white py-16 text-center shadow-[var(--shadow-heritage-card)]">
+            <p className="font-serif text-xl text-foreground">No resources found.</p>
             <p className="mt-1 text-sm text-muted-foreground">
               Try adjusting your search or filters.
             </p>
@@ -128,7 +132,7 @@ function BrowseContent() {
 
             {/* Pagination */}
             {data.totalPages > 1 && (
-              <nav aria-label="Search results pagination" className="mt-8 flex items-center justify-center gap-2">
+              <nav aria-label="Search results pagination" className="mt-8 flex items-center justify-end gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -153,7 +157,8 @@ function BrowseContent() {
           </>
         ) : null}
       </div>
-    </PageContainer></main>
+      </PageContainer>
+    </main>
   );
 }
 

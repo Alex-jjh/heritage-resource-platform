@@ -13,6 +13,7 @@ import {
   ChevronDown,
   MessageSquare,
   Star,
+  Archive,
 } from "lucide-react";
 
 function getInitials(name?: string | null) {
@@ -74,13 +75,11 @@ function Navbar() {
       <Link
         key={href}
         href={href}
-        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-          active
-            ? "bg-primary/10 text-primary"
-            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-        }`}
+        className="px-1 py-2 text-[0.88rem] font-medium text-foreground/70 transition-colors hover:text-foreground lg:text-[0.94rem]"
       >
-        {label}
+        <span className={active ? "border-b border-accent pb-1 text-foreground" : ""}>
+          {label}
+        </span>
       </Link>
     );
   }
@@ -105,25 +104,33 @@ function Navbar() {
           ...(canManageResources
             ? [{ href: "/contribute", label: "My Resources" }]
             : []),
-          ...(canReview ? [{ href: "/review", label: "Review" }] : []),
           ...(canUseFeaturedPage ? [{ href: "/featured", label: "Featured" }] : []),
+          ...(canReview ? [{ href: "/review", label: "Review" }] : []),
           ...(user.role === "ADMINISTRATOR"
-            ? [{ href: "/admin/users", label: "Admin", matchPrefix: "/admin" }]
+            ? [{ href: "/admin/users", label: "Admin Panel", matchPrefix: "/admin" }]
             : []),
         ]
       : [];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white">
-      <div className="flex h-14 items-center px-4 sm:px-6">
-        <div className="flex items-center gap-1">
-          <Link href="/" className="flex items-center gap-2 mr-4 shrink-0">
-            <span className="hidden sm:inline text-lg font-semibold tracking-tight text-primary">
-              Heritage Platform
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl">
+      <div className="flex h-[72px] w-full items-center px-4 sm:px-6 lg:px-10">
+        <div className="flex min-w-0 flex-1 items-center gap-6 lg:gap-10">
+          <Link href="/" className="flex shrink-0 items-center gap-3">
+            <span className="flex size-9 items-center justify-center rounded-full border border-accent/40 bg-white/70 text-accent shadow-[var(--shadow-heritage-card)]">
+              <Archive className="size-4" />
+            </span>
+            <span className="hidden leading-none sm:inline">
+              <span className="block font-serif text-[1.05rem] font-semibold text-primary">
+                Heritage Platform
+              </span>
+              <span className="mt-1 block text-[0.6rem] uppercase tracking-[0.24em] text-muted-foreground">
+                ESTMMXXVI
+              </span>
             </span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-0.5">
+          <nav className="hidden min-w-0 items-center gap-5 md:flex lg:gap-8">
             {links.map((l) =>
               navLink(
                 l.href,
@@ -131,31 +138,29 @@ function Navbar() {
                 (l as { matchPrefix?: string }).matchPrefix
               )
             )}
-          </div>
+          </nav>
         </div>
 
-        <div className="flex-1" />
-
-        <div className="hidden md:flex items-center gap-2">
+        <div className="ml-auto hidden shrink-0 items-center gap-2 md:flex">
           {isLoading ? null : isAuthenticated && user ? (
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 onBlur={() => setTimeout(() => setUserMenuOpen(false), 150)}
-                className="flex items-center gap-2 rounded-full hover:bg-muted px-2 py-1 transition-colors"
+                className="flex items-center gap-2 rounded-full border border-border bg-white/70 px-2 py-1 transition-colors hover:bg-secondary/60"
               >
                 <UserAvatar
                   displayName={user.displayName}
                   avatarUrl={user.avatarUrl}
-                  sizeClass="size-8"
+                  sizeClass="size-10"
                   textClass="text-sm"
                 />
                 <ChevronDown className="size-3.5 text-muted-foreground" />
               </button>
 
               {userMenuOpen && (
-                <div className="absolute right-0 mt-1 w-56 rounded-md border bg-white shadow-lg py-1 z-50">
-                  <div className="px-4 py-2.5 border-b">
+                <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-border bg-white py-2 shadow-xl">
+                  <div className="border-b border-border px-4 py-3">
                     <p className="text-sm font-medium truncate">
                       {user.displayName}
                     </p>
@@ -167,7 +172,7 @@ function Navbar() {
                   <Link
                     href="/profile"
                     onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-muted transition-colors"
+                    className="flex items-center gap-2 px-4 py-2.5 text-sm text-foreground/80 transition-colors hover:bg-secondary/60 hover:text-foreground"
                   >
                     <User className="size-4" /> Profile
                   </Link>
@@ -176,7 +181,7 @@ function Navbar() {
                     <Link
                       href="/featured"
                       onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-muted transition-colors"
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-foreground/80 transition-colors hover:bg-secondary/60 hover:text-foreground"
                     >
                       <Star className="size-4" /> Featured
                     </Link>
@@ -185,7 +190,7 @@ function Navbar() {
                   <Link
                     href="/my-comments"
                     onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-muted transition-colors"
+                    className="flex items-center gap-2 px-4 py-2.5 text-sm text-foreground/80 transition-colors hover:bg-secondary/60 hover:text-foreground"
                   >
                     <MessageSquare className="size-4" /> My Comments
                   </Link>
@@ -195,7 +200,7 @@ function Navbar() {
                       void logout();
                       setUserMenuOpen(false);
                     }}
-                    className="flex w-full items-center gap-2 px-4 py-2 text-sm text-destructive hover:bg-muted transition-colors"
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-destructive transition-colors hover:bg-rose-50"
                   >
                     <LogOut className="size-4" /> Logout
                   </button>
@@ -227,10 +232,11 @@ function Navbar() {
       </div>
 
       {menuOpen && (
-        <div className="md:hidden border-t px-4 py-3 flex flex-col gap-1 bg-white">
+        <div className="border-t border-border bg-background/95 px-4 py-3 md:hidden">
+          <div className="flex flex-col gap-1 rounded-2xl border border-border bg-white p-3 shadow-[var(--shadow-heritage-card)]">
           {isAuthenticated && user ? (
             <>
-              <div className="flex items-center gap-2 px-2 py-2 mb-2 border-b pb-3">
+              <div className="mb-2 flex items-center gap-2 border-b border-border px-2 py-2 pb-3">
                 <UserAvatar
                   displayName={user.displayName}
                   avatarUrl={user.avatarUrl}
@@ -259,7 +265,7 @@ function Navbar() {
                 </Link>
               ))}
 
-              <div className="border-t pt-1 mt-1">
+              <div className="mt-1 border-t border-border pt-1">
                 <Link href="/profile" onClick={() => setMenuOpen(false)}>
                   <Button variant="ghost" size="sm" className="w-full justify-start">
                     <User className="mr-2 size-4" /> Profile
@@ -311,6 +317,7 @@ function Navbar() {
               </Link>
             </>
           )}
+          </div>
         </div>
       )}
     </header>

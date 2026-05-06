@@ -43,13 +43,13 @@ function CommentAvatar({
       <img
         src={avatarUrl}
         alt={displayName}
-        className="h-10 w-10 shrink-0 rounded-full border object-cover"
+        className="h-10 w-10 shrink-0 rounded-full border border-border object-cover"
       />
     );
   }
 
   return (
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-muted text-sm font-semibold text-foreground">
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-secondary/60 font-serif text-sm font-semibold text-foreground">
       {initials}
     </div>
   );
@@ -85,8 +85,12 @@ export function CommentSection({
   const hasScrolledToHighlight = useRef(false);
 
   useEffect(() => {
-    setPage(initialPage);
     hasScrolledToHighlight.current = false;
+    const timeout = window.setTimeout(() => {
+      setPage(initialPage);
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
   }, [initialPage, highlightCommentId, resourceId]);
 
   const commentsQuery = useQuery({
@@ -136,9 +140,9 @@ export function CommentSection({
     }
 
     hasScrolledToHighlight.current = true;
-    setHighlightedCommentId(highlightCommentId);
 
-    requestAnimationFrame(() => {
+    const frame = requestAnimationFrame(() => {
+      setHighlightedCommentId(highlightCommentId);
       el.scrollIntoView({
         behavior: "smooth",
         block: "center",
@@ -151,7 +155,10 @@ export function CommentSection({
       );
     }, 3000);
 
-    return () => window.clearTimeout(timeout);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timeout);
+    };
   }, [commentsQuery.data, highlightCommentId]);
 
   function handleSubmit(e: React.FormEvent) {
@@ -171,19 +178,25 @@ export function CommentSection({
   const data = commentsQuery.data;
 
   return (
-    <section aria-labelledby="comments-heading" className="space-y-6">
-      <h2 id="comments-heading" className="text-xl font-semibold">
+    <section
+      aria-labelledby="comments-heading"
+      className="mt-20 space-y-6 border-t border-border pt-12"
+    >
+      <h2 id="comments-heading" className="font-serif text-[1.6rem] font-medium">
         Comments
       </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-4 rounded-2xl border border-border bg-white p-5 shadow-[var(--shadow-heritage-card)]"
+      >
         <label htmlFor="comment-input" className="sr-only">
           Add a comment
         </label>
 
         <Textarea
           id="comment-input"
-          placeholder="Share your thoughts…"
+          placeholder="Share your thoughts..."
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={3}
@@ -194,7 +207,7 @@ export function CommentSection({
             type="checkbox"
             checked={anonymous}
             onChange={(e) => setAnonymous(e.target.checked)}
-            className="h-4 w-4"
+            className="h-4 w-4 accent-accent"
           />
           Post anonymously
         </label>
@@ -206,12 +219,12 @@ export function CommentSection({
         )}
 
         <Button type="submit" disabled={addComment.isPending}>
-          {addComment.isPending ? "Posting…" : "Post Comment"}
+          {addComment.isPending ? "Posting..." : "Post Comment"}
         </Button>
       </form>
 
       {commentsQuery.isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading comments…</p>
+        <p className="text-sm text-muted-foreground">Loading comments...</p>
       ) : commentsQuery.isError ? (
         <p role="alert" className="text-sm text-destructive">
           Failed to load comments.
@@ -239,7 +252,11 @@ export function CommentSection({
                 />
               );
 
-              const authorLabel = (
+              const authorLabel = comment.anonymous ? (
+                <span className="text-sm italic text-muted-foreground">
+                  Anonymous
+                </span>
+              ) : (
                 <span className="text-sm font-medium">{comment.authorName}</span>
               );
 
@@ -249,10 +266,9 @@ export function CommentSection({
                   ref={(el) => {
                     commentRefs.current[comment.id] = el;
                   }}
-                  className={`rounded-md border p-4 transition-all duration-500 ${isHighlighted
-                      ? "shadow-md ring-2 ring-amber-200 bg-amber-50/40"
-                      : ""
-                    }`}
+                  className={`rounded-2xl border border-border bg-white p-4 transition-all duration-500 ${
+                    isHighlighted ? "bg-amber-50/40 shadow-md ring-2 ring-amber-200" : ""
+                  }`}
                 >
                   <div className="flex items-start gap-3">
                     {canOpenProfile ? (
@@ -272,7 +288,7 @@ export function CommentSection({
                         {canOpenProfile ? (
                           <Link
                             href={`/users/${comment.authorId}`}
-                            className="text-sm font-medium hover:underline"
+                            className="text-sm font-medium hover:text-accent"
                           >
                             {comment.authorName}
                           </Link>
@@ -288,7 +304,7 @@ export function CommentSection({
                         </time>
                       </div>
 
-                      <p className="mt-2 whitespace-pre-wrap text-sm">
+                      <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-foreground/80">
                         {comment.body}
                       </p>
                     </div>

@@ -4,18 +4,39 @@ import { Badge } from "@/components/ui/badge";
 import type { ResourceStatus } from "@/types";
 
 const STATUS_CONFIG: Record<ResourceStatus, { label: string; className: string }> = {
-  DRAFT: { label: "Draft", className: "bg-slate-100 text-slate-700 hover:bg-slate-100" },
-  PENDING_REVIEW: { label: "Pending Review", className: "bg-amber-100 text-amber-800 hover:bg-amber-100" },
-  IN_REVIEW: { label: "In Review", className: "bg-blue-100 text-blue-800 hover:bg-blue-100" },
-  APPROVED: { label: "Approved", className: "bg-green-100 text-green-800 hover:bg-green-100" },
-  REJECTED: { label: "Rejected", className: "bg-red-100 text-red-800 hover:bg-red-100" },
-  ARCHIVED: { label: "Archived", className: "bg-gray-100 text-gray-600 hover:bg-gray-100" },
+  DRAFT: {
+    label: "Draft",
+    className: "border-slate-200 bg-slate-50 text-slate-700",
+  },
+  PENDING_REVIEW: {
+    label: "Pending Review",
+    className: "border-amber-200 bg-amber-50 text-amber-700",
+  },
+  IN_REVIEW: {
+    label: "In Review",
+    className: "border-sky-200 bg-sky-50 text-sky-700",
+  },
+  APPROVED: {
+    label: "Approved",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  },
+  REJECTED: {
+    label: "Rejected",
+    className: "border-rose-200 bg-rose-50 text-rose-700",
+  },
+  ARCHIVED: {
+    label: "Archived",
+    className: "border-slate-200 bg-slate-50 text-slate-600",
+  },
 };
 
 export function StatusBadge({ status }: { status: ResourceStatus }) {
   const config = STATUS_CONFIG[status] ?? { label: status, className: "" };
   return (
-    <Badge variant="secondary" className={config.className}>
+    <Badge
+      variant="outline"
+      className={`tracking-[0.1em] uppercase hover:bg-inherit ${config.className}`}
+    >
       {config.label}
     </Badge>
   );
