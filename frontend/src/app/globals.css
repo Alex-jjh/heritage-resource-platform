@@ -621,7 +621,7 @@ html {
   animation: homepage-sea-haze 8.5s ease-in-out infinite;
 }
 
-.homepage-feature-card-sea-field {
+.homepage-feature-card-field {
   pointer-events: none;
   position: absolute;
   z-index: 1;
@@ -633,16 +633,16 @@ html {
   mask-image: radial-gradient(ellipse at center, #000 0 60%, rgba(0, 0, 0, 0.78) 74%, transparent 100%);
 }
 
-.homepage-feature-card-sea:hover .homepage-feature-card-sea-field {
+.homepage-feature-card-sea:hover .homepage-feature-card-field {
   opacity: 1;
 }
 
-.homepage-feature-card-rose:hover .homepage-feature-card-sea-field,
-.homepage-feature-card-jade:hover .homepage-feature-card-sea-field {
+.homepage-feature-card-rose:hover .homepage-feature-card-field,
+.homepage-feature-card-jade:hover .homepage-feature-card-field {
   opacity: 1;
 }
 
-.homepage-feature-card-sea-field span {
+.homepage-feature-card-field span {
   position: absolute;
   border-radius: 999px;
   opacity: 0;
@@ -651,7 +651,7 @@ html {
   will-change: opacity, transform;
 }
 
-.homepage-feature-card-sea-field span:nth-child(1) {
+.homepage-feature-card-field span:nth-child(1) {
   left: -4%;
   top: 14%;
   width: 74%;
@@ -660,7 +660,7 @@ html {
   transform: translate3d(-12%, 8%, 0) rotate(-14deg) scale(0.98);
 }
 
-.homepage-feature-card-sea-field span:nth-child(2) {
+.homepage-feature-card-field span:nth-child(2) {
   right: -18%;
   top: 2%;
   width: 70%;
@@ -670,7 +670,7 @@ html {
   transform: translate3d(8%, -8%, 0) rotate(18deg) scale(0.94);
 }
 
-.homepage-feature-card-sea-field span:nth-child(3) {
+.homepage-feature-card-field span:nth-child(3) {
   left: 20%;
   bottom: -10%;
   width: 82%;
@@ -680,7 +680,7 @@ html {
   transform: translate3d(10%, 10%, 0) rotate(-10deg) scale(1);
 }
 
-.homepage-feature-card-sea-field span:nth-child(4) {
+.homepage-feature-card-field span:nth-child(4) {
   left: 28%;
   top: 32%;
   width: 48%;
@@ -690,59 +690,59 @@ html {
   transform: translate3d(-2%, 0, 0) rotate(-18deg) scale(0.9);
 }
 
-.homepage-feature-card-rose .homepage-feature-card-sea-field span:nth-child(1) {
+.homepage-feature-card-rose .homepage-feature-card-field span:nth-child(1) {
   background: radial-gradient(ellipse at center, rgba(211, 138, 213, 0.62), rgba(128, 80, 178, 0.32) 48%, transparent 74%);
 }
 
-.homepage-feature-card-rose .homepage-feature-card-sea-field span:nth-child(2) {
+.homepage-feature-card-rose .homepage-feature-card-field span:nth-child(2) {
   background: radial-gradient(ellipse at center, rgba(147, 165, 255, 0.44), rgba(94, 92, 188, 0.24) 54%, transparent 76%);
 }
 
-.homepage-feature-card-rose .homepage-feature-card-sea-field span:nth-child(3) {
+.homepage-feature-card-rose .homepage-feature-card-field span:nth-child(3) {
   background: radial-gradient(ellipse at center, rgba(186, 116, 222, 0.48), rgba(153, 83, 160, 0.26) 52%, transparent 78%);
 }
 
-.homepage-feature-card-rose .homepage-feature-card-sea-field span:nth-child(4) {
+.homepage-feature-card-rose .homepage-feature-card-field span:nth-child(4) {
   background: radial-gradient(ellipse at center, rgba(252, 248, 255, 0.58), rgba(189, 158, 255, 0.26) 46%, transparent 72%);
 }
 
-.homepage-feature-card-jade .homepage-feature-card-sea-field span:nth-child(1) {
+.homepage-feature-card-jade .homepage-feature-card-field span:nth-child(1) {
   background: radial-gradient(ellipse at center, rgba(101, 238, 188, 0.68), rgba(35, 150, 137, 0.36) 48%, transparent 74%);
 }
 
-.homepage-feature-card-jade .homepage-feature-card-sea-field span:nth-child(2) {
+.homepage-feature-card-jade .homepage-feature-card-field span:nth-child(2) {
   background: radial-gradient(ellipse at center, rgba(86, 229, 255, 0.62), rgba(45, 142, 191, 0.3) 54%, transparent 76%);
 }
 
-.homepage-feature-card-jade .homepage-feature-card-sea-field span:nth-child(3) {
+.homepage-feature-card-jade .homepage-feature-card-field span:nth-child(3) {
   background: radial-gradient(ellipse at center, rgba(159, 255, 190, 0.52), rgba(59, 190, 152, 0.3) 52%, transparent 78%);
 }
 
-.homepage-feature-card-jade .homepage-feature-card-sea-field span:nth-child(4) {
+.homepage-feature-card-jade .homepage-feature-card-field span:nth-child(4) {
   background: radial-gradient(ellipse at center, rgba(243, 255, 247, 0.68), rgba(123, 236, 255, 0.34) 46%, transparent 72%);
 }
 
-.homepage-feature-card-rose:hover .homepage-feature-card-sea-field span:nth-child(1),
-.homepage-feature-card-jade:hover .homepage-feature-card-sea-field span:nth-child(1),
-.homepage-feature-card-sea:hover .homepage-feature-card-sea-field span:nth-child(1) {
+.homepage-feature-card-rose:hover .homepage-feature-card-field span:nth-child(1),
+.homepage-feature-card-jade:hover .homepage-feature-card-field span:nth-child(1),
+.homepage-feature-card-sea:hover .homepage-feature-card-field span:nth-child(1) {
   animation: homepage-sea-ribbon-a 9.5s ease-in-out infinite;
 }
 
-.homepage-feature-card-rose:hover .homepage-feature-card-sea-field span:nth-child(2),
-.homepage-feature-card-jade:hover .homepage-feature-card-sea-field span:nth-child(2),
-.homepage-feature-card-sea:hover .homepage-feature-card-sea-field span:nth-child(2) {
+.homepage-feature-card-rose:hover .homepage-feature-card-field span:nth-child(2),
+.homepage-feature-card-jade:hover .homepage-feature-card-field span:nth-child(2),
+.homepage-feature-card-sea:hover .homepage-feature-card-field span:nth-child(2) {
   animation: homepage-sea-ribbon-b 12s ease-in-out infinite;
 }
 
-.homepage-feature-card-rose:hover .homepage-feature-card-sea-field span:nth-child(3),
-.homepage-feature-card-jade:hover .homepage-feature-card-sea-field span:nth-child(3),
-.homepage-feature-card-sea:hover .homepage-feature-card-sea-field span:nth-child(3) {
+.homepage-feature-card-rose:hover .homepage-feature-card-field span:nth-child(3),
+.homepage-feature-card-jade:hover .homepage-feature-card-field span:nth-child(3),
+.homepage-feature-card-sea:hover .homepage-feature-card-field span:nth-child(3) {
   animation: homepage-sea-ribbon-c 14s ease-in-out infinite;
 }
 
-.homepage-feature-card-rose:hover .homepage-feature-card-sea-field span:nth-child(4),
-.homepage-feature-card-jade:hover .homepage-feature-card-sea-field span:nth-child(4),
-.homepage-feature-card-sea:hover .homepage-feature-card-sea-field span:nth-child(4) {
+.homepage-feature-card-rose:hover .homepage-feature-card-field span:nth-child(4),
+.homepage-feature-card-jade:hover .homepage-feature-card-field span:nth-child(4),
+.homepage-feature-card-sea:hover .homepage-feature-card-field span:nth-child(4) {
   animation: homepage-sea-ribbon-d 7.8s ease-in-out infinite;
 }
 

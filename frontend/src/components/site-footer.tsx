@@ -21,7 +21,7 @@ const archiveLinks: FooterLink[] = [
 
 const communityLinks: FooterLink[] = [
   { label: "Browse Comments", href: "/my-comments" },
-  { label: "Contributor Profiles", href: "/profile" },
+  { label: "My Profile", href: "/profile" },
   {
     label: "Add Draft",
     href: "/contribute/new",

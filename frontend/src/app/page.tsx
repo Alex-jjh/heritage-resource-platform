@@ -500,7 +500,7 @@ export default function Home() {
               className={`group relative overflow-hidden bg-white p-10 transition-colors duration-500 hover:text-white lg:p-12 ${item.hoverClass} ${item.effectClass}`}
             >
               {item.effectClass ? (
-                <div className="homepage-feature-card-sea-field" aria-hidden="true">
+                <div className="homepage-feature-card-field" aria-hidden="true">
                   <span />
                   <span />
                   <span />
