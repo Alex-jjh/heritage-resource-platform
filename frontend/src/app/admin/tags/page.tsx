@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { apiClient, ApiError } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Pencil, Trash2, X, Check } from "lucide-react";
 import { AdminNav } from "@/components/admin-nav";
 import { PageContainer } from "@/components/page-container";
 import type { Tag } from "@/types";
@@ -26,8 +26,7 @@ function TagsContent() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (name: string) =>
-      apiClient.post<Tag>("/api/tags", { name }),
+    mutationFn: (name: string) => apiClient.post<Tag>("/api/tags", { name }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tags"] });
       setNewName("");
@@ -80,61 +79,61 @@ function TagsContent() {
   }
 
   return (
-    <main><PageContainer>
-      <AdminNav />
-      <div className="rounded-lg border bg-card p-6">
-        <h2 className="text-xl font-semibold mb-6">Tag Management</h2>
+    <main>
+      <PageContainer
+        wide
+        eyebrow="Administration"
+        title="Admin Panel"
+        lede="Manage users, categories, tags, and archived resources."
+      >
+        <AdminNav />
+        <div className="rounded-2xl border border-border bg-white p-6 shadow-[var(--shadow-heritage-card)]">
+          <h2 className="mb-6 font-serif text-[1.6rem] font-medium">Tag Management</h2>
 
-      {error && (
-        <div role="alert" className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-          {error}
-        </div>
-      )}
+          {error && (
+            <div role="alert" className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+              {error}
+            </div>
+          )}
 
-      {/* Create form */}
-      <form onSubmit={handleCreate} className="mb-6 flex items-end gap-3">
-        <div className="flex-1">
-          <Label htmlFor="new-tag">New Tag</Label>
-          <Input
-            id="new-tag"
-            placeholder="Tag name"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-          />
-        </div>
-        <Button type="submit" disabled={createMutation.isPending || !newName.trim()}>
-          <Plus className="mr-1 size-4" />
-          {createMutation.isPending ? "Creating…" : "Add"}
-        </Button>
-      </form>
+          <form onSubmit={handleCreate} className="mb-6 flex items-end gap-3 rounded-2xl border border-border bg-secondary/20 p-4">
+            <div className="flex-1">
+              <Label htmlFor="new-tag">New Tag</Label>
+              <Input
+                id="new-tag"
+                placeholder="Tag name"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+              />
+            </div>
+            <Button type="submit" disabled={createMutation.isPending || !newName.trim()}>
+              <Plus className="size-4" />
+              {createMutation.isPending ? "Creating..." : "Add"}
+            </Button>
+          </form>
 
-      {/* List */}
-      {tagsQuery.isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full rounded-md" />
-          ))}
-        </div>
-      ) : tagsQuery.isError ? (
-        <div role="alert" className="rounded-md bg-destructive/10 p-4 text-sm text-destructive">
-          Failed to load tags.
-        </div>
-      ) : tagsQuery.data && tagsQuery.data.length === 0 ? (
-        <p className="py-8 text-center text-muted-foreground">No tags yet.</p>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium">Name</th>
-                <th className="px-4 py-3 text-left font-medium">Created</th>
-                <th className="px-4 py-3 text-right font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          {tagsQuery.isLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full rounded-2xl" />
+              ))}
+            </div>
+          ) : tagsQuery.isError ? (
+            <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+              Failed to load tags.
+            </div>
+          ) : tagsQuery.data && tagsQuery.data.length === 0 ? (
+            <p className="py-8 text-center text-muted-foreground">No tags yet.</p>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-border">
+              <div className="grid grid-cols-12 border-b border-border bg-secondary/40 px-6 py-3 text-[0.65rem] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                <div style={{ gridColumn: "span 6 / span 6" }}>Name</div>
+                <div style={{ gridColumn: "span 3 / span 3" }}>Created</div>
+                <div className="text-right" style={{ gridColumn: "span 3 / span 3" }}>Actions</div>
+              </div>
               {tagsQuery.data?.map((tag) => (
-                <tr key={tag.id} className="border-b last:border-0 hover:bg-muted/30">
-                  <td className="px-4 py-3">
+                <div key={tag.id} className="grid grid-cols-12 items-center border-b border-border px-6 py-4 text-sm last:border-0 hover:bg-secondary/30">
+                  <div style={{ gridColumn: "span 6 / span 6" }}>
                     {editingId === tag.id ? (
                       <Input
                         value={editName}
@@ -147,48 +146,50 @@ function TagsContent() {
                         }}
                       />
                     ) : (
-                      <span className="font-medium">{tag.name}</span>
+                      <span className="font-serif text-base font-medium">{tag.name}</span>
                     )}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  </div>
+                  <div className="text-muted-foreground" style={{ gridColumn: "span 3 / span 3" }}>
                     {new Date(tag.createdAt).toLocaleDateString(undefined, {
-                      year: "numeric", month: "short", day: "numeric",
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
                     })}
-                  </td>
-                  <td className="px-4 py-3 text-right space-x-1">
+                  </div>
+                  <div className="flex justify-end gap-1" style={{ gridColumn: "span 3 / span 3" }}>
                     {editingId === tag.id ? (
                       <>
-                        <Button variant="ghost" size="sm" onClick={handleUpdate} disabled={updateMutation.isPending}>
+                        <Button variant="ghost" size="icon-sm" onClick={handleUpdate} disabled={updateMutation.isPending}>
                           <Check className="size-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>
+                        <Button variant="ghost" size="icon-sm" onClick={() => setEditingId(null)}>
                           <X className="size-4" />
                         </Button>
                       </>
                     ) : (
                       <>
-                        <Button variant="ghost" size="sm" onClick={() => startEdit(tag)}>
+                        <Button variant="ghost" size="icon-sm" onClick={() => startEdit(tag)}>
                           <Pencil className="size-4" />
                         </Button>
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon-sm"
+                          className="text-rose-600 hover:border-rose-200 hover:bg-rose-50"
                           onClick={() => deleteMutation.mutate(tag.id)}
                           disabled={deleteMutation.isPending}
                         >
-                          <Trash2 className="size-4 text-destructive" />
+                          <Trash2 className="size-4" />
                         </Button>
                       </>
                     )}
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          )}
         </div>
-      )}
-      </div>
-    </PageContainer></main>
+      </PageContainer>
+    </main>
   );
 }
 

@@ -42,6 +42,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/tasks/health").permitAll()
                 .requestMatchers("/api/tasks/**").hasAnyRole("REVIEWER", "ADMINISTRATOR")
                 // Public discovery endpoints
+                .requestMatchers(HttpMethod.GET, "/api/stats/homepage").permitAll()
                 .requestMatchers("/api/search/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/tags").permitAll()

@@ -8,21 +8,14 @@ import { ProtectedRoute } from "@/components/protected-route";
 import { PageContainer } from "@/components/page-container";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Plus,
-  Pencil,
-  Send,
-  RotateCcw,
-  MessageSquare,
   Eye,
+  MessageSquare,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Send,
   Star,
 } from "lucide-react";
 import type {
@@ -33,7 +26,7 @@ import type {
 } from "@/types";
 
 function formatEnglishDate(value?: string | null) {
-  if (!value) return "—";
+  if (!value) return "-";
   return new Date(value).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
@@ -126,21 +119,24 @@ function ContributeDashboardContent() {
 
   return (
     <main>
-      <PageContainer>
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="font-serif text-3xl font-bold">My Resources</h1>
+      <PageContainer
+        wide
+        eyebrow="Contributor Workspace"
+        title="My Resources"
+        lede="Manage drafts, submissions, reviewer feedback, and featured applications."
+        rightSlot={
           <Link href="/contribute/new">
             <Button>
-              <Plus className="mr-1.5 size-4" />
+              <Plus className="size-4" />
               New Resource
             </Button>
           </Link>
-        </div>
-
+        }
+      >
         {successMsg && (
           <div
             role="status"
-            className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-700"
+            className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700"
           >
             {successMsg}
           </div>
@@ -149,7 +145,7 @@ function ContributeDashboardContent() {
         {errorMsg && (
           <div
             role="alert"
-            className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+            className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700"
           >
             {errorMsg}
           </div>
@@ -158,22 +154,22 @@ function ContributeDashboardContent() {
         {resourcesQuery.isLoading ? (
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-28 w-full rounded-lg" />
+              <Skeleton key={i} className="h-32 w-full rounded-2xl" />
             ))}
           </div>
         ) : resourcesQuery.isError ? (
           <div
             role="alert"
-            className="rounded-md bg-destructive/10 p-4 text-sm text-destructive"
+            className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700"
           >
             Failed to load your resources. Please try again.
           </div>
         ) : resourcesQuery.data && resourcesQuery.data.length === 0 ? (
-          <div className="py-16 text-center">
-            <p className="text-lg text-muted-foreground">
+          <div className="rounded-2xl border border-border bg-white py-16 text-center shadow-[var(--shadow-heritage-card)]">
+            <p className="font-serif text-xl text-foreground">
               You haven&apos;t created any resources yet.
             </p>
-            <Link href="/contribute/new" className="mt-3 inline-block">
+            <Link href="/contribute/new" className="mt-4 inline-block">
               <Button variant="outline">Create your first resource</Button>
             </Link>
           </div>
@@ -237,124 +233,137 @@ function ResourceListItem({
   const canApplyFeatured =
     isApproved && !alreadyFeatured && !pendingFeatured && !isApplyingFeatured;
 
+  const latestRejectedFeedback = [...(resource.reviewFeedbacks ?? [])]
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
+    .find((fb) => fb.decision === "REJECTED");
+
+  const latestFeedback = [...(resource.reviewFeedbacks ?? [])].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )[0];
+
+  const shouldShowFeedback =
+    latestFeedback?.decision === "REJECTED" && Boolean(latestRejectedFeedback);
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <CardTitle className="font-serif">
-              {resource.title || "Untitled draft"}
-            </CardTitle>
-            <CardDescription>
-              {resource.category?.name || "No category selected"}
-              {resource.place && <> · {resource.place}</>}
-              {" · "}
-              Updated {formatEnglishDate(resource.updatedAt)}
-            </CardDescription>
-          </div>
-          <div className="flex flex-col items-end gap-2">
-            <StatusBadge status={status} />
-            {isApproved && (
-              <span className="text-xs text-muted-foreground">
-                {featuredLabel(featuredStatus, resource.isFeatured)}
-              </span>
-            )}
-          </div>
-        </div>
-      </CardHeader>
+    <article className="rounded-2xl border border-border bg-white p-6 shadow-[var(--shadow-heritage-card)]">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <h2 className="font-serif text-[1.25rem] font-medium">
+            {resource.title || "Untitled draft"}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {resource.category?.name || "No category selected"}
+            {resource.place && <> / {resource.place}</>}
+            {" / "}
+            Updated {formatEnglishDate(resource.updatedAt)}
+          </p>
 
-      <CardContent>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href={`/resources/${resource.id}`}>
-            <Button variant="ghost" size="sm">
-              <Eye className="mr-1 size-3.5" />
-              View
-            </Button>
-          </Link>
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <Link href={`/resources/${resource.id}`}>
+              <Button variant="outline" size="sm">
+                <Eye className="size-3.5" />
+                View
+              </Button>
+            </Link>
 
-          {isDraft && (
-            <>
-              <Link href={`/contribute/${resource.id}/edit`}>
-                <Button variant="outline" size="sm">
-                  <Pencil className="mr-1 size-3.5" />
-                  Edit
+            {isDraft && (
+              <>
+                <Link href={`/contribute/${resource.id}/edit`}>
+                  <Button variant="outline" size="sm">
+                    <Pencil className="size-3.5" />
+                    Edit
+                  </Button>
+                </Link>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={onSubmit}
+                  disabled={isSubmitting}
+                >
+                  <Send className="size-3.5" />
+                  {isSubmitting ? "Submitting..." : "Submit for Review"}
                 </Button>
-              </Link>
+              </>
+            )}
+
+            {isRejected && (
               <Button
                 variant="default"
                 size="sm"
-                onClick={onSubmit}
-                disabled={isSubmitting}
+                onClick={onRevise}
+                disabled={isRevising}
               >
-                <Send className="mr-1 size-3.5" />
-                {isSubmitting ? "Submitting…" : "Submit for Review"}
+                <RotateCcw className="size-3.5" />
+                {isRevising ? "Revising..." : "Revise"}
               </Button>
-            </>
-          )}
+            )}
 
-          {isRejected && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRevise}
-              disabled={isRevising}
-            >
-              <RotateCcw className="mr-1 size-3.5" />
-              {isRevising ? "Revising…" : "Revise"}
-            </Button>
-          )}
-
-          {isApproved && (
-            <>
-              {alreadyFeatured ? (
-                <Button variant="outline" size="sm" disabled>
-                  <Star className="mr-1 size-3.5" />
-                  Featured
-                </Button>
-              ) : pendingFeatured ? (
-                <Button variant="outline" size="sm" disabled>
-                  <Star className="mr-1 size-3.5" />
-                  Application Pending
-                </Button>
-              ) : (
-                <Button
-                  variant={rejectedFeatured ? "outline" : "default"}
-                  size="sm"
-                  onClick={onApplyFeatured}
-                  disabled={!canApplyFeatured}
-                >
-                  <Star className="mr-1 size-3.5" />
-                  {isApplyingFeatured
-                    ? "Applying…"
-                    : rejectedFeatured
-                      ? "Reapply for Featured"
-                      : "Apply for Featured"}
-                </Button>
-              )}
-            </>
-          )}
+            {isApproved && (
+              <>
+                {alreadyFeatured ? (
+                  <Button variant="outline" size="sm" disabled>
+                    <Star className="size-3.5" />
+                    Featured
+                  </Button>
+                ) : pendingFeatured ? (
+                  <Button variant="outline" size="sm" disabled>
+                    <Star className="size-3.5" />
+                    Application Pending
+                  </Button>
+                ) : (
+                  <Button
+                    variant={rejectedFeatured ? "outline" : "default"}
+                    size="sm"
+                    onClick={onApplyFeatured}
+                    disabled={!canApplyFeatured}
+                  >
+                    <Star className="size-3.5" />
+                    {isApplyingFeatured
+                      ? "Applying..."
+                      : rejectedFeatured
+                        ? "Reapply for Featured"
+                        : "Apply for Featured"}
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
-        {(isRejected || isDraft) &&
-          resource.reviewFeedbacks &&
-          resource.reviewFeedbacks.length > 0 && (
-            <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 space-y-2">
-              <div className="flex items-center gap-1.5 text-sm font-medium text-amber-800">
-                <MessageSquare className="size-4" />
-                Admin / Reviewer Feedback
-              </div>
-              {resource.reviewFeedbacks.map((fb) => (
-                <div key={fb.id} className="text-sm text-amber-700">
-                  <p>{fb.comments}</p>
-                  <p className="mt-1 text-xs text-amber-500">
-                    {fb.decision} · {formatEnglishDate(fb.createdAt)}
-                  </p>
-                </div>
-              ))}
-            </div>
+        <div className="flex shrink-0 flex-col items-start gap-2 lg:items-end">
+          <StatusBadge status={status} />
+          {isApproved && (
+            <span className="text-xs text-muted-foreground">
+              {featuredLabel(featuredStatus, resource.isFeatured)}
+            </span>
           )}
-      </CardContent>
-    </Card>
+          {status === "PENDING_REVIEW" && (
+            <span className="text-xs text-muted-foreground">
+              Awaiting reviewer
+            </span>
+          )}
+        </div>
+      </div>
+
+      {shouldShowFeedback && latestRejectedFeedback && (
+        <div className="mt-5 space-y-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-amber-800">
+            <MessageSquare className="size-4" />
+            Admin / Reviewer Feedback
+          </div>
+          <div className="text-sm text-amber-800">
+            <p className="leading-6">{latestRejectedFeedback.comments}</p>
+            <p className="mt-1 text-[0.65rem] uppercase tracking-[0.12em] text-amber-600">
+              {latestRejectedFeedback.decision} /{" "}
+              {formatEnglishDate(latestRejectedFeedback.createdAt)}
+            </p>
+          </div>
+        </div>
+      )}
+    </article>
   );
 }
 

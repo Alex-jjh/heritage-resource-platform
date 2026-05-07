@@ -51,6 +51,8 @@ public interface ResourceRepository extends JpaRepository<Resource, UUID> {
 
     Page<Resource> findByStatus(ResourceStatus status, Pageable pageable);
 
+    long countByStatus(ResourceStatus status);
+
     Page<Resource> findByStatusAndCategoryId(
             ResourceStatus status,
             UUID categoryId,

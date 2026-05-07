@@ -4,21 +4,16 @@ import { use, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrowLeft, CheckCircle2, FileIcon, XCircle } from "lucide-react";
 import { apiClient, ApiError } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, XCircle } from "lucide-react";
 import type { ResourceResponse, ResourceStatus } from "@/types";
 
-/**
- * 对齐后端 /api/reviews/predefined-feedback 返回结构
- * 后端现在返回 key / label / content 三个字段
- */
 type PredefinedFeedbackOption = {
   key: string;
   label: string;
@@ -36,13 +31,9 @@ function ReviewDetailContent({ id }: { id: string }) {
   const queryClient = useQueryClient();
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-
   const [isRejectFormOpen, setIsRejectFormOpen] = useState(false);
   const [rejectDraft, setRejectDraft] = useState("");
 
-  /**
-   * 主资源详情：进入 review detail 页时先拿当前资源
-   */
   const resourceQuery = useQuery({
     queryKey: ["resource", id],
     queryFn: () => apiClient.get<ResourceResponse>(`/api/resources/${id}`),
@@ -54,16 +45,10 @@ function ReviewDetailContent({ id }: { id: string }) {
       apiClient.get<PredefinedFeedbackOption[]>("/api/reviews/predefined-feedback"),
   });
 
-  /**
-   * Approve 仍然保持原逻辑
-   * 审核通过后清理当前资源缓存并返回 review queue
-   */
   const approveMutation = useMutation({
     mutationFn: () =>
       apiClient.post<ResourceResponse>(`/api/reviews/${id}/approve`),
     onSuccess: () => {
-      // Remove (don't invalidate) the resource query to avoid a background
-      // refetch that could race with navigation and trigger a stale 401.
       queryClient.removeQueries({ queryKey: ["resource", id] });
       queryClient.invalidateQueries({ queryKey: ["review-queue"] });
       queryClient.invalidateQueries({ queryKey: ["featured-resources"] });
@@ -76,10 +61,6 @@ function ReviewDetailContent({ id }: { id: string }) {
     },
   });
 
-  /**
-   * Reject 仍然只提交 comments
-   * quick reply button 只是帮助用户快速填充 comments，不改 reject 接口结构
-   */
   const rejectMutation = useMutation({
     mutationFn: (comments: string) =>
       apiClient.post<ResourceResponse>(`/api/reviews/${id}/reject`, { comments }),
@@ -110,12 +91,6 @@ function ReviewDetailContent({ id }: { id: string }) {
     setRejectDraft("");
   }
 
-  /**
-   * 点击快捷标签后的行为：
-   * - 如果文本框为空，直接填入该模板
-   * - 如果已包含该模板，再点一次就移除
-   * - 如果已有别的内容，则追加到末尾
-   */
   function applyPredefinedFeedback(content: string) {
     setFeedbackError(null);
     setActionError(null);
@@ -139,10 +114,6 @@ function ReviewDetailContent({ id }: { id: string }) {
     });
   }
 
-  /**
-   * 前端先做一次必填校验
-   * 后端 reject 接口也会继续校验 comments 是否为空
-   */
   function submitReject() {
     setFeedbackError(null);
     setActionError(null);
@@ -162,133 +133,149 @@ function ReviewDetailContent({ id }: { id: string }) {
 
   if (resourceQuery.isLoading) {
     return (
-      <main className="px-6 py-8 sm:px-10 lg:px-20 xl:px-32 space-y-6">
+      <main className="mx-auto max-w-[1200px] space-y-6 px-6 py-12 lg:px-10">
         <Skeleton className="h-8 w-2/3" />
         <Skeleton className="h-5 w-1/3" />
-        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
       </main>
     );
   }
 
   if (resourceQuery.isError) {
     return (
-      <main className="px-6 py-8 sm:px-10 lg:px-20 xl:px-32">
+      <main className="mx-auto max-w-[1200px] px-6 py-12 lg:px-10">
         <div
           role="alert"
-          className="rounded-md bg-destructive/10 p-4 text-sm text-destructive"
+          className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700"
         >
           Resource not found or you don&apos;t have permission to review it.
         </div>
         <Link
           href="/review"
-          className="mt-4 inline-block text-sm text-accent hover:underline"
+          className="mt-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-accent"
         >
-          ← Back to review queue
+          <ArrowLeft className="size-4" />
+          Back to review queue
         </Link>
       </main>
     );
   }
 
   const resource = resourceQuery.data!;
-  const isPending = resource.status === "PENDING_REVIEW" || resource.status === "IN_REVIEW";
+  const isPending =
+    resource.status === "PENDING_REVIEW" || resource.status === "IN_REVIEW";
   const isActing = approveMutation.isPending || rejectMutation.isPending;
 
   return (
-    <main className="px-6 py-8 sm:px-10 lg:px-20 xl:px-32">
-      <Link href="/review" className="text-sm text-accent hover:underline">
-        ← Back to review queue
+    <main className="relative z-[2] mx-auto max-w-[1200px] px-6 py-12 lg:px-10">
+      <Link
+        href="/review"
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-accent"
+      >
+        <ArrowLeft className="size-4" />
+        Back to review queue
       </Link>
 
-      <div className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          <div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-bold">{resource.title || "Untitled draft"}</h1>
-              <StatusBadge status={resource.status as ResourceStatus} />
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              By {resource.contributorName} · Submitted{" "}
-              <time dateTime={resource.updatedAt}>
-                {new Date(resource.updatedAt).toLocaleDateString(undefined, {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </time>
-            </p>
-          </div>
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: "clamp(2rem, 4vw, 3rem)",
+            fontWeight: 500,
+            lineHeight: 1.1,
+            letterSpacing: "-0.01em",
+          }}
+        >
+          {resource.title || "Untitled draft"}
+        </h1>
+        <StatusBadge status={resource.status as ResourceStatus} />
+      </div>
+      <p className="mt-2 text-sm text-muted-foreground">
+        By {resource.contributorName} / Submitted{" "}
+        <time dateTime={resource.updatedAt}>
+          {new Date(resource.updatedAt).toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
+        </time>
+      </p>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <span className="text-xs font-medium uppercase text-muted-foreground">
-                Category
-              </span>
-
-              <p className="text-sm">{resource.category?.name || "No category selected"}</p>
-
-             
-
-            </div>
-            {resource.place && (
+      <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-12">
+        <div className="space-y-8 lg:col-span-7">
+          <section className="rounded-2xl border border-border bg-white p-6 shadow-[var(--shadow-heritage-card)]">
+            <p className="heritage-eyebrow">- Submitted Metadata</p>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <div>
-                <span className="text-xs font-medium uppercase text-muted-foreground">
-                  Place
+                <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  Category
                 </span>
-                <p className="text-sm">{resource.place}</p>
+                <p className="mt-1 text-sm">
+                  {resource.category?.name || "No category selected"}
+                </p>
+              </div>
+              {resource.place && (
+                <div>
+                  <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                    Place
+                  </span>
+                  <p className="mt-1 text-sm">{resource.place}</p>
+                </div>
+              )}
+            </div>
+
+            {resource.tags.length > 0 && (
+              <div className="mt-5 flex flex-wrap gap-2">
+                {resource.tags.map((tag) => (
+                  <Badge key={tag.id} variant="outline" className="border-border bg-secondary/30">
+                    {tag.name}
+                  </Badge>
+                ))}
               </div>
             )}
-          </div>
-
-          {resource.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {resource.tags.map((tag) => (
-                <Badge key={tag.id} variant="outline">
-                  {tag.name}
-                </Badge>
-              ))}
-            </div>
-          )}
+          </section>
 
           {resource.description && (
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Description</h2>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">
+            <section>
+              <h2 className="font-serif text-[1.6rem] font-medium">Description</h2>
+              <p className="mt-3 whitespace-pre-wrap text-[1.05rem] leading-8 text-foreground/80">
                 {resource.description}
               </p>
-            </div>
+            </section>
           )}
 
-          <div>
-            <span className="text-xs font-medium uppercase text-muted-foreground">
-              Copyright
-            </span>
-
-            <p className="text-sm">{resource.copyrightDeclaration || "No copyright declaration provided yet."}</p>
-          </div>
-
-          <Separator />
+          <section>
+            <p className="heritage-eyebrow">- Copyright</p>
+            <p className="mt-4 text-sm leading-7 text-foreground/80">
+              {resource.copyrightDeclaration ||
+                "No copyright declaration provided yet."}
+            </p>
+          </section>
 
           {resource.fileReferences.length > 0 && (
-            <div>
-              <h2 className="text-lg font-semibold mb-3">File Attachments</h2>
-              <ul className="space-y-2">
+            <section>
+              <p className="heritage-eyebrow">- File Attachments</p>
+              <ul className="mt-4 space-y-2">
                 {resource.fileReferences.map((file) => (
                   <li
                     key={file.id}
-                    className="flex items-center justify-between rounded-md border p-3"
+                    className="flex items-center justify-between rounded-xl border border-border bg-white p-3"
                   >
-                    <div>
-                      <p className="text-sm font-medium">{file.originalFileName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {file.contentType} · {formatFileSize(file.fileSize)}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <FileIcon className="size-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">{file.originalFileName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {file.contentType} / {formatFileSize(file.fileSize)}
+                        </p>
+                      </div>
                     </div>
                     {file.downloadUrl && (
                       <a
                         href={file.downloadUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex h-7 items-center rounded-md border border-border bg-background px-2.5 text-sm font-medium hover:bg-muted"
+                        className="inline-flex h-8 items-center rounded-full border border-border bg-white px-3 text-sm font-medium hover:bg-secondary/60"
                       >
                         Download
                       </a>
@@ -296,33 +283,15 @@ function ReviewDetailContent({ id }: { id: string }) {
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
-
-          {resource.externalLinks.length > 0 && (
-            <div>
-              <h2 className="text-lg font-semibold mb-3">External Links</h2>
-              <ul className="space-y-2">
-                {resource.externalLinks.map((link) => (
-                  <li key={link.id}>
-                    <a
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-accent hover:underline"
-                    >
-                      {link.label || link.url}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            </section>
           )}
         </div>
 
-        <aside className="space-y-4">
-          <div className="rounded-lg border p-5 space-y-4 sticky top-8">
-            <h2 className="text-lg font-semibold">Review Actions</h2>
+        <aside className="lg:col-span-5">
+          <div className="sticky top-24 space-y-4 rounded-2xl border border-border bg-white p-6 shadow-[var(--shadow-heritage-card)]">
+            <p className="text-[0.65rem] uppercase tracking-[0.25em] text-muted-foreground">
+              Review Actions
+            </p>
 
             {!isPending ? (
               <p className="text-sm text-muted-foreground">
@@ -334,144 +303,125 @@ function ReviewDetailContent({ id }: { id: string }) {
                 {actionError && (
                   <div
                     role="alert"
-                    className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+                    className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700"
                   >
                     {actionError}
                   </div>
                 )}
 
                 <Button className="w-full" onClick={handleApprove} disabled={isActing}>
-                  <CheckCircle2 className="mr-1.5 size-4" />
-                  {approveMutation.isPending ? "Approving…" : "Approve"}
+                  <CheckCircle2 className="size-4" />
+                  {approveMutation.isPending ? "Approving..." : "Approve"}
                 </Button>
 
-                <Separator />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-rose-200 text-rose-700 hover:bg-rose-50"
+                  onClick={openRejectForm}
+                  disabled={isActing}
+                >
+                  <XCircle className="size-4" />
+                  Reject
+                </Button>
 
-                <div className="space-y-3">
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    className="w-full"
-                    onClick={openRejectForm}
-                    disabled={isActing}
-                  >
-                    <XCircle className="mr-1.5 size-4" />
-                    Reject
-                  </Button>
+                {isRejectFormOpen && (
+                  <div className="space-y-4 rounded-xl border border-rose-100 bg-rose-50/60 p-4">
+                    <div>
+                      <h3 className="text-sm font-semibold">Mandatory Feedback</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Provide a rejection reason before submitting this review
+                        decision.
+                      </p>
+                    </div>
 
-                  {isRejectFormOpen && (
-                    <div className="space-y-4 rounded-lg border border-destructive/20 bg-destructive/5 p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="text-sm font-semibold">Mandatory Feedback</h3>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            Provide a rejection reason before submitting this review
-                            decision.
-                          </p>
-                        </div>
+                    <div className="space-y-2">
+                      <p className="text-[0.65rem] font-medium uppercase tracking-[0.25em] text-muted-foreground">
+                        Quick Reply Tags
+                      </p>
 
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={closeRejectForm}
-                          disabled={rejectMutation.isPending}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Quick reply tags
-                        </p>
-
-                        {predefinedFeedbackQuery.isLoading && (
-                          <p className="text-xs text-muted-foreground">
-                            Loading preset feedback...
-                          </p>
-                        )}
-
-                        {predefinedFeedbackQuery.isError && (
-                          <p className="text-xs text-muted-foreground">
-                            Preset feedback is unavailable right now. You can still enter
-                            custom feedback below.
-                          </p>
-                        )}
-
-                        {!!predefinedFeedbackQuery.data?.length && (
-                          <div className="flex flex-wrap gap-2">
-                            {predefinedFeedbackQuery.data.map((option) => {
-                              // 用 content 判断当前模板是否已被加入 textarea
-                              const active = rejectDraft.includes(option.content);
-
-                              return (
-                                <Button
-                                  key={option.key}
-                                  type="button"
-                                  variant={active ? "default" : "outline"}
-                                  size="sm"
-                                  className="h-auto whitespace-normal px-3 py-1.5 text-left"
-                                  onClick={() => applyPredefinedFeedback(option.content)}
-                                  disabled={rejectMutation.isPending}
-                                >
-                                  {option.label}
-                                </Button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <label htmlFor="reject-feedback" className="text-sm font-medium">
-                          Feedback
-                        </label>
-                        <Textarea
-                          id="reject-feedback"
-                          placeholder="Enter rejection feedback..."
-                          value={rejectDraft}
-                          onChange={(e) => {
-                            setRejectDraft(e.target.value);
-                            if (feedbackError) setFeedbackError(null);
-                          }}
-                          rows={6}
-                        />
+                      {predefinedFeedbackQuery.isLoading && (
                         <p className="text-xs text-muted-foreground">
-                          Preset text can be edited, and you can add your own explanation.
-                        </p>
-                      </div>
-
-                      {feedbackError && (
-                        <p role="alert" className="text-sm text-destructive">
-                          {feedbackError}
+                          Loading preset feedback...
                         </p>
                       )}
 
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={closeRejectForm}
-                          disabled={rejectMutation.isPending}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          onClick={submitReject}
-                          disabled={rejectMutation.isPending}
-                        >
-                          <XCircle className="mr-1.5 size-4" />
-                          {rejectMutation.isPending
-                            ? "Submitting..."
-                            : "Submit Rejection"}
-                        </Button>
-                      </div>
+                      {predefinedFeedbackQuery.isError && (
+                        <p className="text-xs text-muted-foreground">
+                          Preset feedback is unavailable right now. You can still enter
+                          custom feedback below.
+                        </p>
+                      )}
+
+                      {!!predefinedFeedbackQuery.data?.length && (
+                        <div className="flex flex-wrap gap-2">
+                          {predefinedFeedbackQuery.data.map((option) => {
+                            const active = rejectDraft.includes(option.content);
+
+                            return (
+                              <Button
+                                key={option.key}
+                                type="button"
+                                variant={active ? "default" : "outline"}
+                                size="sm"
+                                className="h-auto whitespace-normal px-3 py-1.5 text-left"
+                                onClick={() => applyPredefinedFeedback(option.content)}
+                                disabled={rejectMutation.isPending}
+                              >
+                                {option.label}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+
+                    <div>
+                      <label htmlFor="reject-feedback" className="text-sm font-medium">
+                        Feedback
+                      </label>
+                      <Textarea
+                        id="reject-feedback"
+                        placeholder="Enter rejection feedback..."
+                        value={rejectDraft}
+                        onChange={(e) => {
+                          setRejectDraft(e.target.value);
+                          if (feedbackError) setFeedbackError(null);
+                        }}
+                        rows={6}
+                      />
+                    </div>
+
+                    {feedbackError && (
+                      <p role="alert" className="text-sm text-destructive">
+                        {feedbackError}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={closeRejectForm}
+                        disabled={rejectMutation.isPending}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        onClick={submitReject}
+                        disabled={rejectMutation.isPending || !rejectDraft.trim()}
+                        className="bg-rose-600 text-white hover:bg-rose-700"
+                      >
+                        <XCircle className="size-4" />
+                        {rejectMutation.isPending
+                          ? "Submitting..."
+                          : "Submit Rejection"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>

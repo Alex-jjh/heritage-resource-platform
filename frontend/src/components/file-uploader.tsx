@@ -91,14 +91,14 @@ export function FileUploader({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-3">
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={() => fileInputRef.current?.click()}
         >
-          <Upload className="mr-1.5 size-4" />
+          <Upload className="size-4" />
           Upload Files
         </Button>
         <input
@@ -109,12 +109,18 @@ export function FileUploader({
           onChange={handleFileSelect}
           aria-label="Select files to upload"
         />
+        <span className="text-sm text-muted-foreground">
+          Attach images, documents, audio, or archive files.
+        </span>
       </div>
 
       {activeUploads.length > 0 && (
         <ul className="space-y-2">
           {activeUploads.map((u) => (
-            <li key={u.name} className="flex items-center gap-2 rounded-md border p-2 text-sm">
+            <li
+              key={u.name}
+              className="flex items-center gap-2 rounded-xl border border-border bg-secondary/20 p-3 text-sm"
+            >
               {u.progress === "error" ? (
                 <X className="size-4 text-destructive" />
               ) : (
@@ -122,7 +128,7 @@ export function FileUploader({
               )}
               <span className="flex-1 truncate">{u.name}</span>
               <span className="text-xs text-muted-foreground">
-                {u.progress === "uploading" && "Uploading…"}
+                {u.progress === "uploading" && "Uploading..."}
                 {u.progress === "error" && (
                   <span className="text-destructive">{u.error}</span>
                 )}
@@ -135,13 +141,18 @@ export function FileUploader({
       {existingFiles.length > 0 && (
         <ul className="space-y-2">
           {existingFiles.map((file) => (
-            <li key={file.id} className="flex items-center justify-between rounded-md border p-2">
-              <div className="flex items-center gap-2 min-w-0">
+            <li
+              key={file.id}
+              className="flex items-center justify-between rounded-xl border border-border bg-secondary/20 p-3"
+            >
+              <div className="flex min-w-0 items-center gap-2">
                 <FileIcon className="size-4 shrink-0 text-muted-foreground" />
                 <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{file.originalFileName}</p>
+                  <p className="truncate text-sm font-medium">
+                    {file.originalFileName}
+                  </p>
                   <p className="text-xs text-muted-foreground">
-                    {file.contentType} · {formatFileSize(file.fileSize)}
+                    {file.contentType} / {formatFileSize(file.fileSize)}
                   </p>
                 </div>
               </div>
@@ -152,6 +163,7 @@ export function FileUploader({
                 onClick={() => removeFileMutation.mutate(file.id)}
                 disabled={removeFileMutation.isPending}
                 aria-label={`Remove ${file.originalFileName}`}
+                className="text-rose-600 hover:border-rose-200 hover:bg-rose-50"
               >
                 <X className="size-3.5" />
               </Button>

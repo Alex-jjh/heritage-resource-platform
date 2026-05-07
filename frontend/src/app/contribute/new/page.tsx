@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { apiClient, ApiError } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
 import { PageContainer } from "@/components/page-container";
 import { ResourceForm, type ResourceFormData } from "@/components/resource-form";
-import Link from "next/link";
 import type { ResourceResponse } from "@/types";
 
 function CreateResourceContent() {
@@ -18,7 +19,6 @@ function CreateResourceContent() {
     mutationFn: (data: ResourceFormData) =>
       apiClient.post<ResourceResponse>("/api/resources", data),
     onSuccess: (resource) => {
-      // Redirect to edit page so user can upload files
       router.push(`/contribute/${resource.id}/edit`);
     },
     onError: (err) => {
@@ -36,27 +36,28 @@ function CreateResourceContent() {
   }
 
   return (
-    <main><PageContainer narrow>
-      <Link
-        href="/contribute"
-        className="text-sm text-accent hover:underline"
+    <main>
+      <PageContainer
+        narrow
+        eyebrow="New Resource"
+        title="Create New Resource"
+        lede="Create a draft archive record. You can upload files after saving."
       >
-        ← Back to my resources
-      </Link>
-      <h1 className="font-serif text-3xl font-bold mt-4 mb-6">
-        Create New Resource
-      </h1>
-      <p className="text-sm text-muted-foreground mb-6">
-        Fill in the details below to create a draft resource. You can upload
-        files after saving.
-      </p>
-      <ResourceForm
-        onSubmit={handleSubmit}
-        isSubmitting={createMutation.isPending}
-        submitLabel="Create Draft"
-        error={error}
-      />
-    </PageContainer></main>
+        <Link
+          href="/contribute"
+          className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-accent"
+        >
+          <ArrowLeft className="size-4" />
+          Back to My Resources
+        </Link>
+        <ResourceForm
+          onSubmit={handleSubmit}
+          isSubmitting={createMutation.isPending}
+          submitLabel="Create Draft"
+          error={error}
+        />
+      </PageContainer>
+    </main>
   );
 }
 

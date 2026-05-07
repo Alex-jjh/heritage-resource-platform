@@ -4,18 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { apiClient, ApiError } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
+import { PageContainer } from "@/components/page-container";
+import { ResourceCard } from "@/components/resource-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import type { User } from "@/types";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -57,13 +51,13 @@ function ProfileAvatarPreview({
       <img
         src={avatarUrl}
         alt={displayName}
-        className="h-20 w-20 rounded-full border object-cover"
+        className="h-16 w-16 rounded-full border border-border object-cover"
       />
     );
   }
 
   return (
-    <div className="flex h-20 w-20 items-center justify-center rounded-full border bg-muted text-2xl font-semibold text-foreground">
+    <div className="flex h-16 w-16 items-center justify-center rounded-full border border-border bg-secondary/60 font-serif text-2xl font-semibold text-foreground">
       {initials}
     </div>
   );
@@ -273,22 +267,29 @@ function ProfileContent() {
     setIsEditing(false);
   }
 
-  return (
-    <main className="px-6 py-8 sm:px-10 lg:px-20 xl:px-32">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>My Profile</CardTitle>
-            <CardDescription>
-              Manage your account details and public contributor profile.
-            </CardDescription>
-          </CardHeader>
+  const disabled = !isEditing || isSaving || isUploadingAvatar;
 
-          <CardContent className="space-y-6">
+  return (
+    <main>
+      <PageContainer
+        narrow
+        eyebrow="Account"
+        title="Profile"
+        lede="Manage your account details and public contributor profile."
+      >
+        <div className="space-y-8">
+          <section className="rounded-2xl border border-border bg-white p-8 shadow-[var(--shadow-heritage-card)] lg:p-10">
+            <div className="mb-8">
+              <h2 className="font-serif text-[1.6rem] font-medium">My Profile</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Manage your account details and public contributor profile.
+              </p>
+            </div>
+
             {error && (
               <div
                 role="alert"
-                className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+                className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700"
               >
                 {error}
               </div>
@@ -297,7 +298,7 @@ function ProfileContent() {
             {success && (
               <div
                 role="status"
-                className="rounded-md bg-green-50 p-3 text-sm text-green-700"
+                className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700"
               >
                 {success}
               </div>
@@ -311,19 +312,15 @@ function ProfileContent() {
 
               <div className="min-w-0 flex-1 space-y-2">
                 <div>
-                  <p className="text-lg font-semibold">{previewName}</p>
+                  <p className="font-serif text-xl font-medium">{previewName}</p>
                   <p className="text-sm text-muted-foreground">{user.email}</p>
                 </div>
 
-                <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                  <span>Role: {roleLabel}</span>
-                  <span>•</span>
-                  <span>
-                    Public profile: {profilePublic ? "Visible" : "Private"}
-                  </span>
-                  <span>•</span>
-                  <span>Email display: {showEmail ? "Shown" : "Hidden"}</span>
-                </div>
+                <p className="text-sm text-muted-foreground">
+                  Role: {roleLabel} / Public profile:{" "}
+                  {profilePublic ? "Visible" : "Hidden"} / Email display:{" "}
+                  {showEmail ? "Shown" : "Hidden"}
+                </p>
 
                 {selectedAvatarFile && (
                   <p className="text-xs text-muted-foreground">
@@ -333,19 +330,19 @@ function ProfileContent() {
               </div>
             </div>
 
-            <div className="grid gap-5">
-              <div className="space-y-2">
+            <div className="mt-8 grid gap-5">
+              <div>
                 <Label htmlFor="display-name">Display Name</Label>
                 <Input
                   id="display-name"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  disabled={!isEditing || isSaving || isUploadingAvatar}
+                  disabled={disabled}
                 />
               </div>
 
-              <div className="space-y-3 rounded-md border p-4">
-                <div className="space-y-2">
+              <div className="space-y-5 rounded-2xl border border-border p-4">
+                <div>
                   <Label htmlFor="avatar-file">Upload Avatar Image</Label>
 
                   <input
@@ -354,7 +351,7 @@ function ProfileContent() {
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     onChange={handleAvatarFileChange}
-                    disabled={!isEditing || isSaving || isUploadingAvatar}
+                    disabled={disabled}
                     className="hidden"
                   />
 
@@ -363,7 +360,7 @@ function ProfileContent() {
                       type="button"
                       variant="outline"
                       onClick={() => fileInputRef.current?.click()}
-                      disabled={!isEditing || isSaving || isUploadingAvatar}
+                      disabled={disabled}
                     >
                       Choose File
                     </Button>
@@ -379,29 +376,29 @@ function ProfileContent() {
                         type="button"
                         variant="ghost"
                         onClick={clearSelectedAvatar}
-                        disabled={!isEditing || isSaving || isUploadingAvatar}
+                        disabled={disabled}
                       >
                         Remove Selection
                       </Button>
                     )}
                   </div>
 
-                  <p className="text-xs text-muted-foreground">
+                  <p className="mt-2 text-xs text-muted-foreground">
                     Choose a JPG, PNG, or WEBP image from your computer. Maximum
                     size: 5MB.
                   </p>
                 </div>
 
-                <div className="space-y-2">
+                <div>
                   <Label htmlFor="avatar-url">Avatar URL (optional)</Label>
                   <Input
                     id="avatar-url"
                     placeholder="https://example.com/avatar.png"
                     value={avatarUrl}
                     onChange={(e) => setAvatarUrl(e.target.value)}
-                    disabled={!isEditing || isSaving || isUploadingAvatar}
+                    disabled={disabled}
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="mt-2 text-xs text-muted-foreground">
                     You can still set an avatar by URL. If you also choose a
                     local file, the uploaded file will take precedence when you
                     save.
@@ -409,7 +406,7 @@ function ProfileContent() {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div>
                 <Label htmlFor="new-password">New Password</Label>
                 <Input
                   id="new-password"
@@ -417,14 +414,14 @@ function ProfileContent() {
                   placeholder="Leave blank to keep current password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  disabled={!isEditing || isSaving || isUploadingAvatar}
+                  disabled={disabled}
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="mt-2 text-xs text-muted-foreground">
                   Password must be at least 8 characters.
                 </p>
               </div>
 
-              <div className="space-y-2">
+              <div>
                 <Label htmlFor="bio">Bio</Label>
                 <Textarea
                   id="bio"
@@ -432,97 +429,115 @@ function ProfileContent() {
                   placeholder="Tell others a little about yourself..."
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
-                  disabled={!isEditing || isSaving || isUploadingAvatar}
+                  disabled={disabled}
                 />
               </div>
 
-              <div className="space-y-3 rounded-md border p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="font-medium">Public contributor profile</p>
-                    <p className="text-sm text-muted-foreground">
-                      When enabled, other users can open your contributor page
-                      from resources and comments.
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={profilePublic}
-                    onChange={(e) => setProfilePublic(e.target.checked)}
-                    disabled={!isEditing || isSaving || isUploadingAvatar}
-                    className="mt-1 h-4 w-4"
-                  />
-                </div>
+              <ToggleRow
+                title="Public contributor profile"
+                helper="When enabled, other users can open your contributor page from resources and comments."
+                checked={profilePublic}
+                disabled={disabled}
+                onChange={setProfilePublic}
+              />
 
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="font-medium">Show email on public profile</p>
-                    <p className="text-sm text-muted-foreground">
-                      Your email will only be shown if your public profile is
-                      visible.
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={showEmail}
-                    onChange={(e) => setShowEmail(e.target.checked)}
-                    disabled={
-                      !isEditing ||
-                      isSaving ||
-                      isUploadingAvatar ||
-                      !profilePublic
-                    }
-                    className="mt-1 h-4 w-4"
-                  />
-                </div>
-              </div>
+              <ToggleRow
+                title="Show email on public profile"
+                helper="Your email will only be shown if your public profile is visible."
+                checked={showEmail}
+                disabled={disabled || !profilePublic}
+                onChange={setShowEmail}
+              />
             </div>
-          </CardContent>
 
-          <CardFooter className="flex flex-wrap justify-between gap-3">
-            <div className="flex gap-2">
-              {!isEditing ? (
-                <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
-              ) : (
-                <>
-                  <Button
-                    onClick={handleSave}
-                    disabled={isSaving || isUploadingAvatar}
-                  >
-                    {isSaving || isUploadingAvatar
-                      ? "Saving..."
-                      : "Save Changes"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleCancel}
-                    disabled={isSaving || isUploadingAvatar}
-                  >
-                    Cancel
-                  </Button>
-                </>
+            <div className="mt-8 flex flex-wrap justify-between gap-3 border-t border-border pt-5">
+              <div className="flex gap-2">
+                {!isEditing ? (
+                  <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
+                ) : (
+                  <>
+                    <Button
+                      onClick={handleSave}
+                      disabled={isSaving || isUploadingAvatar}
+                    >
+                      {isSaving || isUploadingAvatar
+                        ? "Saving..."
+                        : "Save Changes"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleCancel}
+                      disabled={isSaving || isUploadingAvatar}
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                )}
+              </div>
+
+              {user.role === "REGISTERED_VIEWER" && !user.contributorRequested && (
+                <Button
+                  variant="secondary"
+                  onClick={handleRequestContributor}
+                  disabled={isRequesting || isSaving || isUploadingAvatar}
+                >
+                  {isRequesting ? "Submitting..." : "Request Contributor Access"}
+                </Button>
+              )}
+
+              {user.role === "REGISTERED_VIEWER" && user.contributorRequested && (
+                <span className="text-sm text-muted-foreground">
+                  Contributor request pending review.
+                </span>
               )}
             </div>
+          </section>
 
-            {user.role === "REGISTERED_VIEWER" && !user.contributorRequested && (
-              <Button
-                variant="secondary"
-                onClick={handleRequestContributor}
-                disabled={isRequesting || isSaving || isUploadingAvatar}
-              >
-                {isRequesting ? "Submitting..." : "Request Contributor Access"}
-              </Button>
-            )}
-
-            {user.role === "REGISTERED_VIEWER" && user.contributorRequested && (
-              <span className="text-sm text-muted-foreground">
-                Contributor request pending review.
-              </span>
-            )}
-          </CardFooter>
-        </Card>
-      </div>
+          {profilePublic && user.publishedResources && user.publishedResources.length > 0 && (
+            <section>
+              <h2 className="font-serif text-[1.6rem] font-medium">
+                Published Resources
+              </h2>
+              <div className="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {user.publishedResources.map((resource) => (
+                  <ResourceCard key={resource.id} resource={resource} />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      </PageContainer>
     </main>
+  );
+}
+
+function ToggleRow({
+  title,
+  helper,
+  checked,
+  disabled,
+  onChange,
+}: {
+  title: string;
+  helper: string;
+  checked: boolean;
+  disabled: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex items-start justify-between gap-4 rounded-lg border border-border px-4 py-4">
+      <span>
+        <span className="block text-sm font-medium">{title}</span>
+        <span className="mt-1 block text-sm text-muted-foreground">{helper}</span>
+      </span>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        disabled={disabled}
+        className="mt-1 h-4 w-4 accent-accent"
+      />
+    </label>
   );
 }
 
