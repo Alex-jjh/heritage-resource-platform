@@ -64,3 +64,8 @@ infra/.terraform.lock.hcl
 
 .claude/
 backend/all_backend_code.txt
+
+# ========================
+# Kiro (IDE workspace config)
+# ========================
+.kiro/
