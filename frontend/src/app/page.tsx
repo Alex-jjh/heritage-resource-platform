@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -43,7 +43,7 @@ const seasons = [
     plate: "Plate II",
     caption: "Heian-jingu at peak bloom, Kyoto.",
     note: "Selected for the spring edition.",
-    image: "/heritage/seasons/spring.jpg",
+    image: "/heritage/seasons/spring.webp",
   },
   {
     key: "summer",
@@ -54,7 +54,7 @@ const seasons = [
     plate: "Plate I",
     caption: "The Flavian Amphitheatre, Rome.",
     note: "Selected for the inaugural collection.",
-    image: "/heritage/seasons/summer.jpg",
+    image: "/heritage/seasons/summer.webp",
   },
   {
     key: "autumn",
@@ -65,7 +65,7 @@ const seasons = [
     plate: "Plate III",
     caption: "White-steepled chapel amid New England foliage.",
     note: "Selected for the autumn edition.",
-    image: "/heritage/seasons/autumn.jpg",
+    image: "/heritage/seasons/autumn.webp",
   },
   {
     key: "winter",
@@ -76,18 +76,18 @@ const seasons = [
     plate: "Plate IV",
     caption: "Aurora borealis over a lone Icelandic farmhouse.",
     note: "Selected for the winter edition.",
-    image: "/heritage/seasons/winter.jpg",
+    image: "/heritage/seasons/winter.webp",
   },
 ];
 
 const retainedResourceImages = [
   {
     match: "shibuya crossing",
-    image: "/heritage/prototype/Shibuya_Crossing__Aerial.jpg",
+    image: "/heritage/prototype/Shibuya_Crossing__Aerial.webp",
   },
   {
     match: "colosseum",
-    image: "/heritage/prototype/colloseum.jpg",
+    image: "/heritage/prototype/colloseum.webp",
   },
 ];
 

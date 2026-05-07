@@ -2,11 +2,7 @@
   "source": {
     "archive": "C:/Users/admin/Downloads/Redesign Heritage Platform Homepage.zip",
     "prototypeFile": "src/app/App.tsx",
-    "note": "Original featured resource metadata extracted from the Figma Make prototype for local database injection."
-  },
-  "recommendedContributor": {
-    "displayName": "KULUXY",
-    "email": "kuluxy@126.com"
+    "note": "Original featured resource metadata extracted from the Figma Make prototype for optional local demo setup."
   },
   "recommendedStatus": {
     "status": "APPROVED",
@@ -29,7 +25,7 @@
       "category": "Modern Heritage",
       "place": "Tokyo, Japan",
       "tags": ["Urban", "Asia"],
-      "imageAsset": "/heritage/prototype/Shibuya_Crossing__Aerial.jpg",
+      "imageAsset": "/heritage/prototype/Shibuya_Crossing__Aerial.webp",
       "year": "1973",
       "description": "An aerial study of the world's busiest intersection - a living archive of post-war urbanism, ritual, and the choreography of the everyday.",
       "copyrightDeclaration": "Educational and archival use. Contributor confirms source permission or public-domain eligibility for submitted descriptive metadata."
@@ -41,7 +37,7 @@
       "category": "Historical Sites",
       "place": "Rome, Italy",
       "tags": ["Ancient", "Europe"],
-      "imageAsset": "/heritage/prototype/colloseum.jpg",
+      "imageAsset": "/heritage/prototype/colloseum.webp",
       "year": "80 AD",
       "description": "The Flavian Amphitheatre - a monumental witness to Roman engineering, civic spectacle, and two millennia of preservation.",
       "copyrightDeclaration": "Educational and archival use. Contributor confirms source permission or public-domain eligibility for submitted descriptive metadata."
