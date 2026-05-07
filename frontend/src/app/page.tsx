@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -141,11 +141,44 @@ function getResourceHref(resource: HomeResource) {
   return resource.resourceId ? `/resources/${resource.resourceId}` : "/browse";
 }
 
+function useReplayOnView<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const [replayKey, setReplayKey] = useState(0);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+
+    let wasVisible = false;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !wasVisible) {
+          setReplayKey((key) => key + 1);
+          wasVisible = true;
+        }
+
+        if (!entry.isIntersecting) {
+          wasVisible = false;
+        }
+      },
+      { rootMargin: "-12% 0px -12% 0px", threshold: 0.32 }
+    );
+
+    observer.observe(node);
+
+    return () => observer.disconnect();
+  }, []);
+
+  return [ref, replayKey] as const;
+}
+
 export default function Home() {
   const { isAuthenticated } = useAuth();
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [activeSeason, setActiveSeason] = useState(0);
   const season = seasons[activeSeason];
+  const [heroReplayRef, heroReplayKey] = useReplayOnView<HTMLElement>();
+  const [quoteReplayRef, quoteReplayKey] = useReplayOnView<HTMLElement>();
 
   const featuredQuery = useQuery({
     queryKey: ["featured-resources"],
@@ -185,16 +218,27 @@ export default function Home() {
 
   return (
     <main className="relative z-[2] min-h-screen bg-background">
-      <section className="relative flex h-[100vh] min-h-[720px] items-end overflow-hidden bg-primary">
+      <section
+        ref={heroReplayRef}
+        className="relative flex h-[100vh] min-h-[720px] items-end overflow-hidden bg-primary"
+      >
         <div
-          key={season.key}
-          className="homepage-season-image absolute inset-0"
+          key={`${season.key}-${heroReplayKey}`}
+          className={`homepage-season-image homepage-season-image-${season.key} absolute inset-0`}
           style={{ backgroundImage: `url('${season.image}')` }}
+        />
+        <div
+          key={`motion-${season.key}-${heroReplayKey}`}
+          className={`homepage-season-motion homepage-season-motion-${season.key}`}
+        />
+        <div
+          key={`detail-${season.key}-${heroReplayKey}`}
+          className={`homepage-season-detail homepage-season-detail-${season.key}`}
         />
 
         <svg
           aria-hidden
-          className="homepage-wave absolute inset-0 h-full w-full pointer-events-none opacity-60 mix-blend-soft-light"
+          className="homepage-wave pointer-events-none absolute inset-0 z-[2] h-full w-full opacity-60 mix-blend-soft-light"
           xmlns="http://www.w3.org/2000/svg"
           preserveAspectRatio="none"
           viewBox="0 0 1440 900"
@@ -209,8 +253,8 @@ export default function Home() {
           <path className="homepage-wave-path-b" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="1" />
         </svg>
 
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/20 via-primary/40 to-primary" />
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/85 via-primary/30 to-transparent" />
+        <div className="absolute inset-0 z-[3] bg-gradient-to-b from-primary/10 via-primary/28 to-primary/90" />
+        <div className="absolute inset-0 z-[3] bg-gradient-to-r from-primary/78 via-primary/22 to-transparent" />
 
         <div
           className="absolute top-4 left-6 right-6 z-10 flex items-start justify-between text-white/70 lg:left-10 lg:right-10"
@@ -228,7 +272,10 @@ export default function Home() {
 
         <div className="relative z-10 mx-auto w-full max-w-[1400px] px-6 pb-20 lg:px-10 lg:pb-28">
           <div className="grid grid-cols-12 items-end gap-6">
-            <div className="homepage-enter col-span-12 lg:col-span-8">
+            <div
+              key={`hero-copy-${heroReplayKey}`}
+              className="homepage-enter col-span-12 lg:col-span-8"
+            >
               <div className="mb-8 flex items-center gap-3">
                 <span className="h-px w-12 bg-accent" />
                 <span
@@ -292,7 +339,10 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="homepage-enter hidden text-white lg:col-span-4 lg:block">
+            <div
+              key={`hero-stats-${heroReplayKey}`}
+              className="homepage-enter hidden text-white lg:col-span-4 lg:block"
+            >
               <div className="space-y-8 border-l border-white/20 pl-8">
                 <div>
                   <div
@@ -440,8 +490,14 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden bg-background py-28 lg:py-40">
-        <div className="relative mx-auto max-w-[1100px] px-6 text-center lg:px-10">
+      <section
+        ref={quoteReplayRef}
+        className="relative overflow-hidden bg-background py-28 lg:py-40"
+      >
+        <div
+          key={`quote-${quoteReplayKey}`}
+          className="homepage-quote-enter relative mx-auto max-w-[1100px] px-6 text-center lg:px-10"
+        >
           <Quote className="mx-auto mb-10 h-10 w-10 text-accent" strokeWidth={1.5} />
           <blockquote
             className="font-serif text-foreground"
