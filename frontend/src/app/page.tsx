@@ -905,10 +905,10 @@ type ParticleConfig = {
 
 const particleConfigs: Record<SeasonKey, ParticleConfig> = {
   spring: {
-    minCount: 30,
-    maxCount: 58,
-    countWidthDivisor: 27,
-    reducedCount: 20,
+    minCount: 18,
+    maxCount: 32,
+    countWidthDivisor: 48,
+    reducedCount: 12,
     size: [3.2, 6.3],
     speed: [15, 34],
     wind: [8, 30],
@@ -919,10 +919,10 @@ const particleConfigs: Record<SeasonKey, ParticleConfig> = {
     mixBlend: "screen",
   },
   summer: {
-    minCount: 30,
-    maxCount: 58,
-    countWidthDivisor: 27,
-    reducedCount: 20,
+    minCount: 18,
+    maxCount: 32,
+    countWidthDivisor: 48,
+    reducedCount: 12,
     size: [3.0, 5.9],
     speed: [15, 34],
     wind: [8, 30],
@@ -933,10 +933,10 @@ const particleConfigs: Record<SeasonKey, ParticleConfig> = {
     mixBlend: "screen",
   },
   autumn: {
-    minCount: 30,
-    maxCount: 58,
-    countWidthDivisor: 27,
-    reducedCount: 20,
+    minCount: 18,
+    maxCount: 32,
+    countWidthDivisor: 48,
+    reducedCount: 12,
     size: [3.1, 6.1],
     speed: [15, 34],
     wind: [8, 30],
@@ -944,13 +944,13 @@ const particleConfigs: Record<SeasonKey, ParticleConfig> = {
     blur: [0, 0.5],
     sway: [7, 24],
     gust: [4, 18],
-    mixBlend: "soft-light",
+    mixBlend: "screen",
   },
   winter: {
-    minCount: 34,
-    maxCount: 64,
-    countWidthDivisor: 25,
-    reducedCount: 24,
+    minCount: 20,
+    maxCount: 36,
+    countWidthDivisor: 44,
+    reducedCount: 14,
     size: [1.8, 4.8],
     speed: [9, 24],
     wind: [-6, 8],
@@ -1043,9 +1043,6 @@ function SeasonalParticleCanvas({ seasonKey }: { seasonKey: SeasonKey }) {
       ctx.translate(particle.x, particle.y);
       ctx.rotate(particle.rotation + flutter * 0.45);
       ctx.scale(flip, 1);
-      ctx.filter = particle.blur > 0.28 && particle.z > 0.72
-        ? `blur(${particle.blur}px)`
-        : "none";
 
       ctx.fillStyle = particle.tint > 0.55
         ? "rgba(255, 198, 218, 0.92)"
@@ -1078,7 +1075,6 @@ function SeasonalParticleCanvas({ seasonKey }: { seasonKey: SeasonKey }) {
       ctx.globalAlpha = particle.opacity;
       ctx.translate(particle.x, particle.y);
       ctx.rotate(particle.rotation * 0.45);
-      ctx.filter = particle.z > 0.72 ? `blur(${particle.blur}px)` : "none";
       const gradient = ctx.createRadialGradient(
         0,
         0,
@@ -1095,7 +1091,6 @@ function SeasonalParticleCanvas({ seasonKey }: { seasonKey: SeasonKey }) {
       ctx.arc(0, 0, glow, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.filter = "none";
       ctx.strokeStyle = "rgba(255, 246, 196, 0.58)";
       ctx.lineWidth = Math.max(0.45, radius * 0.38);
       ctx.lineCap = "round";
@@ -1156,9 +1151,6 @@ function SeasonalParticleCanvas({ seasonKey }: { seasonKey: SeasonKey }) {
       ctx.globalAlpha = particle.opacity;
       ctx.translate(particle.x, particle.y);
       ctx.rotate(particle.rotation);
-      ctx.filter = particle.blur > 0.25 && particle.z > 0.75
-        ? `blur(${particle.blur}px)`
-        : "none";
       ctx.fillStyle = particle.tint > 0.66
         ? "rgba(190, 63, 35, 0.88)"
         : particle.tint > 0.33
@@ -1222,9 +1214,6 @@ function SeasonalParticleCanvas({ seasonKey }: { seasonKey: SeasonKey }) {
       ctx.globalAlpha = particle.opacity;
       ctx.translate(particle.x, particle.y);
       ctx.rotate(particle.rotation);
-      ctx.filter = particle.blur > 0.4 && particle.z > 0.74
-        ? `blur(${particle.blur}px)`
-        : "none";
 
       if (!crystalline) {
         const radius = Math.max(0.7, s * (0.28 + particle.z * 0.2));
@@ -1239,7 +1228,6 @@ function SeasonalParticleCanvas({ seasonKey }: { seasonKey: SeasonKey }) {
         ctx.arc(0, 0, glow, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.filter = "none";
         ctx.globalAlpha = particle.opacity * 0.74;
         ctx.fillStyle = "rgba(249, 253, 255, 0.86)";
         ctx.beginPath();
@@ -1312,11 +1300,17 @@ function SeasonalParticleCanvas({ seasonKey }: { seasonKey: SeasonKey }) {
     function animate(now: number) {
       if (paused) {
         lastTime = now;
-        frameId = window.requestAnimationFrame(animate);
+        // Poll with a coarse timer while paused instead of hammering rAF.
+        window.setTimeout(
+          () => {
+            frameId = window.requestAnimationFrame(animate);
+          },
+          250
+        );
         return;
       }
 
-      const delta = Math.min(48, now - lastTime) / 1000;
+      const delta = Math.min(33, now - lastTime) / 1000;
       lastTime = now;
 
       ctx.clearRect(0, 0, width, height);
@@ -1367,16 +1361,35 @@ function SeasonalParticleCanvas({ seasonKey }: { seasonKey: SeasonKey }) {
 
     resize();
     window.addEventListener("resize", resize);
+
+    let offscreenPaused = false;
     const handleVisibilityChange = () => {
-      paused = document.hidden;
+      paused = document.hidden || offscreenPaused;
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Pause animation when the hero is off-screen so scrolling feels cheap.
+    let intersectionObserver: IntersectionObserver | null = null;
+    if (typeof window !== "undefined" && "IntersectionObserver" in window) {
+      intersectionObserver = new IntersectionObserver(
+        ([entry]) => {
+          offscreenPaused = !entry.isIntersecting;
+          paused = offscreenPaused || document.hidden;
+        },
+        { threshold: 0 }
+      );
+      intersectionObserver.observe(petalCanvas);
+    }
+
     frameId = window.requestAnimationFrame(animate);
 
     return () => {
       window.cancelAnimationFrame(frameId);
       window.removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (intersectionObserver) {
+        intersectionObserver.disconnect();
+      }
     };
   }, [seasonKey]);
 
