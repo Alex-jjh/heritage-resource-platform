@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Archive } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import type { UserRole } from "@/types";
+import type { MouseEvent } from "react";
 
 type FooterLink = {
   label: string;
@@ -20,7 +21,7 @@ const archiveLinks: FooterLink[] = [
 
 const communityLinks: FooterLink[] = [
   { label: "Browse Comments", href: "/my-comments" },
-  { label: "Contributor Profiles", href: "/browse" },
+  { label: "Contributor Profiles", href: "/profile" },
   {
     label: "Add Draft",
     href: "/contribute/new",
@@ -60,10 +61,18 @@ function FooterColumn({
   links: FooterLink[];
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user } = useAuth();
 
   function handleRestrictedClick() {
     router.push("/#site-footer");
+  }
+
+  function handleFooterLinkClick(event: MouseEvent<HTMLAnchorElement>, href: string) {
+    if (pathname !== href) return;
+
+    event.preventDefault();
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   return (
@@ -86,6 +95,7 @@ function FooterColumn({
               {allowed ? (
                 <Link
                   href={link.href}
+                  onClick={(event) => handleFooterLinkClick(event, link.href)}
                   className="transition-colors hover:text-accent"
                 >
                   {link.label}

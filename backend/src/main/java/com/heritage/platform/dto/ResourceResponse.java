@@ -1,5 +1,6 @@
 package com.heritage.platform.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.heritage.platform.model.ExternalLink;
 import com.heritage.platform.model.FileReference;
 import com.heritage.platform.model.Resource;
@@ -131,6 +132,7 @@ public class ResourceResponse {
     public Instant getUpdatedAt() { return updatedAt; }
     public Instant getApprovedAt() { return approvedAt; }
     public List<ReviewFeedbackDto> getReviewFeedbacks() { return reviewFeedbacks; }
+    @JsonProperty("isFeatured")
     public boolean isFeatured() { return isFeatured; }
     public String getFeaturedStatus() { return featuredStatus; }
 
