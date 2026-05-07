@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -33,7 +33,19 @@ type HomepageStats = {
   userCount: number;
 };
 
-const seasons = [
+type SeasonKey = "spring" | "summer" | "autumn" | "winter";
+
+const seasons: {
+  key: SeasonKey;
+  label: string;
+  year: string;
+  issue: string;
+  coords: string;
+  plate: string;
+  caption: string;
+  note: string;
+  image: string;
+}[] = [
   {
     key: "spring",
     label: "Spring",
@@ -234,6 +246,10 @@ export default function Home() {
         <div
           key={`detail-${season.key}-${heroReplayKey}`}
           className={`homepage-season-detail homepage-season-detail-${season.key}`}
+        />
+        <SeasonalParticleCanvas
+          key={`particles-${season.key}-${heroReplayKey}`}
+          seasonKey={season.key}
         />
 
         <svg
@@ -456,33 +472,61 @@ export default function Home() {
               icon: Archive,
               title: "Preserve Evidence",
               text: "Upload images, documents, oral histories, and supporting context with archival clarity.",
+              hoverClass: "hover:bg-[#071426]",
+              iconClass: "border-[#285768]/35 text-[#3f6f7d]",
+              effectClass: "homepage-feature-card-sea",
             },
             {
               num: "02",
               icon: Heart,
               title: "Curate With Care",
               text: "Community reviewers protect attribution, accuracy, and publication quality before records go live.",
+              hoverClass: "",
+              iconClass: "border-[#A86F66]/40 text-[#8C5B54]",
+              effectClass: "homepage-feature-card-rose",
             },
             {
               num: "03",
               icon: Compass,
               title: "Open Discovery",
               text: "Browse featured collections, categories, and places through an editorial museum-style archive.",
+              hoverClass: "",
+              iconClass: "border-[#7F9688]/40 text-[#667C6F]",
+              effectClass: "homepage-feature-card-jade",
             },
           ].map((item) => (
-            <div key={item.title} className="group bg-white p-10 transition-colors duration-500 hover:bg-primary hover:text-white lg:p-12">
-              <div className="mb-10 flex items-start justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-accent/40 transition-colors duration-500 group-hover:border-accent group-hover:bg-accent">
-                  <item.icon className="h-5 w-5 text-accent transition-colors duration-500 group-hover:text-white" />
+            <div
+              key={item.title}
+              className={`group relative overflow-hidden bg-white p-10 transition-colors duration-500 hover:text-white lg:p-12 ${item.hoverClass} ${item.effectClass}`}
+            >
+              {item.effectClass ? (
+                <div className="homepage-feature-card-field" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                  <span />
                 </div>
-                <span className="font-serif italic text-muted-foreground" style={{ fontSize: "1.5rem" }}>
+              ) : null}
+              <div className="relative z-10 mb-10 flex items-start justify-between">
+                <div
+                  className={`flex h-12 w-12 items-center justify-center rounded-full border bg-white/70 transition-colors duration-500 group-hover:border-white/35 group-hover:bg-white/15 ${item.iconClass}`}
+                >
+                  <item.icon className="h-5 w-5 transition-colors duration-500 group-hover:text-white" />
+                </div>
+                <span
+                  className="font-serif italic text-muted-foreground transition-colors duration-500 group-hover:text-white/65"
+                  style={{ fontSize: "1.5rem" }}
+                >
                   {item.num}
                 </span>
               </div>
-              <h3 className="mb-4 font-serif" style={{ fontSize: "1.875rem", fontWeight: 500, letterSpacing: "-0.01em" }}>
+              <h3 className="relative z-10 mb-4 font-serif" style={{ fontSize: "1.875rem", fontWeight: 500, letterSpacing: "-0.01em" }}>
                 {item.title}
               </h3>
-              <p className="text-muted-foreground group-hover:text-white/70" style={{ lineHeight: 1.75, fontSize: "0.95rem" }}>
+              <p
+                className="relative z-10 text-muted-foreground transition-colors duration-500 group-hover:text-white/78"
+                style={{ lineHeight: 1.75, fontSize: "0.95rem" }}
+              >
                 {item.text}
               </p>
             </div>
@@ -821,5 +865,527 @@ function FeatureTile({
         </div>
       </article>
     </Link>
+  );
+}
+
+type SeasonalParticle = {
+  x: number;
+  y: number;
+  z: number;
+  size: number;
+  speed: number;
+  wind: number;
+  gust: number;
+  sway: number;
+  phase: number;
+  phaseB: number;
+  wobbleRate: number;
+  wobbleRateB: number;
+  rotation: number;
+  rotationSpeed: number;
+  opacity: number;
+  tint: number;
+  blur: number;
+};
+
+type ParticleConfig = {
+  minCount: number;
+  maxCount: number;
+  countWidthDivisor: number;
+  reducedCount: number;
+  size: [number, number];
+  speed: [number, number];
+  wind: [number, number];
+  opacity: [number, number];
+  blur: [number, number];
+  sway: [number, number];
+  gust: [number, number];
+  mixBlend: CSSProperties["mixBlendMode"];
+};
+
+const particleConfigs: Record<SeasonKey, ParticleConfig> = {
+  spring: {
+    minCount: 30,
+    maxCount: 58,
+    countWidthDivisor: 27,
+    reducedCount: 20,
+    size: [3.2, 6.3],
+    speed: [15, 34],
+    wind: [8, 30],
+    opacity: [0.48, 0.84],
+    blur: [0, 0.52],
+    sway: [7, 24],
+    gust: [4, 18],
+    mixBlend: "screen",
+  },
+  summer: {
+    minCount: 30,
+    maxCount: 58,
+    countWidthDivisor: 27,
+    reducedCount: 20,
+    size: [3.0, 5.9],
+    speed: [15, 34],
+    wind: [8, 30],
+    opacity: [0.42, 0.8],
+    blur: [0.18, 0.78],
+    sway: [7, 24],
+    gust: [4, 18],
+    mixBlend: "screen",
+  },
+  autumn: {
+    minCount: 30,
+    maxCount: 58,
+    countWidthDivisor: 27,
+    reducedCount: 20,
+    size: [3.1, 6.1],
+    speed: [15, 34],
+    wind: [8, 30],
+    opacity: [0.44, 0.8],
+    blur: [0, 0.5],
+    sway: [7, 24],
+    gust: [4, 18],
+    mixBlend: "soft-light",
+  },
+  winter: {
+    minCount: 34,
+    maxCount: 64,
+    countWidthDivisor: 25,
+    reducedCount: 24,
+    size: [1.8, 4.8],
+    speed: [9, 24],
+    wind: [-6, 8],
+    opacity: [0.32, 0.78],
+    blur: [0.12, 1.15],
+    sway: [5, 16],
+    gust: [1, 7],
+    mixBlend: "screen",
+  },
+};
+
+function SeasonalParticleCanvas({ seasonKey }: { seasonKey: SeasonKey }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    const petalCanvas = canvas;
+    const ctx = context;
+
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
+    let frameId = 0;
+    let lastTime = performance.now();
+    let paused = false;
+    let particles: SeasonalParticle[] = [];
+    const config = particleConfigs[seasonKey];
+
+    const random = (min: number, max: number) =>
+      min + Math.random() * (max - min);
+
+    function createParticle(initial = false): SeasonalParticle {
+      const z = Math.random();
+      const size = random(config.size[0], config.size[1]) + z * 1.6;
+
+      return {
+        x: random(-width * 0.2, width * 1.08),
+        y: initial
+          ? random(-height * 0.18, height * 1.08)
+          : random(-height * 0.24, -20),
+        z,
+        size,
+        speed: random(config.speed[0], config.speed[1]) + z * 18,
+        wind: random(config.wind[0], config.wind[1]) + z * 18,
+        gust: random(config.gust[0], config.gust[1]),
+        sway: random(config.sway[0], config.sway[1]) + z * 12,
+        phase: random(0, Math.PI * 2),
+        phaseB: random(0, Math.PI * 2),
+        wobbleRate: random(0.45, 1.8),
+        wobbleRateB: random(0.22, 1.15),
+        rotation: random(0, Math.PI * 2),
+        rotationSpeed: random(-1.7, 1.7) * (0.35 + z),
+        opacity: random(config.opacity[0], config.opacity[1]),
+        tint: Math.random(),
+        blur: random(config.blur[0], config.blur[1]) * (0.5 + z),
+      };
+    }
+
+    function resize() {
+      const rect = petalCanvas.getBoundingClientRect();
+      width = rect.width;
+      height = rect.height;
+      dpr = Math.min(window.devicePixelRatio || 1, 1.35);
+
+      petalCanvas.width = Math.max(1, Math.floor(width * dpr));
+      petalCanvas.height = Math.max(1, Math.floor(height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const targetCount = reducedMotion.matches
+        ? config.reducedCount
+        : Math.min(
+            config.maxCount,
+            Math.max(config.minCount, Math.floor(width / config.countWidthDivisor))
+          );
+      particles = Array.from({ length: targetCount }, () => createParticle(true));
+    }
+
+    function drawSpringPetal(particle: SeasonalParticle, time: number) {
+      const flutter = Math.sin(time * 0.002 + particle.phase);
+      const flip = 0.55 + Math.abs(Math.sin(time * 0.003 + particle.phaseB)) * 0.7;
+      const s = particle.size;
+
+      ctx.save();
+      ctx.globalAlpha = particle.opacity;
+      ctx.translate(particle.x, particle.y);
+      ctx.rotate(particle.rotation + flutter * 0.45);
+      ctx.scale(flip, 1);
+      ctx.filter = particle.blur > 0.28 && particle.z > 0.72
+        ? `blur(${particle.blur}px)`
+        : "none";
+
+      ctx.fillStyle = particle.tint > 0.55
+        ? "rgba(255, 198, 218, 0.92)"
+        : "rgba(255, 238, 246, 0.94)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.48)";
+      ctx.lineWidth = 0.45;
+
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.95);
+      ctx.bezierCurveTo(s * 0.72, -s * 0.58, s * 0.68, s * 0.42, 0, s);
+      ctx.bezierCurveTo(-s * 0.62, s * 0.34, -s * 0.72, -s * 0.55, 0, -s * 0.95);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.globalAlpha = particle.opacity * 0.5;
+      ctx.fillStyle = "rgba(255, 214, 132, 0.72)";
+      ctx.beginPath();
+      ctx.arc(0, s * 0.2, Math.max(0.45, s * 0.12), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawSummerMote(particle: SeasonalParticle) {
+      const radius = particle.size * (0.26 + particle.z * 0.16);
+      const glow = radius * (2.5 + particle.z * 1.2);
+      const streak = particle.size * (0.7 + particle.z * 0.5);
+
+      ctx.save();
+      ctx.globalAlpha = particle.opacity;
+      ctx.translate(particle.x, particle.y);
+      ctx.rotate(particle.rotation * 0.45);
+      ctx.filter = particle.z > 0.72 ? `blur(${particle.blur}px)` : "none";
+      const gradient = ctx.createRadialGradient(
+        0,
+        0,
+        0,
+        0,
+        0,
+        glow
+      );
+      gradient.addColorStop(0, "rgba(255, 246, 184, 0.88)");
+      gradient.addColorStop(0.36, "rgba(255, 210, 94, 0.4)");
+      gradient.addColorStop(1, "rgba(255, 204, 105, 0)");
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(0, 0, glow, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.filter = "none";
+      ctx.strokeStyle = "rgba(255, 246, 196, 0.58)";
+      ctx.lineWidth = Math.max(0.45, radius * 0.38);
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(-streak * 0.28, -streak * 0.12);
+      ctx.lineTo(streak * 0.28, streak * 0.12);
+      ctx.stroke();
+
+      ctx.fillStyle = particle.tint > 0.5
+        ? "rgba(255, 249, 216, 0.86)"
+        : "rgba(255, 220, 122, 0.78)";
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawAutumnMaple(particle: SeasonalParticle) {
+      const s = particle.size * 1.08;
+      const leafPoints: [number, number][] = [
+        [0, -1.12],
+        [-0.08, -0.82],
+        [-0.18, -0.98],
+        [-0.2, -0.68],
+        [-0.36, -0.9],
+        [-0.34, -0.58],
+        [-0.56, -0.75],
+        [-0.46, -0.46],
+        [-0.78, -0.5],
+        [-0.55, -0.28],
+        [-0.86, -0.18],
+        [-0.54, -0.1],
+        [-0.68, 0.14],
+        [-0.38, 0.04],
+        [-0.4, 0.3],
+        [-0.18, 0.18],
+        [-0.08, 0.42],
+        [0, 0.24],
+        [0.08, 0.42],
+        [0.18, 0.18],
+        [0.4, 0.3],
+        [0.38, 0.04],
+        [0.68, 0.14],
+        [0.54, -0.1],
+        [0.86, -0.18],
+        [0.55, -0.28],
+        [0.78, -0.5],
+        [0.46, -0.46],
+        [0.56, -0.75],
+        [0.34, -0.58],
+        [0.36, -0.9],
+        [0.2, -0.68],
+        [0.18, -0.98],
+        [0.08, -0.82],
+      ];
+
+      ctx.save();
+      ctx.globalAlpha = particle.opacity;
+      ctx.translate(particle.x, particle.y);
+      ctx.rotate(particle.rotation);
+      ctx.filter = particle.blur > 0.25 && particle.z > 0.75
+        ? `blur(${particle.blur}px)`
+        : "none";
+      ctx.fillStyle = particle.tint > 0.66
+        ? "rgba(190, 63, 35, 0.88)"
+        : particle.tint > 0.33
+          ? "rgba(225, 46, 42, 0.86)"
+          : "rgba(242, 105, 54, 0.82)";
+      ctx.strokeStyle = "rgba(116, 25, 28, 0.32)";
+      ctx.lineWidth = 0.36;
+
+      ctx.beginPath();
+      leafPoints.forEach(([x, y], index) => {
+        if (index === 0) {
+          ctx.moveTo(x * s, y * s);
+        } else {
+          ctx.lineTo(x * s, y * s);
+        }
+      });
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      const veinOriginY = s * 0.22;
+
+      ctx.globalAlpha = particle.opacity * 0.5;
+      ctx.strokeStyle = "rgba(255, 176, 132, 0.58)";
+      ctx.lineWidth = 0.34;
+      ctx.beginPath();
+      ctx.moveTo(0, veinOriginY);
+      ctx.lineTo(0, -s * 0.92);
+      [
+        [-0.18, -0.8],
+        [-0.36, -0.7],
+        [-0.58, -0.48],
+        [-0.66, -0.16],
+        [-0.28, 0.16],
+        [0.28, 0.16],
+        [0.66, -0.16],
+        [0.58, -0.48],
+        [0.36, -0.7],
+        [0.18, -0.8],
+      ].forEach(([x, y]) => {
+        ctx.moveTo(0, veinOriginY);
+        ctx.lineTo(x * s, y * s);
+      });
+      ctx.stroke();
+
+      ctx.globalAlpha = particle.opacity * 0.64;
+      ctx.strokeStyle = "rgba(126, 16, 38, 0.62)";
+      ctx.lineWidth = 0.55;
+      ctx.beginPath();
+      ctx.moveTo(0, s * 0.24);
+      ctx.bezierCurveTo(-s * 0.03, s * 0.44, -s * 0.05, s * 0.66, -s * 0.08, s * 0.94);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawWinterSnow(particle: SeasonalParticle) {
+      const s = particle.size;
+      const crystalline = particle.z > 0.78 && particle.tint > 0.58;
+
+      ctx.save();
+      ctx.globalAlpha = particle.opacity;
+      ctx.translate(particle.x, particle.y);
+      ctx.rotate(particle.rotation);
+      ctx.filter = particle.blur > 0.4 && particle.z > 0.74
+        ? `blur(${particle.blur}px)`
+        : "none";
+
+      if (!crystalline) {
+        const radius = Math.max(0.7, s * (0.28 + particle.z * 0.2));
+        const glow = radius * (2.4 + particle.z * 1.8);
+        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, glow);
+        gradient.addColorStop(0, "rgba(255, 255, 255, 0.92)");
+        gradient.addColorStop(0.38, "rgba(235, 249, 255, 0.52)");
+        gradient.addColorStop(1, "rgba(235, 249, 255, 0)");
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, glow, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.filter = "none";
+        ctx.globalAlpha = particle.opacity * 0.74;
+        ctx.fillStyle = "rgba(249, 253, 255, 0.86)";
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        return;
+      }
+
+      ctx.globalAlpha = particle.opacity * 0.7;
+      ctx.strokeStyle = "rgba(246, 253, 255, 0.84)";
+      ctx.lineWidth = Math.max(0.36, s * 0.075);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      for (let i = 0; i < 6; i += 1) {
+        ctx.save();
+        ctx.rotate((Math.PI * 2 * i) / 6);
+
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, -s * 0.88);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, -s * 0.48);
+        ctx.lineTo(-s * 0.14, -s * 0.64);
+        ctx.moveTo(0, -s * 0.48);
+        ctx.lineTo(s * 0.14, -s * 0.64);
+        ctx.moveTo(0, -s * 0.68);
+        ctx.lineTo(-s * 0.1, -s * 0.8);
+        ctx.moveTo(0, -s * 0.68);
+        ctx.lineTo(s * 0.1, -s * 0.8);
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      ctx.globalAlpha = particle.opacity * 0.42;
+      ctx.strokeStyle = "rgba(216, 243, 255, 0.42)";
+      ctx.lineWidth = Math.max(0.3, s * 0.05);
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.36, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(255, 255, 255, 0.86)";
+      ctx.beginPath();
+      ctx.arc(0, 0, Math.max(0.45, s * 0.1), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawParticle(particle: SeasonalParticle, time: number) {
+      if (seasonKey === "spring") {
+        drawSpringPetal(particle, time);
+      } else if (seasonKey === "summer") {
+        drawSummerMote(particle);
+      } else if (seasonKey === "autumn") {
+        drawAutumnMaple(particle);
+      } else {
+        drawWinterSnow(particle);
+      }
+    }
+
+    function resetParticle(particle: SeasonalParticle) {
+      Object.assign(particle, createParticle(false));
+      particle.x = random(-width * 0.22, width * 0.72);
+    }
+
+    function animate(now: number) {
+      if (paused) {
+        lastTime = now;
+        frameId = window.requestAnimationFrame(animate);
+        return;
+      }
+
+      const delta = Math.min(48, now - lastTime) / 1000;
+      lastTime = now;
+
+      ctx.clearRect(0, 0, width, height);
+
+      for (const particle of particles) {
+        particle.phase += delta * particle.wobbleRate;
+        particle.phaseB += delta * particle.wobbleRateB;
+        particle.rotation += particle.rotationSpeed * delta;
+
+        const gust =
+          Math.sin(now * 0.00034 + particle.phaseB) * particle.gust +
+          Math.sin(now * 0.00017 + particle.phase + particle.y * 0.012) *
+            particle.gust *
+            0.55;
+
+        particle.x +=
+          (particle.wind + gust + Math.sin(particle.phase) * particle.sway * 0.08) *
+          delta;
+        particle.y +=
+          (particle.speed + Math.cos(particle.phaseB) * particle.sway * 0.08) *
+          delta;
+
+        const displayX =
+          particle.x +
+          Math.sin(particle.phase) * particle.sway +
+          Math.sin(particle.phaseB * 1.37) * particle.sway * 0.45;
+        const displayY =
+          particle.y + Math.cos(particle.phaseB) * particle.sway * 0.18;
+
+        const savedX = particle.x;
+        const savedY = particle.y;
+        particle.x = displayX;
+        particle.y = displayY;
+        drawParticle(particle, now);
+        particle.x = savedX;
+        particle.y = savedY;
+
+        const outOfBounds =
+          particle.y > height + 42 || particle.x > width + 96;
+
+        if (outOfBounds) {
+          resetParticle(particle);
+        }
+      }
+
+      frameId = window.requestAnimationFrame(animate);
+    }
+
+    resize();
+    window.addEventListener("resize", resize);
+    const handleVisibilityChange = () => {
+      paused = document.hidden;
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    frameId = window.requestAnimationFrame(animate);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [seasonKey]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-[6] h-full w-full"
+      style={{ mixBlendMode: particleConfigs[seasonKey].mixBlend }}
+    />
   );
 }

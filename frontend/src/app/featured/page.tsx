@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { StarOff } from "lucide-react";
+import { Star, StarOff } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { ProtectedRoute } from "@/components/protected-route";
@@ -27,11 +27,14 @@ function formatEnglishDate(value?: string | null) {
   });
 }
 
+function isResourceFeatured(resource: Pick<ResourceResponse, "isFeatured" | "featuredStatus">) {
+  return resource.isFeatured || resource.featuredStatus === "APPROVED";
+}
+
 function featuredStatusLabel(status?: FeaturedStatus | null, isFeatured?: boolean) {
-  if (isFeatured) return "Featured";
+  if (isFeatured || status === "APPROVED") return "Featured";
   if (!status || status === "NONE") return "Not Applied";
   if (status === "PENDING") return "Pending";
-  if (status === "APPROVED") return "Approved";
   if (status === "REJECTED") return "Rejected";
   return status;
 }
@@ -264,9 +267,10 @@ function FeaturedContent() {
                 ]}
               >
                 {myApprovedResources.map((resource) => {
+                  const alreadyFeatured = isResourceFeatured(resource);
                   const canApply =
                     resource.status === "APPROVED" &&
-                    !resource.isFeatured &&
+                    !alreadyFeatured &&
                     resource.featuredStatus !== "PENDING";
 
                   return (
@@ -280,7 +284,7 @@ function FeaturedContent() {
                           disabled={!canApply || isActing}
                           onClick={() => applyMutation.mutate(resource.id)}
                         >
-                          {resource.isFeatured || resource.featuredStatus === "APPROVED"
+                          {alreadyFeatured
                             ? "Featured"
                             : resource.featuredStatus === "PENDING"
                               ? "Application Pending"
@@ -361,7 +365,7 @@ function FeaturedContent() {
             <section>
               <SectionTitle
                 title="Manual Featured Selection"
-                helper="Manually pin approved resources to the homepage or remove them from featured placement."
+                helper="Manually pin approved resources to the homepage. Already featured resources are shown as unavailable."
               />
               {approvedResourcesQuery.isLoading ? (
                 <LoadingRows />
@@ -380,35 +384,35 @@ function FeaturedContent() {
                     ["Action", 1],
                   ]}
                 >
-                  {approvedResourcePool.map((resource) => (
-                    <TableRow key={resource.id}>
-                      <Cell span={3} title>{resource.title || "Untitled draft"}</Cell>
-                      <Cell span={2} muted>{resource.contributorName}</Cell>
-                      <Cell span={2} muted>{formatEnglishDate(resource.approvedAt)}</Cell>
-                      <Cell span={2}><StatusBadge status={resource.status} /></Cell>
-                      <Cell span={2}>{featuredStatusLabel(resource.featuredStatus, resource.isFeatured)}</Cell>
-                      <Cell span={1} right>
-                        {resource.isFeatured ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={isActing}
-                            onClick={() => unfeatureMutation.mutate(resource.id)}
-                          >
-                            Unfeature
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            disabled={isActing}
-                            onClick={() => featureMutation.mutate(resource.id)}
-                          >
-                            Feature
-                          </Button>
-                        )}
-                      </Cell>
-                    </TableRow>
-                  ))}
+                  {approvedResourcePool.map((resource) => {
+                    const alreadyFeatured = isResourceFeatured(resource);
+
+                    return (
+                      <TableRow key={resource.id}>
+                        <Cell span={3} title>{resource.title || "Untitled draft"}</Cell>
+                        <Cell span={2} muted>{resource.contributorName}</Cell>
+                        <Cell span={2} muted>{formatEnglishDate(resource.approvedAt)}</Cell>
+                        <Cell span={2}><StatusBadge status={resource.status} /></Cell>
+                        <Cell span={2}>{featuredStatusLabel(resource.featuredStatus, resource.isFeatured)}</Cell>
+                        <Cell span={1} right>
+                          {alreadyFeatured ? (
+                            <Button size="sm" variant="outline" disabled>
+                              <Star className="size-3.5" />
+                              Featured
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              disabled={isActing}
+                              onClick={() => featureMutation.mutate(resource.id)}
+                            >
+                              Feature
+                            </Button>
+                          )}
+                        </Cell>
+                      </TableRow>
+                    );
+                  })}
                 </TableCard>
               )}
             </section>
