@@ -50,7 +50,7 @@ public class AdminService {
         ReviewFeedback feedback = new ReviewFeedback();
         feedback.setResource(resource);
         feedback.setReviewer(admin);
-        feedback.setComments("This resource has been archived by admin");
+        feedback.setComments("");
         feedback.setDecision("ARCHIVED");
         reviewFeedbackRepository.save(feedback);
 
@@ -78,9 +78,7 @@ public class AdminService {
         ReviewFeedback feedback = new ReviewFeedback();
         feedback.setResource(resource);
         feedback.setReviewer(admin);
-        feedback.setComments(reason != null && !reason.isBlank()
-                ? reason
-                : "This resource has been unpublished by admin");
+        feedback.setComments(reason != null && !reason.isBlank() ? reason : "");
         feedback.setDecision("UNPUBLISHED");
         reviewFeedbackRepository.save(feedback);
 
@@ -113,21 +111,7 @@ public class AdminService {
     @Transactional(readOnly = true)
     public List<Resource> getArchivedResources() {
         List<Resource> resources = resourceRepository.findByStatusOrderByCreatedAtAsc(ResourceStatus.ARCHIVED);
-        resources.forEach(r -> {
-            if (r.getCategory() != null) r.getCategory().getName();
-            if (r.getTags() != null) r.getTags().size();
-            if (r.getFileReferences() != null) r.getFileReferences().size();
-            if (r.getExternalLinks() != null) r.getExternalLinks().size();
-            if (r.getReviewFeedbacks() != null) {
-                r.getReviewFeedbacks().size();
-                r.getReviewFeedbacks().forEach(feedback -> {
-                    if (feedback.getReviewer() != null) {
-                        feedback.getReviewer().getDisplayName();
-                    }
-                });
-            }
-            if (r.getContributor() != null) r.getContributor().getDisplayName();
-        });
+        resources.forEach(resourceService::initializeLazyAssociations);
         return resources;
     }
 }

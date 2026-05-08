@@ -179,6 +179,9 @@ html {
 }
 
 .heritage-glass-button {
+  /* Glass button palette contract:
+     --glass-ink controls text/icon color, --glass-border controls the rim,
+     --glass-a/b/c layer translucent tints, and --glass-glow controls shadow color. */
   --glass-ink: #1a2332;
   --glass-border: rgba(26, 35, 50, 0.14);
   --glass-a: rgba(255, 255, 255, 0.58);

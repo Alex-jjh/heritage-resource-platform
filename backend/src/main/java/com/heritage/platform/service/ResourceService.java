@@ -167,7 +167,10 @@ public class ResourceService {
 
         validateOwnership(resource, user);
 
-        initializeLazyAssociations(resource);
+        if (resource.getStatus() != ResourceStatus.DRAFT) {
+            throw new IllegalStateException("Only DRAFT resources can be deleted");
+        }
+
         resourceRepository.delete(resource);
     }
 
@@ -368,7 +371,7 @@ public class ResourceService {
         return saved;
     }
 
-    private void initializeLazyAssociations(Resource resource) {
+    public void initializeLazyAssociations(Resource resource) {
         if (resource.getCategory() != null) {
             resource.getCategory().getName();
         }

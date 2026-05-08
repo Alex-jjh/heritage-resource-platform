@@ -40,6 +40,8 @@ class SearchServiceTest {
 
     @Mock
     private ResourceRepository resourceRepository;
+    @Mock
+    private ResourceService resourceService;
 
     private SearchService searchService;
 
@@ -48,7 +50,7 @@ class SearchServiceTest {
 
     @BeforeEach
     void setUp() {
-        searchService = new SearchService(resourceRepository);
+        searchService = new SearchService(resourceRepository, resourceService);
 
         category = new Category();
         category.setId(UUID.randomUUID());

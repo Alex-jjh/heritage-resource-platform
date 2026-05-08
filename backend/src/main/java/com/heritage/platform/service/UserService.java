@@ -33,17 +33,20 @@ public class UserService {
     private final ResourceRepository resourceRepository;
     private final FileService fileService;
     private final PasswordEncoder passwordEncoder;
+    private final ResourceService resourceService;
 
     public UserService(
             UserRepository userRepository,
             ResourceRepository resourceRepository,
             FileService fileService,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            ResourceService resourceService
     ) {
         this.userRepository = userRepository;
         this.resourceRepository = resourceRepository;
         this.fileService = fileService;
         this.passwordEncoder = passwordEncoder;
+        this.resourceService = resourceService;
     }
 
     /**
@@ -211,21 +214,7 @@ public class UserService {
         List<Resource> publishedResources = resourceRepository.findByContributorId(userId)
                 .stream()
                 .filter(resource -> resource.getStatus() == ResourceStatus.APPROVED)
-                .peek(resource -> {
-                    if (resource.getCategory() != null) resource.getCategory().getName();
-                    if (resource.getTags() != null) resource.getTags().size();
-                    if (resource.getFileReferences() != null) resource.getFileReferences().size();
-                    if (resource.getExternalLinks() != null) resource.getExternalLinks().size();
-                    if (resource.getReviewFeedbacks() != null) {
-                        resource.getReviewFeedbacks().size();
-                        resource.getReviewFeedbacks().forEach(feedback -> {
-                            if (feedback.getReviewer() != null) {
-                                feedback.getReviewer().getDisplayName();
-                            }
-                        });
-                    }
-                    if (resource.getContributor() != null) resource.getContributor().getDisplayName();
-                })
+                .peek(resourceService::initializeLazyAssociations)
                 .toList();
 
         return UserProfileResponse.fromEntity(user, publishedResources);

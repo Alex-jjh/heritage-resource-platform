@@ -40,6 +40,8 @@ class UserServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+    @Mock
+    private ResourceService resourceService;
 
     private UserService userService;
 
@@ -49,7 +51,8 @@ class UserServiceTest {
                 userRepository,
                 resourceRepository,
                 fileService,
-                passwordEncoder
+                passwordEncoder,
+                resourceService
         );
     }
 

@@ -282,7 +282,6 @@ function ResourceListItem({
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     )
     .find((fb) => fb.decision === "UNPUBLISHED");
-  const wasPreviouslyApprovedDraft = isDraft && Boolean(resource.approvedAt);
 
   const shouldShowFeedback =
     latestFeedback?.decision === "REJECTED" && Boolean(latestRejectedFeedback);
@@ -410,16 +409,18 @@ function ResourceListItem({
               Awaiting reviewer
             </span>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2 border-rose-300 bg-rose-50/80 text-rose-700 hover:bg-rose-100 hover:text-rose-800 lg:mt-auto"
-            onClick={onRequestDelete}
-            disabled={isDeleting}
-          >
-            <Trash2 className="size-3.5" />
-            {isDeleting ? "Deleting..." : "Delete"}
-          </Button>
+          {isDraft && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2 border-rose-300 bg-rose-50/80 text-rose-700 hover:bg-rose-100 hover:text-rose-800 lg:mt-auto"
+              onClick={onRequestDelete}
+              disabled={isDeleting}
+            >
+              <Trash2 className="size-3.5" />
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -439,7 +440,7 @@ function ResourceListItem({
         </div>
       )}
 
-      {(latestUnpublishedFeedback || wasPreviouslyApprovedDraft) && (
+      {latestUnpublishedFeedback && (
         <div className="relative z-10 mt-5 space-y-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
           <div className="flex items-center gap-2 text-sm font-medium text-amber-800">
             <AlertTriangle className="size-4" />
@@ -448,12 +449,12 @@ function ResourceListItem({
           <div className="text-sm text-amber-800">
             <p className="leading-6">
               This resource has been unpublished by{" "}
-              {latestUnpublishedFeedback?.reviewerName || "admin"}.
+              {latestUnpublishedFeedback.reviewerName || "admin"}.
             </p>
             <p className="mt-1 text-[0.65rem] uppercase tracking-[0.12em] text-amber-600">
               UNPUBLISHED /{" "}
               {formatEnglishDate(
-                latestUnpublishedFeedback?.createdAt ?? resource.updatedAt
+                latestUnpublishedFeedback.createdAt
               )}
             </p>
           </div>
@@ -476,6 +477,7 @@ function FloatingNotice({
     <div className="pointer-events-none fixed left-1/2 top-[88px] z-40 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2">
       <div
         role={tone === "error" ? "alert" : "status"}
+        aria-live={tone === "error" ? "assertive" : "polite"}
         className={cn(
           "pointer-events-auto rounded-2xl border px-5 py-3 text-center text-sm shadow-[0_18px_40px_rgba(20,28,50,0.18)] backdrop-blur-xl",
           tone === "error"
@@ -533,7 +535,7 @@ function DeleteConfirmDialog({
             disabled={isDeleting}
           >
             <XCircle className="size-4" />
-            No, I clicked by accident.
+            Cancel
           </Button>
           <Button
             variant="outline"
@@ -542,7 +544,7 @@ function DeleteConfirmDialog({
             disabled={isDeleting}
           >
             <Trash2 className="size-4" />
-            {isDeleting ? "Deleting..." : "Yes, I'm sure I want to delete this."}
+            {isDeleting ? "Deleting..." : "Delete"}
           </Button>
         </div>
       </div>

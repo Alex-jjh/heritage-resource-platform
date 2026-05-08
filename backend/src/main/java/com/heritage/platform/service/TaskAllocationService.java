@@ -23,10 +23,12 @@ public class TaskAllocationService {
 
     private final ResourceRepository resourceRepository;
     private final UserRepository userRepository;
+    private final ResourceService resourceService;
 
-    public TaskAllocationService(ResourceRepository resourceRepository, UserRepository userRepository) {
+    public TaskAllocationService(ResourceRepository resourceRepository, UserRepository userRepository, ResourceService resourceService) {
         this.resourceRepository = resourceRepository;
         this.userRepository = userRepository;
+        this.resourceService = resourceService;
     }
 
     /**
@@ -73,20 +75,7 @@ public class TaskAllocationService {
         
         Resource saved = resourceRepository.save(resource);
 
-        // Force-initialize lazy associations for DTO conversion
-        if (saved.getCategory() != null) saved.getCategory().getName();
-        if (saved.getTags() != null) saved.getTags().size();
-        if (saved.getFileReferences() != null) saved.getFileReferences().size();
-        if (saved.getExternalLinks() != null) saved.getExternalLinks().size();
-        if (saved.getReviewFeedbacks() != null) {
-            saved.getReviewFeedbacks().size();
-            saved.getReviewFeedbacks().forEach(feedback -> {
-                if (feedback.getReviewer() != null) {
-                    feedback.getReviewer().getDisplayName();
-                }
-            });
-        }
-        if (saved.getContributor() != null) saved.getContributor().getDisplayName();
+        resourceService.initializeLazyAssociations(saved);
 
         return saved;
     }
