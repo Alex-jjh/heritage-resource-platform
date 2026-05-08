@@ -56,13 +56,19 @@ function ReviewQueueContent() {
               {nextTaskMutation.isPending ? "Loading..." : "Get Next Task"}
             </Button>
             <Link href="/review/history">
-              <Button variant="outline">
+              <Button
+                variant="outline"
+                className="heritage-glass-button heritage-glass-button-history"
+              >
                 <History className="size-4" />
                 Review History
               </Button>
             </Link>
             <Link href="/featured">
-              <Button variant="outline">
+              <Button
+                variant="outline"
+                className="heritage-glass-button heritage-glass-button-feature"
+              >
                 <Star className="size-4" />
                 Featured
               </Button>

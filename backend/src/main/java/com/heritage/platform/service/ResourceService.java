@@ -167,10 +167,7 @@ public class ResourceService {
 
         validateOwnership(resource, user);
 
-        if (resource.getStatus() != ResourceStatus.DRAFT) {
-            throw new IllegalStateException("Only DRAFT resources can be deleted");
-        }
-
+        initializeLazyAssociations(resource);
         resourceRepository.delete(resource);
     }
 
@@ -179,7 +176,7 @@ public class ResourceService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        List<Resource> resources = resourceRepository.findByContributorId(user.getId());
+        List<Resource> resources = resourceRepository.findByContributorIdOrderByUpdatedAtDesc(user.getId());
         resources.forEach(this::initializeLazyAssociations);
         return resources;
     }
@@ -384,8 +381,19 @@ public class ResourceService {
         if (resource.getFileReferences() != null) {
             resource.getFileReferences().size();
         }
+        if (resource.getComments() != null) {
+            resource.getComments().size();
+        }
+        if (resource.getStatusTransitions() != null) {
+            resource.getStatusTransitions().size();
+        }
         if (resource.getReviewFeedbacks() != null) {
             resource.getReviewFeedbacks().size();
+            resource.getReviewFeedbacks().forEach(feedback -> {
+                if (feedback.getReviewer() != null) {
+                    feedback.getReviewer().getDisplayName();
+                }
+            });
         }
         if (resource.getContributor() != null) {
             resource.getContributor().getDisplayName();

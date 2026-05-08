@@ -47,6 +47,13 @@ public class AdminService {
         User admin = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+        ReviewFeedback feedback = new ReviewFeedback();
+        feedback.setResource(resource);
+        feedback.setReviewer(admin);
+        feedback.setComments("This resource has been archived by admin");
+        feedback.setDecision("ARCHIVED");
+        reviewFeedbackRepository.save(feedback);
+
         return resourceService.transitionStatus(resourceId, ResourceStatus.ARCHIVED, admin);
     }
 
@@ -68,15 +75,14 @@ public class AdminService {
         User admin = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // Record the reason as review feedback
-        if (reason != null && !reason.isBlank()) {
-            ReviewFeedback feedback = new ReviewFeedback();
-            feedback.setResource(resource);
-            feedback.setReviewer(admin);
-            feedback.setComments(reason);
-            feedback.setDecision("UNPUBLISHED");
-            reviewFeedbackRepository.save(feedback);
-        }
+        ReviewFeedback feedback = new ReviewFeedback();
+        feedback.setResource(resource);
+        feedback.setReviewer(admin);
+        feedback.setComments(reason != null && !reason.isBlank()
+                ? reason
+                : "This resource has been unpublished by admin");
+        feedback.setDecision("UNPUBLISHED");
+        reviewFeedbackRepository.save(feedback);
 
         return resourceService.transitionStatus(resourceId, ResourceStatus.DRAFT, admin);
     }
@@ -112,7 +118,14 @@ public class AdminService {
             if (r.getTags() != null) r.getTags().size();
             if (r.getFileReferences() != null) r.getFileReferences().size();
             if (r.getExternalLinks() != null) r.getExternalLinks().size();
-            if (r.getReviewFeedbacks() != null) r.getReviewFeedbacks().size();
+            if (r.getReviewFeedbacks() != null) {
+                r.getReviewFeedbacks().size();
+                r.getReviewFeedbacks().forEach(feedback -> {
+                    if (feedback.getReviewer() != null) {
+                        feedback.getReviewer().getDisplayName();
+                    }
+                });
+            }
             if (r.getContributor() != null) r.getContributor().getDisplayName();
         });
         return resources;

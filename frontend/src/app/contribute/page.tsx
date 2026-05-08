@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
 import { ProtectedRoute } from "@/components/protected-route";
 import { PageContainer } from "@/components/page-container";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  AlertTriangle,
   Eye,
   MessageSquare,
   Pencil,
@@ -17,6 +19,8 @@ import {
   RotateCcw,
   Send,
   Star,
+  Trash2,
+  XCircle,
 } from "lucide-react";
 import type {
   FeaturedStatus,
@@ -54,6 +58,7 @@ function ContributeDashboardContent() {
   const queryClient = useQueryClient();
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ResourceResponse | null>(null);
 
   const resourcesQuery = useQuery({
     queryKey: ["my-resources"],
@@ -117,8 +122,31 @@ function ContributeDashboardContent() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiClient.delete<void>(`/api/resources/${id}`),
+    onMutate: () => {
+      setSuccessMsg(null);
+      setErrorMsg(null);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["my-resources"] });
+      setDeleteTarget(null);
+      setSuccessMsg("Resource deleted.");
+      setTimeout(() => setSuccessMsg(null), 4000);
+    },
+    onError: (error: Error) => {
+      setErrorMsg(error.message || "Failed to delete resource.");
+      setTimeout(() => setErrorMsg(null), 5000);
+    },
+  });
+
   return (
     <main>
+      <FloatingNotice
+        message={errorMsg ?? successMsg}
+        tone={errorMsg ? "error" : "success"}
+      />
+
       <PageContainer
         wide
         eyebrow="Contributor Workspace"
@@ -133,24 +161,6 @@ function ContributeDashboardContent() {
           </Link>
         }
       >
-        {successMsg && (
-          <div
-            role="status"
-            className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700"
-          >
-            {successMsg}
-          </div>
-        )}
-
-        {errorMsg && (
-          <div
-            role="alert"
-            className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700"
-          >
-            {errorMsg}
-          </div>
-        )}
-
         {resourcesQuery.isLoading ? (
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -182,6 +192,7 @@ function ContributeDashboardContent() {
                 onSubmit={() => submitMutation.mutate(resource.id)}
                 onRevise={() => reviseMutation.mutate(resource.id)}
                 onApplyFeatured={() => applyFeaturedMutation.mutate(resource.id)}
+                onRequestDelete={() => setDeleteTarget(resource)}
                 isSubmitting={
                   submitMutation.isPending &&
                   submitMutation.variables === resource.id
@@ -194,11 +205,28 @@ function ContributeDashboardContent() {
                   applyFeaturedMutation.isPending &&
                   applyFeaturedMutation.variables === resource.id
                 }
+                isDeleting={
+                  deleteMutation.isPending &&
+                  deleteMutation.variables === resource.id
+                }
               />
             ))}
           </div>
         )}
       </PageContainer>
+
+      {deleteTarget && (
+        <DeleteConfirmDialog
+          resourceTitle={deleteTarget.title || "Untitled draft"}
+          isDeleting={deleteMutation.isPending}
+          onCancel={() => {
+            if (!deleteMutation.isPending) {
+              setDeleteTarget(null);
+            }
+          }}
+          onConfirm={() => deleteMutation.mutate(deleteTarget.id)}
+        />
+      )}
     </main>
   );
 }
@@ -208,17 +236,21 @@ function ResourceListItem({
   onSubmit,
   onRevise,
   onApplyFeatured,
+  onRequestDelete,
   isSubmitting,
   isRevising,
   isApplyingFeatured,
+  isDeleting,
 }: {
   resource: ResourceResponse;
   onSubmit: () => void;
   onRevise: () => void;
   onApplyFeatured: () => void;
+  onRequestDelete: () => void;
   isSubmitting: boolean;
   isRevising: boolean;
   isApplyingFeatured: boolean;
+  isDeleting: boolean;
 }) {
   const status = resource.status as ResourceStatus;
   const isDraft = status === "DRAFT";
@@ -244,12 +276,26 @@ function ResourceListItem({
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   )[0];
 
+  const latestUnpublishedFeedback = [...(resource.reviewFeedbacks ?? [])]
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
+    .find((fb) => fb.decision === "UNPUBLISHED");
+  const wasPreviouslyApprovedDraft = isDraft && Boolean(resource.approvedAt);
+
   const shouldShowFeedback =
     latestFeedback?.decision === "REJECTED" && Boolean(latestRejectedFeedback);
 
   return (
-    <article className="rounded-2xl border border-border bg-white p-6 shadow-[var(--shadow-heritage-card)]">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+    <article
+      className={cn(
+        "relative isolate overflow-hidden rounded-2xl border border-border bg-white p-6 shadow-[var(--shadow-heritage-card)]",
+        alreadyFeatured &&
+          "my-resource-featured-card border-amber-300/70 bg-amber-50/40 shadow-[0_18px_44px_rgba(180,124,42,0.16)]"
+      )}
+    >
+      <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <h2 className="font-serif text-[1.25rem] font-medium">
             {resource.title || "Untitled draft"}
@@ -263,7 +309,11 @@ function ResourceListItem({
 
           <div className="mt-5 flex flex-wrap items-center gap-2">
             <Link href={`/resources/${resource.id}`}>
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-sky-200 bg-sky-50/80 text-sky-800 shadow-[0_6px_16px_rgba(14,116,144,0.08)] hover:bg-sky-100 hover:text-sky-900"
+              >
                 <Eye className="size-3.5" />
                 View
               </Button>
@@ -272,7 +322,11 @@ function ResourceListItem({
             {isDraft && (
               <>
                 <Link href={`/contribute/${resource.id}/edit`}>
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-violet-200 bg-violet-50/80 text-violet-800 shadow-[0_6px_16px_rgba(109,40,217,0.08)] hover:bg-violet-100 hover:text-violet-900"
+                  >
                     <Pencil className="size-3.5" />
                     Edit
                   </Button>
@@ -280,6 +334,7 @@ function ResourceListItem({
                 <Button
                   variant="default"
                   size="sm"
+                  className="border-emerald-600 bg-emerald-600 text-white shadow-[0_8px_20px_rgba(5,150,105,0.22)] hover:bg-emerald-700"
                   onClick={onSubmit}
                   disabled={isSubmitting}
                 >
@@ -304,7 +359,12 @@ function ResourceListItem({
             {isApproved && (
               <>
                 {alreadyFeatured ? (
-                  <Button variant="outline" size="sm" disabled>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled
+                    className="border-teal-300 bg-teal-50 text-teal-800 opacity-100 shadow-[0_8px_20px_rgba(13,148,136,0.14)] disabled:opacity-100"
+                  >
                     <Star className="size-3.5" />
                     Featured
                   </Button>
@@ -317,6 +377,11 @@ function ResourceListItem({
                   <Button
                     variant={rejectedFeatured ? "outline" : "default"}
                     size="sm"
+                    className={
+                      rejectedFeatured
+                        ? "border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100"
+                        : "border-amber-500 bg-amber-500 text-white shadow-[0_8px_20px_rgba(217,119,6,0.24)] hover:bg-amber-600"
+                    }
                     onClick={onApplyFeatured}
                     disabled={!canApplyFeatured}
                   >
@@ -333,7 +398,7 @@ function ResourceListItem({
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-col items-start gap-2 lg:items-end">
+        <div className="flex shrink-0 flex-col items-start gap-2 lg:min-h-[7.5rem] lg:items-end">
           <StatusBadge status={status} />
           {isApproved && (
             <span className="text-xs text-muted-foreground">
@@ -345,11 +410,21 @@ function ResourceListItem({
               Awaiting reviewer
             </span>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-2 border-rose-300 bg-rose-50/80 text-rose-700 hover:bg-rose-100 hover:text-rose-800 lg:mt-auto"
+            onClick={onRequestDelete}
+            disabled={isDeleting}
+          >
+            <Trash2 className="size-3.5" />
+            {isDeleting ? "Deleting..." : "Delete"}
+          </Button>
         </div>
       </div>
 
       {shouldShowFeedback && latestRejectedFeedback && (
-        <div className="mt-5 space-y-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+        <div className="relative z-10 mt-5 space-y-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
           <div className="flex items-center gap-2 text-sm font-medium text-amber-800">
             <MessageSquare className="size-4" />
             Admin / Reviewer Feedback
@@ -363,7 +438,115 @@ function ResourceListItem({
           </div>
         </div>
       )}
+
+      {(latestUnpublishedFeedback || wasPreviouslyApprovedDraft) && (
+        <div className="relative z-10 mt-5 space-y-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-amber-800">
+            <AlertTriangle className="size-4" />
+            Publication Notice
+          </div>
+          <div className="text-sm text-amber-800">
+            <p className="leading-6">
+              This resource has been unpublished by{" "}
+              {latestUnpublishedFeedback?.reviewerName || "admin"}.
+            </p>
+            <p className="mt-1 text-[0.65rem] uppercase tracking-[0.12em] text-amber-600">
+              UNPUBLISHED /{" "}
+              {formatEnglishDate(
+                latestUnpublishedFeedback?.createdAt ?? resource.updatedAt
+              )}
+            </p>
+          </div>
+        </div>
+      )}
     </article>
+  );
+}
+
+function FloatingNotice({
+  message,
+  tone,
+}: {
+  message: string | null;
+  tone: "success" | "error";
+}) {
+  if (!message) return null;
+
+  return (
+    <div className="pointer-events-none fixed left-1/2 top-[88px] z-40 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2">
+      <div
+        role={tone === "error" ? "alert" : "status"}
+        className={cn(
+          "pointer-events-auto rounded-2xl border px-5 py-3 text-center text-sm shadow-[0_18px_40px_rgba(20,28,50,0.18)] backdrop-blur-xl",
+          tone === "error"
+            ? "border-rose-200 bg-rose-50/95 text-rose-700"
+            : "border-emerald-200 bg-emerald-50/95 text-emerald-700"
+        )}
+      >
+        {message}
+      </div>
+    </div>
+  );
+}
+
+function DeleteConfirmDialog({
+  resourceTitle,
+  isDeleting,
+  onCancel,
+  onConfirm,
+}: {
+  resourceTitle: string;
+  isDeleting: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-primary/35 px-4 backdrop-blur-sm">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-resource-title"
+        className="w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-[var(--shadow-heritage-lifted)]"
+      >
+        <div className="flex items-start gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-rose-200 bg-rose-50 text-rose-700">
+            <Trash2 className="size-4" />
+          </span>
+          <div>
+            <h2
+              id="delete-resource-title"
+              className="font-serif text-xl font-medium text-foreground"
+            >
+              Delete this resource?
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              {resourceTitle} will be permanently removed from your resources.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-2 sm:grid-cols-2">
+          <Button
+            variant="outline"
+            className="h-auto min-h-10 w-full whitespace-normal border-border bg-white px-4 py-2 text-center leading-5"
+            onClick={onCancel}
+            disabled={isDeleting}
+          >
+            <XCircle className="size-4" />
+            No, I clicked by accident.
+          </Button>
+          <Button
+            variant="outline"
+            className="h-auto min-h-10 w-full whitespace-normal border-rose-300 bg-rose-50 px-4 py-2 text-center leading-5 text-rose-700 hover:bg-rose-100 hover:text-rose-800"
+            onClick={onConfirm}
+            disabled={isDeleting}
+          >
+            <Trash2 className="size-4" />
+            {isDeleting ? "Deleting..." : "Yes, I'm sure I want to delete this."}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 

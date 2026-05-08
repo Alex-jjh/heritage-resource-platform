@@ -979,6 +979,7 @@ function SeasonalParticleCanvas({ seasonKey }: { seasonKey: SeasonKey }) {
     let height = 0;
     let dpr = 1;
     let frameId = 0;
+    let pauseTimerId = 0;
     let lastTime = performance.now();
     let paused = false;
     let particles: SeasonalParticle[] = [];
@@ -1301,12 +1302,12 @@ function SeasonalParticleCanvas({ seasonKey }: { seasonKey: SeasonKey }) {
       if (paused) {
         lastTime = now;
         // Poll with a coarse timer while paused instead of hammering rAF.
-        window.setTimeout(
-          () => {
+        if (!pauseTimerId) {
+          pauseTimerId = window.setTimeout(() => {
+            pauseTimerId = 0;
             frameId = window.requestAnimationFrame(animate);
-          },
-          250
-        );
+          }, 250);
+        }
         return;
       }
 
@@ -1385,6 +1386,9 @@ function SeasonalParticleCanvas({ seasonKey }: { seasonKey: SeasonKey }) {
 
     return () => {
       window.cancelAnimationFrame(frameId);
+      if (pauseTimerId) {
+        window.clearTimeout(pauseTimerId);
+      }
       window.removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (intersectionObserver) {

@@ -29,7 +29,7 @@ import static org.mockito.Mockito.*;
  * <p>Key scenarios covered:
  * <ul>
  *   <li>Resource creation with tags, external links, and default DRAFT status</li>
- *   <li>Update and delete restricted to DRAFT status and resource owner</li>
+ *   <li>Update restricted to DRAFT status; delete restricted to resource owner</li>
  *   <li>Submit-for-review validation (title, copyright required)</li>
  *   <li>Visibility rules: approved resources visible to all, drafts only to owner/admin</li>
  *   <li>Listing a contributor's own resources</li>
@@ -213,7 +213,6 @@ class ResourceServiceTest {
 
     // --- Delete tests ---
 
-    // Only DRAFT resources can be permanently deleted (hard delete, not soft)
     @Test
     void deleteResource_draftByOwner_performsHardDelete() {
         Resource resource = createDraftResource();
@@ -227,17 +226,28 @@ class ResourceServiceTest {
     }
 
     @Test
-    void deleteResource_nonDraft_throwsIllegalState() {
+    void deleteResource_approvedByOwner_performsHardDelete() {
         Resource resource = createDraftResource();
         resource.setStatus(ResourceStatus.APPROVED);
 
         when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
         when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
 
+        resourceService.deleteResource(resource.getId(), "contributor@example.com");
+
+        verify(resourceRepository).delete(resource);
+    }
+
+    @Test
+    void deleteResource_byNonOwner_throwsAccessDenied() {
+        Resource resource = createDraftResource();
+
+        when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
+        when(userRepository.findByEmail("other@example.com")).thenReturn(Optional.of(otherUser));
+
         assertThatThrownBy(() ->
-                resourceService.deleteResource(resource.getId(), "contributor@example.com"))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("DRAFT");
+                resourceService.deleteResource(resource.getId(), "other@example.com"))
+                .isInstanceOf(AccessDeniedException.class);
     }
 
     // --- Submit for review tests ---
@@ -347,7 +357,7 @@ class ResourceServiceTest {
         List<Resource> resources = List.of(createDraftResource());
 
         when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
-        when(resourceRepository.findByContributorId(contributor.getId())).thenReturn(resources);
+        when(resourceRepository.findByContributorIdOrderByUpdatedAtDesc(contributor.getId())).thenReturn(resources);
 
         List<Resource> result = resourceService.listContributorResources("contributor@example.com");
 

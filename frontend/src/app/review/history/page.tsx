@@ -29,9 +29,16 @@ function formatCreatedAt(dateString: string) {
 }
 
 function decisionClass(decision: ReviewDecision) {
-  return decision === "APPROVED"
-    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-    : "border-rose-200 bg-rose-50 text-rose-700";
+  if (decision === "APPROVED") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+  if (decision === "REJECTED") {
+    return "border-rose-200 bg-rose-50 text-rose-700";
+  }
+  if (decision === "UNPUBLISHED") {
+    return "border-amber-200 bg-amber-50 text-amber-800";
+  }
+  return "border-slate-300 bg-slate-100 text-slate-700";
 }
 
 function ReviewHistoryContent() {
@@ -166,6 +173,8 @@ function ReviewHistoryContent() {
                 <option value="ALL">All decisions</option>
                 <option value="APPROVED">Approved</option>
                 <option value="REJECTED">Rejected</option>
+                <option value="UNPUBLISHED">Unpublished</option>
+                <option value="ARCHIVED">Archived</option>
               </select>
             </div>
           </div>
@@ -207,8 +216,8 @@ function ReviewHistoryContent() {
                   : "No review history yet."}
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Review decisions will appear here once resources have been approved
-                or rejected.
+                Review decisions will appear here once resources have been approved,
+                rejected, unpublished, or archived.
               </p>
             </div>
           ) : (

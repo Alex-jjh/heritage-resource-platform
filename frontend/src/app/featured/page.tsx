@@ -3,9 +3,10 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Star, StarOff } from "lucide-react";
+import { ClipboardCheck, Compass, Star, StarOff } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
+import { cn } from "@/lib/utils";
 import { ProtectedRoute } from "@/components/protected-route";
 import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,24 @@ function featuredStatusLabel(status?: FeaturedStatus | null, isFeatured?: boolea
   if (status === "PENDING") return "Pending";
   if (status === "REJECTED") return "Rejected";
   return status;
+}
+
+function featuredActionClassName(
+  resource: Pick<ResourceResponse, "isFeatured" | "featuredStatus">
+) {
+  if (isResourceFeatured(resource)) {
+    return "border-teal-300 bg-teal-50 text-teal-800 opacity-100 shadow-[0_8px_20px_rgba(13,148,136,0.14)] disabled:opacity-100";
+  }
+
+  if (resource.featuredStatus === "PENDING") {
+    return "border-slate-200 bg-slate-50 text-slate-600 disabled:opacity-100";
+  }
+
+  if (resource.featuredStatus === "REJECTED") {
+    return "border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 hover:text-amber-900";
+  }
+
+  return "border-amber-500 bg-amber-500 text-white shadow-[0_8px_20px_rgba(217,119,6,0.24)] hover:bg-amber-600";
 }
 
 function FeaturedContent() {
@@ -177,11 +196,23 @@ function FeaturedContent() {
         rightSlot={
           <>
             <Link href="/browse">
-              <Button variant="outline">Browse Resources</Button>
+              <Button
+                variant="outline"
+                className="heritage-glass-button heritage-glass-button-browse"
+              >
+                <Compass className="size-4" />
+                Browse Resources
+              </Button>
             </Link>
             {(user?.role === "REVIEWER" || user?.role === "ADMINISTRATOR") && (
               <Link href="/review">
-                <Button variant="outline">Review</Button>
+                <Button
+                  variant="outline"
+                  className="heritage-glass-button heritage-glass-button-review"
+                >
+                  <ClipboardCheck className="size-4" />
+                  Review
+                </Button>
               </Link>
             )}
           </>
@@ -212,6 +243,7 @@ function FeaturedContent() {
             <EmptyBox text="No resources are currently featured." />
           ) : (
             <TableCard
+              className="featured-page-featured-card"
               headers={[
                 ["Title", 3],
                 ["Contributor", 3],
@@ -231,6 +263,7 @@ function FeaturedContent() {
                       <Button
                         size="sm"
                         variant="outline"
+                        className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800"
                         disabled={isActing}
                         onClick={() => unfeatureMutation.mutate(resource.id)}
                       >
@@ -281,6 +314,12 @@ function FeaturedContent() {
                       <Cell span={3} right>
                         <Button
                           size="sm"
+                          variant={
+                            alreadyFeatured || resource.featuredStatus === "REJECTED"
+                              ? "outline"
+                              : "default"
+                          }
+                          className={featuredActionClassName(resource)}
                           disabled={!canApply || isActing}
                           onClick={() => applyMutation.mutate(resource.id)}
                         >
@@ -331,7 +370,7 @@ function FeaturedContent() {
                       <Cell span={4} right>
                         <Button
                           size="sm"
-                          className="bg-emerald-600 text-white hover:bg-emerald-700"
+                          className="border-emerald-600 bg-emerald-600 text-white shadow-[0_8px_20px_rgba(5,150,105,0.22)] hover:bg-emerald-700"
                           disabled={isActing}
                           onClick={() =>
                             approveMutation.mutate({
@@ -345,6 +384,7 @@ function FeaturedContent() {
                         <Button
                           size="sm"
                           variant="outline"
+                          className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800"
                           disabled={isActing}
                           onClick={() =>
                             approveMutation.mutate({
@@ -396,16 +436,23 @@ function FeaturedContent() {
                         <Cell span={2}>{featuredStatusLabel(resource.featuredStatus, resource.isFeatured)}</Cell>
                         <Cell span={1} right>
                           {alreadyFeatured ? (
-                            <Button size="sm" variant="outline" disabled>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-teal-300 bg-teal-50 text-teal-800 opacity-100 shadow-[0_8px_20px_rgba(13,148,136,0.14)] disabled:opacity-100"
+                              disabled
+                            >
                               <Star className="size-3.5" />
                               Featured
                             </Button>
                           ) : (
                             <Button
                               size="sm"
+                              className="border-amber-500 bg-amber-500 text-white shadow-[0_8px_20px_rgba(217,119,6,0.24)] hover:bg-amber-600"
                               disabled={isActing}
                               onClick={() => featureMutation.mutate(resource.id)}
                             >
+                              <Star className="size-3.5" />
                               Feature
                             </Button>
                           )}
@@ -461,12 +508,19 @@ function EmptyBox({ text }: { text: string }) {
 function TableCard({
   headers,
   children,
+  className,
 }: {
   headers: [string, number][];
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-[var(--shadow-heritage-card)]">
+    <div
+      className={cn(
+        "overflow-hidden rounded-2xl border border-border bg-white shadow-[var(--shadow-heritage-card)]",
+        className
+      )}
+    >
       <div className="grid grid-cols-12 border-b border-border bg-secondary/40 px-6 py-3 text-[0.65rem] font-medium uppercase tracking-[0.2em] text-muted-foreground">
         {headers.map(([label, span]) => (
           <div

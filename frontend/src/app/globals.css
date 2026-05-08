@@ -178,12 +178,258 @@ html {
   }
 }
 
+.heritage-glass-button {
+  --glass-ink: #1a2332;
+  --glass-border: rgba(26, 35, 50, 0.14);
+  --glass-a: rgba(255, 255, 255, 0.58);
+  --glass-b: rgba(255, 255, 255, 0.24);
+  --glass-c: rgba(255, 255, 255, 0.1);
+  --glass-glow: rgba(20, 28, 50, 0.08);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: var(--glass-border);
+  color: var(--glass-ink);
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.72), var(--glass-a) 38%, var(--glass-b)),
+    linear-gradient(90deg, var(--glass-c), transparent 58%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.28),
+    0 12px 28px var(--glass-glow);
+  -webkit-backdrop-filter: blur(16px) saturate(1.28);
+  backdrop-filter: blur(16px) saturate(1.28);
+}
+
+.heritage-glass-button::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  opacity: 0.7;
+  background:
+    linear-gradient(105deg, transparent 0 24%, rgba(255, 255, 255, 0.66) 42%, transparent 62%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.32), transparent 64%);
+  transform: translateX(-18%);
+  transition:
+    opacity 240ms ease,
+    transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.heritage-glass-button:hover {
+  border-color: color-mix(in srgb, var(--glass-border) 62%, var(--glass-ink));
+  color: var(--glass-ink);
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.82), var(--glass-a) 34%, var(--glass-b)),
+    linear-gradient(90deg, var(--glass-c), transparent 58%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.34),
+    0 16px 34px var(--glass-glow);
+  transform: translateY(-1px);
+}
+
+.heritage-glass-button:hover::before {
+  opacity: 0.92;
+  transform: translateX(10%);
+}
+
+.heritage-glass-button svg {
+  color: color-mix(in srgb, var(--glass-ink) 86%, white);
+  filter: drop-shadow(0 1px 5px rgba(255, 255, 255, 0.5));
+}
+
+.heritage-glass-button-browse {
+  --glass-ink: #075f69;
+  --glass-border: rgba(45, 165, 184, 0.36);
+  --glass-a: rgba(206, 246, 248, 0.42);
+  --glass-b: rgba(169, 225, 205, 0.26);
+  --glass-c: rgba(62, 188, 214, 0.2);
+  --glass-glow: rgba(31, 147, 168, 0.18);
+}
+
+.heritage-glass-button-review {
+  --glass-ink: #6d3f82;
+  --glass-border: rgba(164, 117, 190, 0.34);
+  --glass-a: rgba(239, 218, 248, 0.42);
+  --glass-b: rgba(221, 199, 255, 0.24);
+  --glass-c: rgba(198, 125, 206, 0.18);
+  --glass-glow: rgba(126, 78, 153, 0.17);
+}
+
+.heritage-glass-button-history {
+  --glass-ink: #36558c;
+  --glass-border: rgba(87, 127, 196, 0.34);
+  --glass-a: rgba(219, 232, 255, 0.42);
+  --glass-b: rgba(203, 218, 245, 0.25);
+  --glass-c: rgba(103, 142, 209, 0.18);
+  --glass-glow: rgba(61, 96, 156, 0.16);
+}
+
+.heritage-glass-button-feature {
+  --glass-ink: #8a5b12;
+  --glass-border: rgba(217, 151, 42, 0.36);
+  --glass-a: rgba(255, 237, 188, 0.44);
+  --glass-b: rgba(255, 216, 158, 0.26);
+  --glass-c: rgba(235, 169, 57, 0.2);
+  --glass-glow: rgba(177, 112, 20, 0.18);
+}
+
+.my-resource-featured-card {
+  transition:
+    border-color 260ms ease,
+    box-shadow 260ms ease,
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.my-resource-featured-card::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: -1px;
+  z-index: 0;
+  opacity: 0.64;
+  transition:
+    opacity 260ms ease,
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  background:
+    linear-gradient(
+      105deg,
+      transparent 0%,
+      transparent 28%,
+      rgba(255, 255, 255, 0.72) 43%,
+      rgba(226, 232, 255, 0.58) 50%,
+      rgba(179, 151, 232, 0.26) 57%,
+      transparent 72%,
+      transparent 100%
+    ),
+    radial-gradient(ellipse 58% 120% at 0% 50%, rgba(111, 147, 242, 0.18), transparent 64%),
+    radial-gradient(ellipse 42% 92% at 100% 16%, rgba(190, 130, 205, 0.18), transparent 66%),
+    linear-gradient(100deg, rgba(248, 250, 252, 0.72), rgba(241, 245, 255, 0.38) 42%, rgba(249, 242, 255, 0.62));
+  background-position: -140% 0, center, center, center;
+  background-size: 230% 100%, auto, auto, auto;
+}
+
+.my-resource-featured-card::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 1;
+  height: 3px;
+  background: linear-gradient(90deg, #7ea2ff, #72d5ff, #b88bed, #d08ac7, #7ea2ff);
+  background-size: 220% 100%;
+  box-shadow: 0 0 22px rgba(126, 162, 255, 0.28);
+  transition:
+    height 260ms ease,
+    box-shadow 260ms ease;
+}
+
+.featured-page-featured-card {
+  position: relative;
+  isolation: isolate;
+  border-color: rgba(150, 134, 222, 0.34);
+}
+
+.featured-page-featured-card::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.48;
+  background:
+    radial-gradient(ellipse 48% 120% at 0% 50%, rgba(111, 147, 242, 0.16), transparent 64%),
+    radial-gradient(ellipse 36% 90% at 100% 0%, rgba(190, 130, 205, 0.15), transparent 66%),
+    linear-gradient(100deg, rgba(248, 250, 252, 0.72), rgba(241, 245, 255, 0.3) 42%, rgba(249, 242, 255, 0.46));
+}
+
+.featured-page-featured-card::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 2;
+  height: 3px;
+  background: linear-gradient(90deg, #7ea2ff, #72d5ff, #b88bed, #d08ac7, #7ea2ff);
+  background-size: 220% 100%;
+  box-shadow: 0 0 22px rgba(126, 162, 255, 0.24);
+}
+
+.featured-page-featured-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .featured-page-featured-card:hover::after {
+    animation: my-resource-featured-sheen 1.4s ease;
+  }
+}
+
+.my-resource-featured-card:hover {
+  border-color: rgba(150, 134, 222, 0.72);
+  box-shadow:
+    0 22px 52px rgba(108, 92, 190, 0.17),
+    inset 0 1px 0 rgba(255, 255, 255, 0.76);
+  transform: translateY(-3px);
+}
+
+.my-resource-featured-card:hover::before {
+  opacity: 0.9;
+  transform: translate3d(0, -1%, 0) scale(1.01);
+}
+
+.my-resource-featured-card:hover::after {
+  height: 4px;
+  box-shadow: 0 0 28px rgba(184, 139, 237, 0.34);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .my-resource-featured-card:hover::before {
+    animation: my-resource-featured-light-flow 1.15s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .my-resource-featured-card:hover::after {
+    animation: my-resource-featured-sheen 1.4s ease;
+  }
+}
+
 @keyframes marquee {
   from {
     transform: translateX(0);
   }
   to {
     transform: translateX(-50%);
+  }
+}
+
+@keyframes my-resource-featured-light-flow {
+  from {
+    background-position: -140% 0, center, center, center;
+  }
+  58% {
+    background-position: 82% 0, center, center, center;
+  }
+  to {
+    background-position: 118% 0, center, center, center;
+  }
+}
+
+@keyframes my-resource-featured-sheen {
+  from {
+    background-position: 0% 50%;
+  }
+  55% {
+    background-position: 100% 50%;
+  }
+  to {
+    background-position: 78% 50%;
   }
 }
 

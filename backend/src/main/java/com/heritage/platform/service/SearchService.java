@@ -64,7 +64,14 @@ public class SearchService {
             if (r.getTags() != null) r.getTags().size();
             if (r.getFileReferences() != null) r.getFileReferences().size();
             if (r.getExternalLinks() != null) r.getExternalLinks().size();
-            if (r.getReviewFeedbacks() != null) r.getReviewFeedbacks().size();
+            if (r.getReviewFeedbacks() != null) {
+                r.getReviewFeedbacks().size();
+                r.getReviewFeedbacks().forEach(feedback -> {
+                    if (feedback.getReviewer() != null) {
+                        feedback.getReviewer().getDisplayName();
+                    }
+                });
+            }
             if (r.getContributor() != null) r.getContributor().getDisplayName();
         });
 

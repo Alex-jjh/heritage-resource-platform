@@ -211,6 +211,21 @@ public class UserService {
         List<Resource> publishedResources = resourceRepository.findByContributorId(userId)
                 .stream()
                 .filter(resource -> resource.getStatus() == ResourceStatus.APPROVED)
+                .peek(resource -> {
+                    if (resource.getCategory() != null) resource.getCategory().getName();
+                    if (resource.getTags() != null) resource.getTags().size();
+                    if (resource.getFileReferences() != null) resource.getFileReferences().size();
+                    if (resource.getExternalLinks() != null) resource.getExternalLinks().size();
+                    if (resource.getReviewFeedbacks() != null) {
+                        resource.getReviewFeedbacks().size();
+                        resource.getReviewFeedbacks().forEach(feedback -> {
+                            if (feedback.getReviewer() != null) {
+                                feedback.getReviewer().getDisplayName();
+                            }
+                        });
+                    }
+                    if (resource.getContributor() != null) resource.getContributor().getDisplayName();
+                })
                 .toList();
 
         return UserProfileResponse.fromEntity(user, publishedResources);

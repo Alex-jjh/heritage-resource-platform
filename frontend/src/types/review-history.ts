@@ -1,4 +1,4 @@
-export type ReviewDecision = "APPROVED" | "REJECTED";
+export type ReviewDecision = "APPROVED" | "REJECTED" | "UNPUBLISHED" | "ARCHIVED";
 
 export interface ReviewHistoryRecord {
     id: string;
