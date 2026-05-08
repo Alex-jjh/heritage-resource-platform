@@ -47,6 +47,13 @@ public class AdminService {
         User admin = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+        ReviewFeedback feedback = new ReviewFeedback();
+        feedback.setResource(resource);
+        feedback.setReviewer(admin);
+        feedback.setComments("");
+        feedback.setDecision("ARCHIVED");
+        reviewFeedbackRepository.save(feedback);
+
         return resourceService.transitionStatus(resourceId, ResourceStatus.ARCHIVED, admin);
     }
 
@@ -68,15 +75,12 @@ public class AdminService {
         User admin = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // Record the reason as review feedback
-        if (reason != null && !reason.isBlank()) {
-            ReviewFeedback feedback = new ReviewFeedback();
-            feedback.setResource(resource);
-            feedback.setReviewer(admin);
-            feedback.setComments(reason);
-            feedback.setDecision("UNPUBLISHED");
-            reviewFeedbackRepository.save(feedback);
-        }
+        ReviewFeedback feedback = new ReviewFeedback();
+        feedback.setResource(resource);
+        feedback.setReviewer(admin);
+        feedback.setComments(reason != null && !reason.isBlank() ? reason : "");
+        feedback.setDecision("UNPUBLISHED");
+        reviewFeedbackRepository.save(feedback);
 
         return resourceService.transitionStatus(resourceId, ResourceStatus.DRAFT, admin);
     }
@@ -107,14 +111,7 @@ public class AdminService {
     @Transactional(readOnly = true)
     public List<Resource> getArchivedResources() {
         List<Resource> resources = resourceRepository.findByStatusOrderByCreatedAtAsc(ResourceStatus.ARCHIVED);
-        resources.forEach(r -> {
-            if (r.getCategory() != null) r.getCategory().getName();
-            if (r.getTags() != null) r.getTags().size();
-            if (r.getFileReferences() != null) r.getFileReferences().size();
-            if (r.getExternalLinks() != null) r.getExternalLinks().size();
-            if (r.getReviewFeedbacks() != null) r.getReviewFeedbacks().size();
-            if (r.getContributor() != null) r.getContributor().getDisplayName();
-        });
+        resources.forEach(resourceService::initializeLazyAssociations);
         return resources;
     }
 }

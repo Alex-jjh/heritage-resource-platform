@@ -25,6 +25,7 @@ class UserServicePasswordUpdateTests {
         UserRepository userRepository = mock(UserRepository.class);
         ResourceRepository resourceRepository = mock(ResourceRepository.class);
         FileService fileService = mock(FileService.class);
+        ResourceService resourceService = mock(ResourceService.class);
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
         User user = new User();
@@ -43,7 +44,8 @@ class UserServicePasswordUpdateTests {
                 userRepository,
                 resourceRepository,
                 fileService,
-                passwordEncoder
+                passwordEncoder,
+                resourceService
         );
 
         UpdateProfileRequest request = new UpdateProfileRequest();

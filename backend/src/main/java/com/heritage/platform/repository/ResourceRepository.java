@@ -19,6 +19,8 @@ public interface ResourceRepository extends JpaRepository<Resource, UUID> {
 
     List<Resource> findByContributorId(UUID contributorId);
 
+    List<Resource> findByContributorIdOrderByUpdatedAtDesc(UUID contributorId);
+
     List<Resource> findByStatusOrderByCreatedAtAsc(ResourceStatus status);
 
     List<Resource> findByStatusOrderByApprovedAtDesc(ResourceStatus status);

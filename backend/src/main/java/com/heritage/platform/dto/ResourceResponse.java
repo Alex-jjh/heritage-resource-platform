@@ -190,6 +190,7 @@ public class ResourceResponse {
         private UUID id;
         private UUID resourceId;
         private UUID reviewerId;
+        private String reviewerName;
         private String comments;
         private String decision;
         private Instant createdAt;
@@ -199,6 +200,7 @@ public class ResourceResponse {
             dto.id = rf.getId();
             dto.resourceId = rf.getResource().getId();
             dto.reviewerId = rf.getReviewer().getId();
+            dto.reviewerName = rf.getReviewer().getDisplayName();
             dto.comments = rf.getComments();
             dto.decision = rf.getDecision();
             dto.createdAt = rf.getCreatedAt();
@@ -208,6 +210,7 @@ public class ResourceResponse {
         public UUID getId() { return id; }
         public UUID getResourceId() { return resourceId; }
         public UUID getReviewerId() { return reviewerId; }
+        public String getReviewerName() { return reviewerName; }
         public String getComments() { return comments; }
         public String getDecision() { return decision; }
         public Instant getCreatedAt() { return createdAt; }

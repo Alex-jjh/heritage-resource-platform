@@ -33,17 +33,20 @@ public class UserService {
     private final ResourceRepository resourceRepository;
     private final FileService fileService;
     private final PasswordEncoder passwordEncoder;
+    private final ResourceService resourceService;
 
     public UserService(
             UserRepository userRepository,
             ResourceRepository resourceRepository,
             FileService fileService,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            ResourceService resourceService
     ) {
         this.userRepository = userRepository;
         this.resourceRepository = resourceRepository;
         this.fileService = fileService;
         this.passwordEncoder = passwordEncoder;
+        this.resourceService = resourceService;
     }
 
     /**
@@ -211,6 +214,7 @@ public class UserService {
         List<Resource> publishedResources = resourceRepository.findByContributorId(userId)
                 .stream()
                 .filter(resource -> resource.getStatus() == ResourceStatus.APPROVED)
+                .peek(resourceService::initializeLazyAssociations)
                 .toList();
 
         return UserProfileResponse.fromEntity(user, publishedResources);

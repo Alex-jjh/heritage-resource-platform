@@ -213,7 +213,6 @@ class ResourceServiceTest {
 
     // --- Delete tests ---
 
-    // Only DRAFT resources can be permanently deleted (hard delete, not soft)
     @Test
     void deleteResource_draftByOwner_performsHardDelete() {
         Resource resource = createDraftResource();
@@ -238,6 +237,18 @@ class ResourceServiceTest {
                 resourceService.deleteResource(resource.getId(), "contributor@example.com"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("DRAFT");
+    }
+
+    @Test
+    void deleteResource_byNonOwner_throwsAccessDenied() {
+        Resource resource = createDraftResource();
+
+        when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
+        when(userRepository.findByEmail("other@example.com")).thenReturn(Optional.of(otherUser));
+
+        assertThatThrownBy(() ->
+                resourceService.deleteResource(resource.getId(), "other@example.com"))
+                .isInstanceOf(AccessDeniedException.class);
     }
 
     // --- Submit for review tests ---
@@ -347,7 +358,7 @@ class ResourceServiceTest {
         List<Resource> resources = List.of(createDraftResource());
 
         when(userRepository.findByEmail("contributor@example.com")).thenReturn(Optional.of(contributor));
-        when(resourceRepository.findByContributorId(contributor.getId())).thenReturn(resources);
+        when(resourceRepository.findByContributorIdOrderByUpdatedAtDesc(contributor.getId())).thenReturn(resources);
 
         List<Resource> result = resourceService.listContributorResources("contributor@example.com");
 

@@ -18,9 +18,11 @@ public class SearchService {
     private static final int DEFAULT_PAGE_SIZE = 20;
 
     private final ResourceRepository resourceRepository;
+    private final ResourceService resourceService;
 
-    public SearchService(ResourceRepository resourceRepository) {
+    public SearchService(ResourceRepository resourceRepository, ResourceService resourceService) {
         this.resourceRepository = resourceRepository;
+        this.resourceService = resourceService;
     }
 
     /**
@@ -58,15 +60,7 @@ public class SearchService {
             result = resourceRepository.findByStatus(status, pageable);
         }
 
-        // Force-initialize lazy associations to prevent LazyInitializationException in DTO conversion
-        result.getContent().forEach(r -> {
-            if (r.getCategory() != null) r.getCategory().getName();
-            if (r.getTags() != null) r.getTags().size();
-            if (r.getFileReferences() != null) r.getFileReferences().size();
-            if (r.getExternalLinks() != null) r.getExternalLinks().size();
-            if (r.getReviewFeedbacks() != null) r.getReviewFeedbacks().size();
-            if (r.getContributor() != null) r.getContributor().getDisplayName();
-        });
+        result.getContent().forEach(resourceService::initializeLazyAssociations);
 
         return result;
     }

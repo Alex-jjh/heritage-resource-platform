@@ -179,7 +179,7 @@ public class ResourceService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        List<Resource> resources = resourceRepository.findByContributorId(user.getId());
+        List<Resource> resources = resourceRepository.findByContributorIdOrderByUpdatedAtDesc(user.getId());
         resources.forEach(this::initializeLazyAssociations);
         return resources;
     }
@@ -371,7 +371,7 @@ public class ResourceService {
         return saved;
     }
 
-    private void initializeLazyAssociations(Resource resource) {
+    public void initializeLazyAssociations(Resource resource) {
         if (resource.getCategory() != null) {
             resource.getCategory().getName();
         }
@@ -384,8 +384,19 @@ public class ResourceService {
         if (resource.getFileReferences() != null) {
             resource.getFileReferences().size();
         }
+        if (resource.getComments() != null) {
+            resource.getComments().size();
+        }
+        if (resource.getStatusTransitions() != null) {
+            resource.getStatusTransitions().size();
+        }
         if (resource.getReviewFeedbacks() != null) {
             resource.getReviewFeedbacks().size();
+            resource.getReviewFeedbacks().forEach(feedback -> {
+                if (feedback.getReviewer() != null) {
+                    feedback.getReviewer().getDisplayName();
+                }
+            });
         }
         if (resource.getContributor() != null) {
             resource.getContributor().getDisplayName();

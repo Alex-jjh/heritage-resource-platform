@@ -102,6 +102,7 @@ export interface ReviewFeedbackResponse {
   id: string;
   resourceId: string;
   reviewerId: string;
+  reviewerName?: string | null;
   comments: string;
   decision: string;
   createdAt: string;
