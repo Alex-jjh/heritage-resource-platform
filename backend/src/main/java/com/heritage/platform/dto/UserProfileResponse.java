@@ -5,6 +5,7 @@ import com.heritage.platform.model.User;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 public class UserProfileResponse {
 
@@ -22,23 +23,41 @@ public class UserProfileResponse {
     private List<ResourceResponse> publishedResources;
 
     public static UserProfileResponse fromEntity(User user, List<Resource> publishedResources) {
+        return fromEntity(user, publishedResources, null, true);
+    }
+
+    public static UserProfileResponse fromEntity(User user,
+                                                 List<Resource> publishedResources,
+                                                 Function<String, String> downloadUrlGenerator) {
+        return fromEntity(user, publishedResources, downloadUrlGenerator, true);
+    }
+
+    public static UserProfileResponse fromEntity(User user,
+                                                 List<Resource> publishedResources,
+                                                 Function<String, String> downloadUrlGenerator,
+                                                 boolean includePrivateProfileFields) {
         UserProfileResponse response = new UserProfileResponse();
+        boolean profileVisible = user.isProfilePublic() || includePrivateProfileFields;
 
         response.id = user.getId();
-        response.email = user.getEmail();
+        response.email = profileVisible && (user.isShowEmail() || includePrivateProfileFields)
+                ? user.getEmail()
+                : null;
         response.displayName = user.getDisplayName();
         response.role = user.getRole().name();
-        response.contributorRequested = user.isContributorRequested();
+        response.contributorRequested = includePrivateProfileFields && user.isContributorRequested();
 
         response.avatarUrl = user.getAvatarUrl();
         response.profilePublic = user.isProfilePublic();
-        response.showEmail = user.isShowEmail();
-        response.bio = user.getBio();
+        response.showEmail = profileVisible && (user.isShowEmail() || includePrivateProfileFields);
+        response.bio = profileVisible ? user.getBio() : null;
 
-        response.publishedResources = publishedResources == null
+        response.publishedResources = !profileVisible || publishedResources == null
                 ? List.of()
                 : publishedResources.stream()
-                        .map(ResourceResponse::fromEntity)
+                        .map(resource -> downloadUrlGenerator == null
+                                ? ResourceResponse.fromEntity(resource)
+                                : ResourceResponse.fromEntityWithFileUrls(resource, downloadUrlGenerator))
                         .toList();
 
         return response;

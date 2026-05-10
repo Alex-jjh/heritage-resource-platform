@@ -22,7 +22,7 @@ export interface User {
 
 export interface UserProfileResponse {
   id: string;
-  email: string;
+  email: string | null;
   displayName: string;
   role: UserRole;
   contributorRequested: boolean;
