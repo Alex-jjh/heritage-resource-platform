@@ -4,6 +4,7 @@ import com.heritage.platform.dto.UpdateProfileRequest;
 import com.heritage.platform.dto.UserProfileResponse;
 import com.heritage.platform.exception.ResourceNotFoundException;
 import com.heritage.platform.model.Category;
+import com.heritage.platform.model.FileReference;
 import com.heritage.platform.model.Resource;
 import com.heritage.platform.model.ResourceStatus;
 import com.heritage.platform.model.User;
@@ -283,6 +284,15 @@ class UserServiceTest {
                 ResourceStatus.APPROVED,
                 user
         );
+        approved.setThumbnailS3Key(approved.getId() + "/cover.jpg");
+        FileReference fileReference = new FileReference();
+        fileReference.setId(UUID.randomUUID());
+        fileReference.setResource(approved);
+        fileReference.setS3Key(approved.getId() + "/image.jpg");
+        fileReference.setOriginalFileName("image.jpg");
+        fileReference.setContentType("image/jpeg");
+        fileReference.setFileSize(123L);
+        approved.getFileReferences().add(fileReference);
         Resource draft = createTestResource(
                 UUID.randomUUID(),
                 "Draft Resource",
@@ -292,6 +302,10 @@ class UserServiceTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(resourceRepository.findByContributorId(userId)).thenReturn(List.of(approved, draft));
+        when(fileService.generateDownloadUrl(approved.getThumbnailS3Key()))
+                .thenReturn("/files/uploads/" + approved.getThumbnailS3Key());
+        when(fileService.generateDownloadUrl(fileReference.getS3Key()))
+                .thenReturn("/files/uploads/" + fileReference.getS3Key());
 
         UserProfileResponse result = userService.getUserProfile(userId);
 
@@ -299,6 +313,63 @@ class UserServiceTest {
         assertEquals("Test User", result.getDisplayName());
         assertEquals(1, result.getPublishedResources().size());
         assertEquals("Approved Resource", result.getPublishedResources().get(0).getTitle());
+        assertEquals(
+                "/files/uploads/" + approved.getThumbnailS3Key(),
+                result.getPublishedResources().get(0).getThumbnailUrl()
+        );
+        assertEquals(
+                "/files/uploads/" + fileReference.getS3Key(),
+                result.getPublishedResources().get(0).getFileReferences().get(0).getDownloadUrl()
+        );
+    }
+
+    @Test
+    void getUserProfile_privateProfile_hidesPrivateFieldsForPublicViewer() {
+        UUID userId = UUID.randomUUID();
+        User user = createTestUser(userId, "private@example.com", UserRole.CONTRIBUTOR);
+        user.setProfilePublic(false);
+        user.setShowEmail(true);
+        user.setContributorRequested(true);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        UserProfileResponse result = userService.getUserProfile(userId);
+
+        assertEquals(userId, result.getId());
+        assertEquals("Test User", result.getDisplayName());
+        assertFalse(result.isProfilePublic());
+        assertFalse(result.isShowEmail());
+        assertFalse(result.isContributorRequested());
+        assertNull(result.getEmail());
+        assertNull(result.getBio());
+        assertTrue(result.getPublishedResources().isEmpty());
+    }
+
+    @Test
+    void getUserProfile_privateProfile_includesPrivateFieldsForOwner() {
+        UUID userId = UUID.randomUUID();
+        User user = createTestUser(userId, "owner@example.com", UserRole.CONTRIBUTOR);
+        user.setProfilePublic(false);
+        user.setShowEmail(false);
+
+        Resource approved = createTestResource(
+                UUID.randomUUID(),
+                "Owner Resource",
+                ResourceStatus.APPROVED,
+                user
+        );
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findByEmail("owner@example.com")).thenReturn(Optional.of(user));
+        when(resourceRepository.findByContributorId(userId)).thenReturn(List.of(approved));
+
+        UserProfileResponse result = userService.getUserProfile(userId, "owner@example.com");
+
+        assertEquals("owner@example.com", result.getEmail());
+        assertEquals("Test bio", result.getBio());
+        assertTrue(result.isShowEmail());
+        assertEquals(1, result.getPublishedResources().size());
+        assertEquals("Owner Resource", result.getPublishedResources().get(0).getTitle());
     }
 
     @Test

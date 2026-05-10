@@ -208,15 +208,38 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public UserProfileResponse getUserProfile(UUID userId) {
+        return getUserProfile(userId, null);
+    }
+
+    /**
+     * Returns a user's public profile. Private fields are only included for
+     * the profile owner or administrators.
+     */
+    @Transactional(readOnly = true)
+    public UserProfileResponse getUserProfile(UUID userId, String requesterEmail) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        List<Resource> publishedResources = resourceRepository.findByContributorId(userId)
-                .stream()
-                .filter(resource -> resource.getStatus() == ResourceStatus.APPROVED)
-                .peek(resourceService::initializeLazyAssociations)
-                .toList();
+        User requester = requesterEmail == null
+                ? null
+                : userRepository.findByEmail(requesterEmail).orElse(null);
 
-        return UserProfileResponse.fromEntity(user, publishedResources);
+        boolean includePrivateProfileFields = requester != null
+                && (requester.getId().equals(userId) || requester.getRole() == UserRole.ADMINISTRATOR);
+
+        List<Resource> publishedResources = user.isProfilePublic() || includePrivateProfileFields
+                ? resourceRepository.findByContributorId(userId)
+                        .stream()
+                        .filter(resource -> resource.getStatus() == ResourceStatus.APPROVED)
+                        .peek(resourceService::initializeLazyAssociations)
+                        .toList()
+                : List.of();
+
+        return UserProfileResponse.fromEntity(
+                user,
+                publishedResources,
+                fileService::generateDownloadUrl,
+                includePrivateProfileFields
+        );
     }
 }

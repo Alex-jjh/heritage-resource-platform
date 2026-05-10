@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { apiClient, ApiError } from "@/lib/api-client";
 import { ProtectedRoute } from "@/components/protected-route";
@@ -10,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { User } from "@/types";
+import type { User, UserProfileResponse } from "@/types";
 
 const ROLE_LABELS: Record<string, string> = {
   REGISTERED_VIEWER: "Registered Viewer",
@@ -66,6 +67,13 @@ function ProfileAvatarPreview({
 function ProfileContent() {
   const { user, refreshUser } = useAuth();
 
+  const publicProfileQuery = useQuery({
+    queryKey: ["user-profile", user?.id],
+    queryFn: () =>
+      apiClient.get<UserProfileResponse>(`/api/users/${user!.id}/profile`),
+    enabled: Boolean(user?.id),
+  });
+
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [bio, setBio] = useState("");
@@ -113,6 +121,7 @@ function ProfileContent() {
 
   const previewName = displayName.trim() || user.displayName || "User";
   const roleLabel = ROLE_LABELS[user.role] ?? user.role;
+  const publishedResources = publicProfileQuery.data?.publishedResources ?? [];
 
   const avatarPreviewToShow =
     selectedAvatarPreviewUrl || avatarUrl || user.avatarUrl || null;
@@ -493,13 +502,24 @@ function ProfileContent() {
             </div>
           </section>
 
-          {profilePublic && user.publishedResources && user.publishedResources.length > 0 && (
+          {profilePublic && publicProfileQuery.isLoading && (
+            <section>
+              <h2 className="font-serif text-[1.6rem] font-medium">
+                Published Resources
+              </h2>
+              <p className="mt-3 text-sm text-muted-foreground">
+                Loading published resources...
+              </p>
+            </section>
+          )}
+
+          {profilePublic && publishedResources.length > 0 && (
             <section>
               <h2 className="font-serif text-[1.6rem] font-medium">
                 Published Resources
               </h2>
               <div className="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {user.publishedResources.map((resource) => (
+                {publishedResources.map((resource) => (
                   <ResourceCard key={resource.id} resource={resource} />
                 ))}
               </div>

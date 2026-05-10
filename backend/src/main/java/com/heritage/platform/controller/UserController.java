@@ -114,7 +114,11 @@ public class UserController {
     }
 
     @GetMapping("/{userId}/profile")
-    public ResponseEntity<UserProfileResponse> getUserProfile(@PathVariable UUID userId) {
-        return ResponseEntity.ok(userService.getUserProfile(userId));
+    public ResponseEntity<UserProfileResponse> getUserProfile(
+            @PathVariable UUID userId,
+            Principal principal
+    ) {
+        String requesterEmail = principal != null ? principal.getName() : null;
+        return ResponseEntity.ok(userService.getUserProfile(userId, requesterEmail));
     }
 }
